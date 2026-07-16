@@ -1,0 +1,27 @@
+[35m.env.example[m[36m:[m[1;31mOPENROUTER[m_API_KEY=
+[35mREADME.md[m[36m:[m[1;31mOPENROUTER[m_API_KEY=...
+[35mbackend/telegram/.env.example[m[36m:[m[1;31mOPENROUTER[m_API_KEY=your-openrouter-api-key-here
+[35mbackend/telegram/config.py[m[36m:[m[1;31mOPENROUTER[m_API_KEY = os.getenv("[1;31mOPENROUTER[m_API_KEY", "")
+[35mbackend/telegram/services/ai_service.py[m[36m:[mfrom config import [1;31mOPENROUTER[m_API_KEY, AI_MODEL
+[35mbackend/telegram/services/ai_service.py[m[36m:[m    if not [1;31mOPENROUTER[m_API_KEY:
+[35mbackend/telegram/services/ai_service.py[m[36m:[m                    "Authorization": f"Bearer {[1;31mOPENROUTER[m_API_KEY}",
+[35msupabase/functions/_shared/ai-router.ts[m[36m:[m  return Deno.env.get("[1;31mOPENROUTER[m_API_KEY");
+[35msupabase/functions/_shared/ai-router.ts[m[36m:[m  if (!key) throw new Error("[1;31mOPENROUTER[m_API_KEY not set");
+[35msupabase/functions/_shared/ai-router.ts[m[36m:[m    console.log("[1;31mOPENROUTER[m ERROR:", JSON.stringify(data));
+[35msupabase/functions/ai-assistant/index.ts[m[36m:[m  console.log('🔑 AI Router key exists:', !!Deno.env.get('[1;31mOPENROUTER[m_API_KEY'));
+[35msupabase/functions/ai-router/index.ts[m[36m:[m  return Deno.env.get("[1;31mOPENROUTER[m_API_KEY");
+[35msupabase/functions/ai-router/index.ts[m[36m:[m  if (!key) throw new Error("[1;31mOPENROUTER[m_API_KEY not set");
+[35msupabase/functions/telegram-webhook/ai-router.ts[m[36m:[mconst [1;31mOPENROUTER[m_FREE_MODEL = "openrouter/free";
+[35msupabase/functions/telegram-webhook/ai-router.ts[m[36m:[m  return Deno.env.get("[1;31mOPENROUTER[m_API_KEY");
+[35msupabase/functions/telegram-webhook/ai-router.ts[m[36m:[m      const text = await callOpenRouter(req.messages, [1;31mOPENROUTER[m_FREE_MODEL);
+[35msupabase/functions/telegram-webhook/ai-router.ts[m[36m:[m      return { text, provider: "openrouter", model: [1;31mOPENROUTER[m_FREE_MODEL };
+[35msupabase/functions/telegram-webhook/ai.ts[m[36m:[m  console.log(`[1;31mOPENROUTER[m MODEL TRY: ${model}`);
+[35msupabase/functions/telegram-webhook/ai.ts[m[36m:[m    console.error(`[1;31mOPENROUTER[m FALLBACK: model ${model} blocked by guardrail/404`);
+[35msupabase/functions/telegram-webhook/ai.ts[m[36m:[m  console.log(`[1;31mOPENROUTER[m MODEL SUCCESS: ${model}`);
+[35msupabase/functions/telegram-webhook/ai.ts[m[36m:[m      console.error(`[1;31mOPENROUTER[m FALLBACK: ${model} -> ${lastError.message}`);
+[35msupabase/migrations/20240925_create_telegram_tables.sql[m[36m:[m[1;31mOPENROUTER[m_API_KEY=your_openrouter_api_key_here
+[35msupabase/migrations/20240925_create_telegram_tables.sql[m[36m:[m  const openRouterApiKey = Deno.env.get('[1;31mOPENROUTER[m_API_KEY');
+[35msupabase/migrations/20240925_create_telegram_tables.sql[m[36m:[m- `[1;31mOPENROUTER[m_API_KEY` (get from openrouter.ai)
+[35msupabase/migrations/20240925_create_telegram_tables.sql[m[36m:[m1. Set real values in `.env` for `SUPABASE_SERVICE_ROLE_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and `[1;31mOPENROUTER[m_API_KEY`
+[35mtelegram-bot/.env.example[m[36m:[m[1;31mOPENROUTER[m_API_KEY=your-openrouter-api-key-here
+[35mtelegram-bot/config.py[m[36m:[m[1;31mOPENROUTER[m_API_KEY = os.getenv("[1;31mOPENROUTER[m_API_KEY", "")
