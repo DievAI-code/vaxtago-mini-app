@@ -21,9 +21,17 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 ## Локальный запуск
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
+
+# Vercel Deploy
+Node: 24.x
+pnpm: 11.13.1
+
+Перед деплоем:
+corepack enable
+pnpm install
 
 ## Деплой на Vercel
 
