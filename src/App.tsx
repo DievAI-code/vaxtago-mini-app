@@ -48,7 +48,7 @@ const App = () => {
     const bootSplash = document.getElementById("boot-splash");
     if (bootSplash) bootSplash.remove();
 
-    // Telegram Mini App viewport handling — only lock body inside Telegram
+    // Telegram Mini App viewport handling
     const isTelegram = Boolean(window.Telegram?.WebApp?.initData);
     const tg = window.Telegram?.WebApp;
     if (isTelegram && tg) {
@@ -95,7 +95,7 @@ const App = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5 }}
-                    className="app-root"
+                    className="app-container"
                   >
                     <BrowserRouter>
                       <Suspense fallback={<PageFallback />}>

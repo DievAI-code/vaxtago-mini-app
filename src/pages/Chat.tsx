@@ -34,6 +34,7 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -81,52 +82,67 @@ export default function Chat() {
   }
 
   return (
-    <div className="chat-container bg-gray-50">
-      <div className="bg-white border-b p-4 shadow-sm flex-shrink-0">
-        <div className="flex items-center gap-2 justify-center">
-          <Bot size={20} className="text-blue-600" />
-          <h1 className="text-xl font-bold text-center">{t("chat_title")}</h1>
-          <span className="text-xs text-gray-500 uppercase">{lang}</span>
-        </div>
+    <div className="chat-container">
+      <div className="chat-header">
+        <Bot size={20} className="text-blue-600" />
+        <h1 className="text-xl font-bold">{t("chat_title")}</h1>
+        <span className="text-xs text-gray-500 uppercase">{lang}</span>
       </div>
-      <div ref={messagesContainerRef} className="chat-messages p-4 space-y-3">
+
+      <div ref={messagesContainerRef} className="messages-area">
         {messages.map((msg) => (
-          <div key={msg.id} className={`max-w-[80%] p-3 rounded-2xl ${msg.role === "user" ? "ml-auto bg-blue-600 text-white" : "bg-white text-gray-800 shadow-sm"}`}>
+          <div
+            key={msg.id}
+            className={`message-bubble ${msg.role}`}
+          >
             {msg.content}
           </div>
         ))}
+        <div ref={messagesEndRef} />
         {loading && (
-          <div className="bg-white p-3 rounded-2xl shadow-sm text-gray-500 flex items-center gap-2">
-            <div className="flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />
-              ))}
-            </div>
-            <span className="text-sm">🤖 VaxtaGo AI думает...</span>
+          <div className="flex justify-center items-center py-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         )}
       </div>
-      <div className="chat-input bg-white border-t p-3 flex items-center gap-2">
-        <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200" disabled={loading}>
-          <ImageIcon size={20} />
-        </button>
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          placeholder={t("chat_ph")}
-          className="flex-1 p-2 border rounded-full px-4 outline-none focus:border-blue-400"
-          disabled={loading}
-        />
-        <button onClick={handleSend} className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
-          <Send size={20} />
-        </button>
+
+      <div className="input-area">
+        <div className="flex gap-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
+            disabled={loading}
+          >
+            <ImageIcon size={20} />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder={t("chat_ph")}
+            className="flex-1 p-2 border rounded-full px-4 outline-none focus:border-blue-400"
+            disabled={loading}
+          />
+          <button
+            onClick={handleSend}
+            className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            disabled={loading}
+          >
+            <Send size={20} />
+          </button>
+        </div>
       </div>
     </div>
   );

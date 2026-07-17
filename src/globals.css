@@ -95,14 +95,16 @@
     @apply border-border;
   }
 
-  /* Desktop: normal scroll */
   html, body, #root {
     height: 100%;
+    margin: 0;
+    padding: 0;
   }
 
   body {
     @apply bg-background text-foreground;
     overflow: auto;
+    position: static;
   }
 
   /* Telegram Mini App: lock viewport to avoid keyboard shift */
@@ -114,41 +116,118 @@
     height: 100%;
   }
 
-  /* Telegram Mini App dynamic viewport */
-  .app-root {
+  /* Main app container with proper flex layout */
+  .app-container {
     height: 100dvh;
-    min-height: 100dvh;
-    height: var(--app-height, 100dvh);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    position: relative;
   }
 
-  body:not(.telegram-app) .app-root {
+  /* Chat container with proper flex hierarchy */
+  .chat-container {
+    display: flex;
+    flex-direction: column;
     height: 100%;
-    min-height: 100%;
+    min-height: 0;
+    background: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
-}
 
-/* Chat layout helpers */
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
+  /* Messages area - the only element that should scroll */
+  .messages-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 
-.chat-messages {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: auto;
-  -webkit-overflow-scrolling: touch;
-}
+  /* Header - fixed at top */
+  .chat-header {
+    flex-shrink: 0;
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: white;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
 
-.chat-input {
-  position: sticky;
-  bottom: 0;
-  flex-shrink: 0;
+  /* Input area - fixed at bottom */
+  .input-area {
+    flex-shrink: 0;
+    padding: 1rem;
+    border-top: 1px solid #e5e7eb;
+    background: white;
+  }
+
+  /* Message bubbles */
+  .message-bubble {
+    max-width: 80%;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    word-wrap: break-word;
+  }
+
+  .message-bubble.user {
+    background: #3b82f6;
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 0.25rem;
+  }
+
+  .message-bubble.assistant {
+    background: #f3f4f6;
+    color: #1f2937;
+    margin-right: auto;
+    border-bottom-left-radius: 0.25rem;
+  }
+
+  /* Scroll to bottom button */
+  .scroll-to-bottom {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.2s;
+  }
+
+  .scroll-to-bottom:hover {
+    opacity: 0.9;
+  }
+
+  /* Custom scrollbar */
+  .messages-area::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .messages-area::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .messages-area::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 3px;
+  }
+
+  .messages-area::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
+  }
 }
