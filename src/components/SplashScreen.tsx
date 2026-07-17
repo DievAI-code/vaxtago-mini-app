@@ -34,6 +34,14 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       >
         VaxtaGo
       </motion.h1>
+      <motion.p
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.45 }}
+        className="mt-2 text-sm text-white/80 text-center px-8"
+      >
+        AI помощник для работы и документов
+      </motion.p>
       <motion.div
         className="mt-4 w-32 h-1 bg-white/30 rounded-full overflow-hidden"
         initial={{ opacity: 0 }}

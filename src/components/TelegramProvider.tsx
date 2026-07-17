@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, ReactNode } from "react";
 import { useTelegram } from "@/hooks/useTelegram";
-import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/theme";
 
 interface TelegramContextType {
@@ -30,7 +29,10 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
-    const syncUser = async () => {
+    let cancelled = false;
+    // Dynamic import keeps supabase (ai chunk) out of the initial bundle
+    import("@/integrations/supabase/client").then(async ({ supabase }) => {
+      if (cancelled) return;
       try {
         await supabase.from("telegram_users").upsert(
           {
@@ -46,8 +48,8 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error("Failed to sync Telegram user:", err);
       }
-    };
-    syncUser();
+    });
+    return () => { cancelled = true; };
   }, [user, initData, lang]);
 
   return (
