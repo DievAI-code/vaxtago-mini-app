@@ -62,7 +62,7 @@ export function useTelegram() {
   const [initData, setInitData] = useState<string>("");
 
   useEffect(() => {
-    // Non-blocking: if Telegram API is missing, just skip
+    // Non-blocking: if Telegram API is missing, just skip (fallback for browser)
     const tg = window.Telegram?.WebApp;
     if (tg) {
       try {

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, useEffect, Suspense, lazy } from "react";
 import { AppProvider } from "@/lib/theme";
-import { SplashScreen } from "@/components/SplashScreen";
+import { VaxtaGoSplash } from "@/components/VaxtaGoSplash";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TelegramProvider } from "@/components/TelegramProvider";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
@@ -41,6 +41,14 @@ const App = () => {
     meta.name = "description";
     meta.content = "VaxtaGo: поиск работы, проверка работодателей, перевод документов, юридическая помощь и миграция.";
     document.head.appendChild(meta);
+
+    // Remove boot splash from index.html once React is ready
+    const bootSplash = document.getElementById("boot-splash");
+    if (bootSplash) bootSplash.remove();
+
+    // Minimal loading delay for smooth transition
+    const t = setTimeout(() => setLoading(false), 800);
+    return () => clearTimeout(t);
   }, []);
 
   return (
@@ -51,7 +59,7 @@ const App = () => {
             <ErrorBoundary>
               <Toaster />
               <Sonner />
-              {loading && <SplashScreen onDone={() => setLoading(false)} />}
+              {loading && <VaxtaGoSplash />}
               <BrowserRouter>
                 <Suspense fallback={<PageFallback />}>
                   <Routes>

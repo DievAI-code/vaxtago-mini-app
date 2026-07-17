@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bot, ScanLine, Briefcase, Building2, Languages, Scale, Crown, Search, FileText, ShieldCheck, FileCheck, BookOpen, MapPin, CheckCircle, Star, ArrowRight } from "lucide-react";
+import { Bot, ScanLine, Briefcase, Building2, Languages, Scale, Crown, Search, FileText, ShieldCheck, FileCheck, BookOpen, MapPin, CheckCircle, Star, ArrowRight, User } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FeatureCard } from "@/components/FeatureCard";
@@ -40,16 +40,6 @@ export default function Index() {
     document.head.appendChild(script);
   }, []);
 
-  const cards = [
-    { icon: <Bot />, title: t("ai"), desc: t("ai_d"), action: () => document.getElementById("chat")?.scrollIntoView({ behavior: "smooth" }) },
-    { icon: <ScanLine />, title: t("scan"), desc: t("scan_d"), action: () => nav("/scanner") },
-    { icon: <Briefcase />, title: t("jobs"), desc: t("jobs_d"), action: () => nav("/jobs") },
-    { icon: <Building2 />, title: t("employer"), desc: t("employer_d"), action: () => {} },
-    { icon: <Languages />, title: t("translate"), desc: t("translate_d"), action: () => {} },
-    { icon: <Scale />, title: t("lawyer"), desc: t("lawyer_d"), action: () => {} },
-    { icon: <Crown />, title: t("premium"), desc: t("premium_d"), action: () => {} },
-  ];
-
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 text-slate-800 dark:text-slate-100">
       <Navbar />
@@ -57,6 +47,33 @@ export default function Index() {
       <div className="max-w-2xl mx-auto">
         <WelcomeScreen />
       </div>
+
+      {/* Quick actions - visible immediately */}
+      <section className="max-w-2xl mx-auto px-4 -mt-4">
+        <div className="grid grid-cols-3 gap-3">
+          <button
+            onClick={() => document.getElementById("chat")?.scrollIntoView({ behavior: "smooth" })}
+            className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-lg hover:scale-105 transition-all"
+          >
+            <Bot size={24} />
+            <span className="text-xs font-semibold text-center">🤖 AI Помощник</span>
+          </button>
+          <button
+            onClick={() => document.getElementById("premium")?.scrollIntoView({ behavior: "smooth" })}
+            className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg hover:scale-105 transition-all"
+          >
+            <Crown size={24} className="text-amber-500" />
+            <span className="text-xs font-semibold text-center text-slate-700 dark:text-slate-200">⭐ Premium</span>
+          </button>
+          <button
+            onClick={() => nav("/profile")}
+            className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg hover:scale-105 transition-all"
+          >
+            <User size={24} className="text-blue-600" />
+            <span className="text-xs font-semibold text-center text-slate-700 dark:text-slate-200">👤 Профиль</span>
+          </button>
+        </div>
+      </section>
 
       <section className="relative px-4 pt-10 pb-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-cyan-400/5 to-transparent" />
@@ -199,6 +216,28 @@ export default function Index() {
         </Suspense>
       </section>
 
+      <section id="premium" className="max-w-6xl mx-auto px-4 py-20">
+        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="bg-gradient-to-r from-blue-600/10 to-cyan-400/10 rounded-3xl p-8 md:p-12 border border-blue-200 dark:border-blue-800">
+          <motion.div variants={fadeUp} className="text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("premium_title")}</h2>
+            <p className="text-lg text-slate-600 dark:text-slate-400 mb-2">{t("premium_unlimited")}</p>
+            <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">{t("premium_price")}</p>
+            
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-600" /><span>{t("pf1")}</span></div>
+              <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-600" /><span>{t("pf2")}</span></div>
+              <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-600" /><span>{t("pf3")}</span></div>
+              <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-600" /><span>{t("pf4")}</span></div>
+              <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-600" /><span>{t("pf5")}</span></div>
+            </div>
+            
+            <button className="px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-2xl hover:scale-105 transition-all duration-300 shadow-lg">
+              {t("premium_try")}
+            </button>
+          </motion.div>
+        </motion.div>
+      </section>
+
       <section className="max-w-6xl mx-auto px-4 py-20">
         <FadeUp>
           <h2 className="text-3xl font-bold text-center mb-12">{t("trusted")}</h2>
@@ -220,28 +259,6 @@ export default function Index() {
           <motion.div variants={fadeUp} className="text-center p-6 rounded-2xl bg-white/50 dark:bg-slate-800/50">
             <div className="text-3xl font-bold text-blue-600 mb-2">4</div>
             <div className="text-sm text-slate-600 dark:text-slate-400">{t("stats4")}</div>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-4 py-20">
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="bg-gradient-to-r from-blue-600/10 to-cyan-400/10 rounded-3xl p-8 md:p-12 border border-blue-200 dark:border-blue-800">
-          <motion.div variants={fadeUp} className="text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("premium_title")}</h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400 mb-2">{t("premium_unlimited")}</p>
-            <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">{t("premium_price")}</p>
-            
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
-              <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-600" /><span>{t("pf1")}</span></div>
-              <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-600" /><span>{t("pf2")}</span></div>
-              <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-600" /><span>{t("pf3")}</span></div>
-              <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-600" /><span>{t("pf4")}</span></div>
-              <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5 text-green-600" /><span>{t("pf5")}</span></div>
-            </div>
-            
-            <button className="px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-2xl hover:scale-105 transition-all duration-300 shadow-lg">
-              {t("premium_try")}
-            </button>
           </motion.div>
         </motion.div>
       </section>
