@@ -1,15 +1,15 @@
 import type { Lang } from "./types.ts";
 import { createAIRequest } from "../_shared/ai-router.ts";
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
-export function detectImageType(instruction: string): ImageType {
+export function detectImageType(instruction: string): string {
   const low = instruction.toLowerCase();
-  if (["договор", "contract", "ҳуҷҷат", "куҷҷат"].some((w) => low.includes(w))) return "contract";
-  if (["переписк", "chat", "сообщен", "messag"].some((w) => low.includes(w))) return "chat";
-  if (["жиль", "housing", "квартир", "комнат"].some((w) => low.includes(w))) return "housing";
-  if (["объявлен", "ваканс", "ad", "vacancy"].some((w) => low.includes(w))) return "ad";
-  if (["скрин", "screenshot", "экран"].some((w) => low.includes(w))) return "screenshot";
+  if (["договор", "contract", "ҳуҷҷат"].some((w) => low.includes(w))) return "contract";
+  if (["переписк", "chat", "сообщен"].some((w) => low.includes(w))) return "chat";
+  if (["жиль", "housing"].some((w) => low.includes(w))) return "housing";
+  if (["объявлен", "ваканс", "vacancy"].some((w) => low.includes(w))) return "ad";
+  if (["скрин", "screenshot"].some((w) => low.includes(w))) return "screenshot";
   if (["документ", "паспорт", "patent", "миграц", "document"].some((w) => low.includes(w))) return "document";
   return "photo";
 }
@@ -30,8 +30,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   let binary = "";
   const chunkSize = 0x8000;
   for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
   }
   return btoa(binary);
 }
@@ -43,12 +42,8 @@ async function downloadTelegramFile(botToken: string, fileId: string): Promise<s
   if (!response.ok) throw new Error(`Download failed: ${response.status}`);
   const arrayBuffer = await response.arrayBuffer();
   if (arrayBuffer.byteLength > MAX_IMAGE_SIZE) throw new Error("File too large (max 10MB)");
-  const mime = filePath.endsWith(".png") ? "image/png"
-    : filePath.endsWith(".webp") ? "image/webp"
-    : filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") ? "image/jpeg"
-    : "application/octet-stream";
-  const base64 = arrayBufferToBase64(arrayBuffer);
-  return `data:${mime};base64,${base64}`;
+  const mime = filePath.endsWith(".png") ? "image/png" : filePath.endsWith(".webp") ? "image/webp" : "image/jpeg";
+  return `data:${mime};base64,${arrayBufferToBase64(arrayBuffer)}`;
 }
 
 export async function analyzeDocument(
@@ -56,24 +51,10 @@ export async function analyzeDocument(
   fileId: string,
   instruction: string,
   lang: Lang,
-): Promise<{ result: string; imageType: ImageType; provider: string; model: string }> {
+  userId: number,
+): Promise<{ result: string; imageType: string; provider: string; model: string }> {
   const imageUrl = await downloadTelegramFile(botToken, fileId);
   const imageType = detectImageType(instruction);
-
-  console.log("VISION START - Routing through AI Router");
-  const aiResult = await createAIRequest({
-    type: "vision",
-    image: imageUrl,
-    text: instruction,
-    language: lang,
-  });
-
-  console.log("VISION RESPONSE:", JSON.stringify(aiResult));
-
-  return {
-    result: aiResult.text,
-    imageType,
-    provider: aiResult.provider,
-    model: aiResult.model,
-  };
+  const aiResult = await createAIRequest({ type: "vision", image: imageUrl, text: instruction, language: lang, userId });
+  return { result: aiResult.text, imageType, provider: aiResult.provider, model: aiResult.model };
 }

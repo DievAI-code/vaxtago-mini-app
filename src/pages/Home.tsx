@@ -6,17 +6,10 @@ Copyright © 2026
 */
 
 import { useNavigate } from "react-router-dom";
-import { Bot, FileText, Briefcase, User } from "lucide-react";
+import { Bot } from "lucide-react";
 
 export default function Home() {
   const navigate = useNavigate();
-
-  const buttons = [
-    { icon: Bot, label: "🤖 AI помощник", path: "/chat", color: "from-blue-500 to-cyan-500" },
-    { icon: FileText, label: "📷 Документы", path: "/scanner", color: "from-purple-500 to-pink-500" },
-    { icon: Briefcase, label: "💼 Работа", path: "/jobs", color: "from-green-500 to-emerald-500" },
-    { icon: User, label: "👤 Профиль", path: "/profile", color: "from-orange-500 to-amber-500" },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
@@ -30,18 +23,17 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid gap-4">
-          {buttons.map((btn) => (
-            <button
-              key={btn.path}
-              onClick={() => navigate(btn.path)}
-              className={`flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r ${btn.color} text-white shadow-lg hover:scale-105 transition-transform`}
-            >
-              <btn.icon size={28} />
-              <span className="text-lg font-semibold">{btn.label}</span>
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={() => navigate("/chat")}
+          className="flex items-center gap-4 p-6 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg hover:scale-105 transition-transform w-full"
+        >
+          <Bot size={32} />
+          <span className="text-xl font-semibold">💬 AI Помощник</span>
+        </button>
+
+        <p className="text-center text-sm text-gray-500 mt-4">
+          Просто напишите сообщение — я сам определю: поиск работы, перевод, документы, работодатель, юрист или миграция.
+        </p>
 
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>© 2026 VaxtaGo • Made by Dmitry Diev</p>

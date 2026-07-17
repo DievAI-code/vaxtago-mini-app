@@ -16,7 +16,7 @@ interface Message {
 
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Привет! Я VaxtaGo AI. Чем могу помочь?" },
+    { role: "assistant", content: "Привет! Я VaxtaGo AI. Напишите вопрос — я сам пойму, чем помочь." },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -35,15 +35,15 @@ export default function Chat() {
 
       const { data, error } = await supabase.functions.invoke("ai-router", {
         body: {
-          type: imageBase64 ? "vision" : "text",
-          user_id: userId,
-          message,
+          type: imageBase64 ? "vision" : "assistant",
+          userId,
+          text: message,
           image: imageBase64,
         },
       });
 
       if (error) throw error;
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply ?? data.text }]);
     } catch (err) {
       console.error(err);
       setMessages((prev) => [...prev, { role: "assistant", content: "Ошибка связи с AI." }]);

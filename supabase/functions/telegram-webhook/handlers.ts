@@ -4,16 +4,13 @@ import { t } from "./translations.ts";
 import { getOrCreateUser, setLanguage } from "./user.ts";
 import { sendMessage, answerCallbackQuery } from "./telegram.ts";
 import { createInvoice, processSuccessfulPayment } from "./telegram-payment.ts";
+import { getAIResponse } from "./ai.ts";
 
 const LANG_CALLBACK_MAP: Record<string, string> = {
-  "lang_ru": "ru",
-  "lang_uz": "uz",
-  "lang_tg": "tg",
-  "lang_ky": "ky",
-  "lang_en": "en",
+  "lang_ru": "ru", "lang_uz": "uz", "lang_tg": "tg", "lang_ky": "ky", "lang_en": "en",
 };
 
-const MINI_APP_URL = Deno.env.get("MINI_APP_URL") ?? "https://vaxtago.app/mini/home";
+const MINI_APP_URL = Deno.env.get("MINI_APP_URL") ?? "https://vaxtago.vercel.app/mini/home";
 
 export async function processCallbackQuery(body: any, supabase: any, botToken: string) {
   try {
@@ -32,25 +29,22 @@ export async function processCallbackQuery(body: any, supabase: any, botToken: s
     await answerCallbackQuery(botToken, cb.id);
 
     if (data in LANG_CALLBACK_MAP) {
-      const selectedLang = LANG_CALLBACK_MAP[data];
-      await setLanguage(supabase, userId, selectedLang);
-      await sendMessage(chatId, botToken, t("settings_saved", selectedLang) + "\n\n" + t("welcome_commercial", selectedLang), {
+      await setLanguage(supabase, userId, LANG_CALLBACK_MAP[data]);
+      await sendMessage(chatId, botToken, t("settings_saved", LANG_CALLBACK_MAP[data]) + "\n\n" + t("welcome_commercial", LANG_CALLBACK_MAP[data]), {
         inline_keyboard: [[{ text: "🚀 Открыть VaxtaGo", web_app: { url: MINI_APP_URL } }]],
       });
       return;
     }
-
     if (data === "open_mini") {
       await sendMessage(chatId, botToken, "🚀 Открываю VaxtaGo...", {
         inline_keyboard: [[{ text: "🚀 Открыть VaxtaGo", web_app: { url: MINI_APP_URL } }]],
       });
       return;
     }
-
     if (data === "premium:buy") {
       const providerToken = Deno.env.get("TELEGRAM_PAYMENT_PROVIDER_TOKEN") ?? "";
       if (!providerToken) {
-        await sendMessage(chatId, botToken, "⚠️ Платёж временно недоступен. Попробуйте позже.", {
+        await sendMessage(chatId, botToken, "⚠️ Платёж временно недоступен.", {
           inline_keyboard: [[{ text: "🚀 Открыть VaxtaGo", web_app: { url: MINI_APP_URL } }]],
         });
         return;
@@ -73,15 +67,10 @@ export async function processTelegramMessage(body: any, supabase: any, botToken:
     const from = msg.from;
     if (!chatId || !from) return;
 
-    console.log("AI ROUTER START");
-    console.log("INPUT TYPE:", text ? "text" : "unknown");
-
     const userId = from.id;
     const user = await getOrCreateUser(supabase, from);
     let lang: Lang = (user?.language as Lang) || "ru";
     if (!["ru", "uz", "tg", "ky", "en"].includes(lang)) lang = "ru";
-
-    console.log({ telegram_id: userId, user_found: !!user });
 
     if (msg.successful_payment) {
       await processSuccessfulPayment(supabase, userId, msg.successful_payment);
@@ -92,7 +81,6 @@ export async function processTelegramMessage(body: any, supabase: any, botToken:
     }
 
     if (text === "/start") {
-      console.log("START COMMAND RECEIVED");
       await sendMessage(chatId, botToken,
         "👋 Добро пожаловать в VaxtaGo\n\nВаш AI помощник по работе, документам и переводам.\n\nОснователь проекта:\nДмитрий Диев",
         {
@@ -108,6 +96,13 @@ export async function processTelegramMessage(body: any, supabase: any, botToken:
       return;
     }
 
+    // Free-text: route through AI
+    if (text) {
+      const reply = await getAIResponse(text, lang, userId);
+      await sendMessage(chatId, botToken, reply);
+      return;
+    }
+
     // Default: open Mini App
     await sendMessage(chatId, botToken, "🚀 Открыть VaxtaGo Mini App:", {
       inline_keyboard: [[{ text: "🚀 Открыть VaxtaGo", web_app: { url: MINI_APP_URL } }]],
@@ -115,7 +110,6 @@ export async function processTelegramMessage(body: any, supabase: any, botToken:
   } catch (error) {
     console.error("🔥 Critical Background Error:", error);
   } finally {
-    console.log("AI ROUTER COMPLETE");
     console.log(`--- MESSAGE PROCESS END (${Date.now() - startTime}ms) ---`);
   }
 }

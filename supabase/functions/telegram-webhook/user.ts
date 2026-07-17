@@ -3,39 +3,30 @@ import { detectLanguage } from "./utils.ts";
 
 export async function getOrCreateUser(supabase: any, from: TelegramFrom): Promise<any> {
   const userId = from.id;
-  const { data, error } = await supabase
-    .from("telegram_users")
-    .select("*")
-    .eq("telegram_id", userId)
-    .maybeSingle();
+  const lang = detectLanguage("", from.language_code);
 
-  if (data) return data;
-
-  const newUser = {
+  const userRecord = {
     telegram_id: userId,
     username: from.username || null,
     first_name: [from.first_name, from.last_name].filter(Boolean).join(" ") || null,
-    language: detectLanguage("", from.language_code),
+    language: lang,
     subscription_status: "FREE",
     premium: false,
-    last_image_text: null,
-    last_ocr_text: null,
-    translation_state: null,
-    last_translation: null,
-    selected_language: null,
-    document_scan_state: null,
-    created_at: new Date().toISOString(),
     last_activity: new Date().toISOString(),
   };
 
-  const { data: inserted, error: insertError } = await supabase
+  // Upsert avoids race condition between SELECT + INSERT
+  const { data, error } = await supabase
     .from("telegram_users")
-    .insert(newUser)
+    .upsert(userRecord, { onConflict: "telegram_id" })
     .select()
     .maybeSingle();
 
-  if (insertError) console.error("❌ User insert error:", insertError.message);
-  return inserted || newUser;
+  if (error) {
+    console.error("❌ User upsert error:", error.message);
+    return userRecord;
+  }
+  return data || userRecord;
 }
 
 export async function setLanguage(supabase: any, userId: number, lang: string): Promise<void> {
