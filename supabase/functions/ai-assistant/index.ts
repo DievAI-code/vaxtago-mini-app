@@ -133,15 +133,17 @@ serve(async (req) => {
     console.error("Failed to save history:", e);
   }
 
+  const responseData = {
+    success: true,
+    reply,
+    model,
+    language: lang,
+    intent,
+    action,
+  };
+
   return new Response(
-    JSON.stringify({
-      success: true,
-      reply,
-      model,
-      language: lang,
-      intent,
-      action,
-    }),
+    JSON.stringify(responseData),
     { headers: corsHeaders, status: 200 },
   );
 });

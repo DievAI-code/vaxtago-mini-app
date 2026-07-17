@@ -154,7 +154,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${key}`,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
         "HTTP-Referer": Deno.env.get("APP_DOMAIN") ?? "https://vaxtago.app",
         "X-Title": "VaxtaGo",
       },
