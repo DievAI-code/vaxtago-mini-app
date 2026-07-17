@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Image as ImageIcon, Paperclip, Mic, X } from "lucide-react";
+import { Send, Image as ImageIcon, Paperclip, Mic, X, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TypingDots } from "./animations";
 import { useStrings } from "@/lib/theme";

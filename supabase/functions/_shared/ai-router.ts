@@ -44,22 +44,14 @@ const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
     "Ты помощник по миграции VaxtaGo.\nОбъясни МВД, патенты, регистрацию.\nДай чёткий план действий.",
 };
 
+const MODELS = [
+  "google/gemini-2.5-flash",
+  "google/gemini-2.0-flash",
+  "openrouter/free",
+];
+
 function getApiKey(): string | undefined {
   return Deno.env.get("OPENROUTER_API_KEY");
-}
-
-function getPrimaryModel(): string {
-  // TEXT, VISION, OCR all use Gemini 2.5 Flash
-  return "google/gemini-2.5-flash";
-}
-
-function getFallbackModels(): string[] {
-  // Fallback to openrouter/free
-  return ["openrouter/free"];
-}
-
-function getModelsList(): string[] {
-  return Array.from(new Set([getPrimaryModel(), ...getFallbackModels()]));
 }
 
 function detectTask(input: string, hasImage: boolean = false): AIRequestType {
@@ -168,7 +160,7 @@ async function withRetry(fn: () => Promise<string>, retries = 2): Promise<string
 
 export async function createAIRequest(req: AIRequest): Promise<AIResult> {
   const startTime = Date.now();
-  const models = getModelsList();
+  const models = MODELS;
   const task = detectTask(req.text || "", !!req.image);
   console.log("AI ROUTER START - task:", task);
   let lastError: Error | null = null;
@@ -190,7 +182,8 @@ export async function createAIRequest(req: AIRequest): Promise<AIResult> {
       return { text, model, provider: "openrouter" };
     } catch (e) {
       lastError = e instanceof Error ? e : new Error("unknown");
-      console.log("AI ROUTER - FALLBACK:", model, "->", lastError.message);
+      console.log("AI ROUTER - MODEL FAILED:", model, "->", lastError.message);
+      console.log("AI ROUTER - FALLBACK:", model);
     }
   }
 

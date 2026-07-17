@@ -79,7 +79,7 @@ serve(async (req) => {
     reply = aiResult.text;
   } catch (error) {
     console.error("AI Router failed:", error);
-    reply = "⚠️ AI временно недоступен. Попробуйте позже.";
+    reply = "⚠️ AI временно переключается на резервный сервер. Попробуйте позже.";
   }
 
   await supabase.from("assistant_messages").insert([
