@@ -11,7 +11,8 @@ export type AIRequestType =
   | "legal"
   | "migration"
   | "premium"
-  | "chat";
+  | "chat"
+  | "help";
 
 export interface AIRequest {
   type: AIRequestType;
@@ -19,30 +20,40 @@ export interface AIRequest {
   image?: string; // base64 data URI
   language?: string;
   userId?: string | number;
+  context?: string;
+  hasImage?: boolean;
+  imageUrl?: string;
+  previousMessages?: Array<{ role: string; content: string }>;
 }
 
 export interface AIResult {
   text: string;
   model: string;
   provider: string;
+  intent?: string;
+  action?: string;
+  language?: string;
 }
 
 export type Intent =
-  | "JOB_SEARCH"
-  | "TRANSLATION"
-  | "VISION_OCR"
-  | "LEGAL_HELP"
-  | "PREMIUM"
   | "CHAT"
+  | "TRANSLATE"
+  | "OCR"
+  | "OCR_TRANSLATE"
+  | "DOCUMENT_ANALYSIS"
+  | "JOB_SEARCH"
   | "EMPLOYER_CHECK"
-  | "MIGRATION"
-  | "DOCUMENT";
+  | "PREMIUM"
+  | "HELP"
+  | "LEGAL"
+  | "MIGRATION";
 
 export interface RouterOutput {
   intent: Intent;
   reply: string;
   action: string;
   confidence: number;
+  language: string;
 }
 
 const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
@@ -51,9 +62,9 @@ const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
   vision:
     "Ты система OCR и анализа документов VaxtaGo.\nРаспознай текст на изображении и верни ТОЛЬКО распознанный текст без комментариев.\nЕсли текста нет — напиши 'Текст не найден'.",
   translation:
-    "Переведи текст на указанный язык.\nСохраняй смысл и структуру документа.\nВерни ТОЛЬКО перевод.",
+    "Переведи текст на указанный язык.\nСохраняй смысл и структуру документа.\nВерни ТОЛЬКО перевод в формате:\nОригинал:\n...\nПеревод:\n...",
   document:
-    "Ты помощник по документам VaxtaGo.\nОбъясни права и риски простым языком.",
+    "Ты помощник по документам VaxtaGo.\nОбъясни права и риски простым языком.\nПроверь договоры на скрытые условия.",
   vacancy:
     "Ты помощник по поиску работы VaxtaGo.\nУчитывай риски и реальный доход.\nПредлагай только проверенные вакансии.",
   employer_check:
@@ -66,6 +77,8 @@ const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
     "Ты помощник по Premium подписке VaxtaGo.\nОбъясни преимущества и помоги оформить.",
   chat:
     "Ты дружелюбный собеседник VaxtaGo.\nПоддерживай беседу и помогай с общими вопросами.",
+  help:
+    "Ты помощник по приложению VaxtaGo.\nОбъясни как пользоваться: поиск работы, перевод, сканер, профиль, премиум.\nОтвечай кратко и по делу.",
 };
 
 const MODELS = [
@@ -79,21 +92,41 @@ function getApiKey(): string | undefined {
   return Deno.env.get("OPENROUTER_API_KEY");
 }
 
-export function detectIntent(input: string, hasImage: boolean = false): Intent {
+export function detectIntent(input: string, hasImage: boolean = false, previousMessages: Array<{ role: string; content: string }> = []): Intent {
   const low = input.toLowerCase();
 
-  if (hasImage) {
-    if (low.includes("перевед") || low.includes("translate")) return "TRANSLATION";
-    return "VISION_OCR";
+  // If previous message was about translation and current is plain text → TRANSLATE
+  if (previousMessages.length > 0) {
+    const lastUserMsg = [...previousMessages].reverse().find((m) => m.role === "user");
+    if (lastUserMsg) {
+      const lastLow = lastUserMsg.content.toLowerCase();
+      if ((lastLow.includes("перевед") || lastLow.includes("translate")) && !lastLow.includes("оригинал") && !hasImage) {
+        if (low.trim().length > 0 && !low.includes("перевед") && !low.includes("translate")) {
+          return "TRANSLATE";
+        }
+      }
+    }
   }
-  if (low.includes("премиум") || low.includes("premium") || low.includes("купить") || low.includes("оплат")) {
+
+  if (hasImage) {
+    if (low.includes("перевед") || low.includes("translate") || low.includes("перевод")) return "OCR_TRANSLATE";
+    if (low.includes("документ") || low.includes("паспорт") || low.includes("договор") || low.includes("справка") || low.includes("contract") || low.includes("document") || low.includes("ҳуҷҷат")) return "DOCUMENT_ANALYSIS";
+    if (low.includes("адрес") || low.includes("address") || low.includes("где")) return "OCR";
+    if (low.includes("ваканс") || low.includes("работ") || low.includes("vacancy") || low.includes("job")) return "OCR";
+    return "OCR";
+  }
+
+  if (low.includes("премиум") || low.includes("premium") || low.includes("купить") || low.includes("оплат") || low.includes("подписк")) {
     return "PREMIUM";
   }
+  if (low.includes("помощ") || low.includes("help") || low.includes("как пользовать") || low.includes("инструкц") || low.includes("что умеешь")) {
+    return "HELP";
+  }
   if (low.includes("перевед") || low.includes("translate") || low.includes("перевод")) {
-    return "TRANSLATION";
+    return "TRANSLATE";
   }
   if (low.includes("закон") || low.includes("право") || low.includes("юрист") || low.includes("штраф") || low.includes("суд") || low.includes("law") || low.includes("legal") || low.includes("патент")) {
-    return "LEGAL_HELP";
+    return "LEGAL";
   }
   if (low.includes("миграц") || low.includes("мвд") || low.includes("регистрац") || low.includes("виза") || low.includes("migration")) {
     return "MIGRATION";
@@ -105,7 +138,7 @@ export function detectIntent(input: string, hasImage: boolean = false): Intent {
     return "EMPLOYER_CHECK";
   }
   if (low.includes("паспорт") || low.includes("договор") || low.includes("документ") || low.includes("разрешение") || low.includes("document") || low.includes("contract") || low.includes("ҳуҷҷат")) {
-    return "DOCUMENT";
+    return "DOCUMENT_ANALYSIS";
   }
   if (low.includes("привет") || low.includes("hello") || low.includes("hi") || low.includes("salom") || low.includes("салом")) {
     return "CHAT";
@@ -116,13 +149,15 @@ export function detectIntent(input: string, hasImage: boolean = false): Intent {
 export function getActionForIntent(intent: Intent): string {
   switch (intent) {
     case "JOB_SEARCH": return "search_jobs";
-    case "TRANSLATION": return "open_ocr";
-    case "VISION_OCR": return "process_image";
-    case "LEGAL_HELP": return "show_legal";
-    case "PREMIUM": return "open_premium";
+    case "TRANSLATE": return "open_ocr";
+    case "OCR": return "process_image";
+    case "OCR_TRANSLATE": return "process_image_translate";
+    case "DOCUMENT_ANALYSIS": return "analyze_document";
     case "EMPLOYER_CHECK": return "check_employer";
+    case "PREMIUM": return "open_premium";
+    case "HELP": return "show_help";
+    case "LEGAL": return "show_legal";
     case "MIGRATION": return "show_migration";
-    case "DOCUMENT": return "analyze_document";
     default: return "chat";
   }
 }
@@ -130,13 +165,15 @@ export function getActionForIntent(intent: Intent): string {
 function mapIntentToRequestType(intent: Intent): AIRequestType {
   switch (intent) {
     case "JOB_SEARCH": return "vacancy";
-    case "TRANSLATION": return "translation";
-    case "VISION_OCR": return "vision";
-    case "LEGAL_HELP": return "legal";
-    case "PREMIUM": return "premium";
+    case "TRANSLATE": return "translation";
+    case "OCR": return "vision";
+    case "OCR_TRANSLATE": return "vision";
+    case "DOCUMENT_ANALYSIS": return "document";
     case "EMPLOYER_CHECK": return "employer_check";
+    case "PREMIUM": return "premium";
+    case "HELP": return "help";
+    case "LEGAL": return "legal";
     case "MIGRATION": return "migration";
-    case "DOCUMENT": return "document";
     default: return "chat";
   }
 }
@@ -220,14 +257,15 @@ async function withRetry(fn: () => Promise<string>, retries = 2): Promise<string
 export async function createAIRequest(req: AIRequest): Promise<AIResult> {
   const startTime = Date.now();
   const models = MODELS;
-  const intent = detectIntent(req.text || "", !!req.image);
+  const previous = req.previousMessages ?? [];
+  const intent = detectIntent(req.text || "", !!req.image || !!req.hasImage, previous);
   const requestType = mapIntentToRequestType(intent);
   console.log("AI ROUTER START - intent:", intent, "type:", requestType);
   let lastError: Error | null = null;
 
   for (const model of models) {
     try {
-      const messages = buildMessages(req, requestType);
+      const messages = buildMessages(req, requestType, previous);
       const text = await withRetry(() => tryModel(model, messages));
       console.log("AI MODEL SUCCESS:", model);
       const duration = Date.now() - startTime;
@@ -239,7 +277,14 @@ export async function createAIRequest(req: AIRequest): Promise<AIResult> {
         duration_ms: duration,
         success: true,
       });
-      return { text, model, provider: "openrouter" };
+      return {
+        text,
+        model,
+        provider: "openrouter",
+        intent,
+        action: getActionForIntent(intent),
+        language: req.language,
+      };
     } catch (e) {
       lastError = e instanceof Error ? e : new Error("unknown");
       console.log("AI MODEL FAILED:", model, "->", lastError.message);
@@ -258,14 +303,22 @@ export async function createAIRequest(req: AIRequest): Promise<AIResult> {
     text: "AI временно занят. Попробуйте ещё раз.",
     model: "none",
     provider: "none",
+    intent,
+    action: getActionForIntent(intent),
+    language: req.language,
   };
 }
 
-function buildMessages(req: AIRequest, task: AIRequestType): any[] {
+function buildMessages(req: AIRequest, task: AIRequestType, previous: Array<{ role: string; content: string }>): any[] {
   const system = SYSTEM_PROMPTS[task];
+  const contextBlock = previous.length > 0
+    ? `\n\nКонтекст предыдущих сообщений:\n${previous.map((m) => `${m.role}: ${m.content}`).join("\n")}`
+    : "";
+
   if (task === "vision") {
-    const content: any[] = [{ type: "text", text: req.text || "Распознай текст на изображении." }];
+    const content: any[] = [{ type: "text", text: (req.text || "Распознай текст на изображении.") + contextBlock }];
     if (req.image) content.push({ type: "image_url", image_url: { url: req.image } });
+    if (req.imageUrl) content.push({ type: "image_url", image_url: { url: req.imageUrl } });
     return [{ role: "system", content: system }, { role: "user", content }];
   }
   if (task === "translation") {
@@ -277,8 +330,8 @@ function buildMessages(req: AIRequest, task: AIRequestType): any[] {
       : "русский";
     return [
       { role: "system", content: system },
-      { role: "user", content: `Переведи на ${langName} язык. Только перевод:\n\n${req.text || ""}` },
+      { role: "user", content: `Переведи на ${langName} язык. Только перевод:\n\n${req.text || ""}${contextBlock}` },
     ];
   }
-  return [{ role: "system", content: system }, { role: "user", content: req.text || "" }];
+  return [{ role: "system", content: system + contextBlock }, { role: "user", content: req.text || "" }];
 }

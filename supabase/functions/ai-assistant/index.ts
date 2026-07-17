@@ -12,7 +12,7 @@ const corsHeaders = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
-const MAX_HISTORY_MESSAGES = 20;
+const MAX_HISTORY_MESSAGES = 10;
 
 function detectLanguage(text: string, telegramLanguageCode?: string): string {
   if (telegramLanguageCode) {
@@ -65,7 +65,7 @@ serve(async (req) => {
     );
   }
 
-  const { message, language_code, telegram_id, image, context, user_id } = body;
+  const { message, language_code, telegram_id, image, image_url, context, user_id, has_image } = body;
 
   if (!message || typeof message !== "string") {
     return new Response(
@@ -81,9 +81,7 @@ serve(async (req) => {
   const effectiveUserId = telegram_id ? `tg_${telegram_id}` : (user_id ?? "anonymous");
   const lang = language_code || detectLanguage(message);
   const history = await fetchConversationHistory(supabase, effectiveUserId);
-  const contextText = [...history.map((h) => `${h.role}: ${h.content}`), `user: ${message}`].join("\n");
-
-  const intent = detectIntent(message, !!image);
+  const intent = detectIntent(message, !!image || !!has_image, history);
   const action = getActionForIntent(intent);
 
   // Step 1+2: Get AI response first (fast path)
@@ -91,11 +89,15 @@ serve(async (req) => {
   let model = "none";
   try {
     const aiResult = await createAIRequest({
-      type: image ? "vision" : "assistant",
-      text: contextText,
+      type: image || image_url ? "vision" : "assistant",
+      text: message,
       image,
+      imageUrl: image_url,
+      hasImage: !!image || !!has_image,
       language: lang,
       userId: effectiveUserId,
+      context: context ?? "chat",
+      previousMessages: history,
     });
     reply = aiResult.text;
     model = aiResult.model;
@@ -107,11 +109,11 @@ serve(async (req) => {
   // Step 3: Save history AFTER response (non-blocking)
   const responseData = {
     success: true,
+    intent,
+    action,
     reply,
     model,
     language: lang,
-    intent,
-    action,
   };
 
   // Fire-and-forget history save

@@ -40,6 +40,8 @@ export function useAiChat(options?: UseAiChatOptions) {
         language: lang,
         context: imageBase64 ? "vision" : "chat",
         image: imageBase64,
+        has_image: !!imageBase64,
+        image_url: undefined as string | undefined,
         platform: "telegram",
         device,
       };
