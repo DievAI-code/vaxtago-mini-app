@@ -48,12 +48,14 @@ const App = () => {
     const bootSplash = document.getElementById("boot-splash");
     if (bootSplash) bootSplash.remove();
 
-    // Telegram Mini App viewport handling
+    // Telegram Mini App viewport handling — only lock body inside Telegram
+    const isTelegram = Boolean(window.Telegram?.WebApp?.initData);
     const tg = window.Telegram?.WebApp;
-    if (tg) {
+    if (isTelegram && tg) {
       try {
         tg.ready();
         tg.expand();
+        document.body.classList.add("telegram-app");
       } catch (e) {
         console.warn("Telegram WebApp init failed:", e);
       }
