@@ -33,20 +33,21 @@ export function ChatWidget() {
     setMessages((m) => [...m, { role: "user", content: image ? "📷 " + t("scanner_title") : text }]);
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id ?? "anonymous";
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
           message: text,
           telegram_id: isInTelegram ? telegramId : null,
           language: lang,
-          user_id: userId,
           context: image ? "vision" : "chat",
           image: image,
         },
       });
       if (error) throw error;
-      setMessages((m) => [...m, { role: "assistant", content: data.reply ?? data.text }]);
+      if (data?.success === false) {
+        setMessages((m) => [...m, { role: "assistant", content: data.message || t("ai_error") }]);
+      } else {
+        setMessages((m) => [...m, { role: "assistant", content: data.reply ?? data.text ?? t("ai_error") }]);
+      }
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: t("ai_error") }]);
     } finally {

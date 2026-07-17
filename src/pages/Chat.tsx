@@ -29,20 +29,21 @@ export default function Chat() {
   async function sendToRouter(message: string, imageBase64?: string) {
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id ?? "anonymous";
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
           message,
           telegram_id: isInTelegram ? telegramId : null,
           language: lang,
-          user_id: userId,
           image: imageBase64,
           context: imageBase64 ? "vision" : "chat",
         },
       });
       if (error) throw error;
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply ?? data.text }]);
+      if (data?.success === false) {
+        setMessages((prev) => [...prev, { role: "assistant", content: data.message || t("ai_error") }]);
+      } else {
+        setMessages((prev) => [...prev, { role: "assistant", content: data.reply ?? data.text ?? t("ai_error") }]);
+      }
     } catch (err) {
       console.error(err);
       setMessages((prev) => [...prev, { role: "assistant", content: t("ai_error") }]);

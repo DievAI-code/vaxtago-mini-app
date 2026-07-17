@@ -8,6 +8,7 @@ import { logRequest } from "../_shared/logger.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const MAX_HISTORY_MESSAGES = 20;
@@ -46,29 +47,41 @@ async function fetchConversationHistory(supabase: any, userId: string): Promise<
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+  console.log("AI ASSISTANT REQUEST");
+  console.log("AUTH:", req.headers.get("Authorization"));
 
-  const token = authHeader.replace("Bearer ", "");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(
+      JSON.stringify({ success: false, message: "Invalid JSON body" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  console.log("BODY:", JSON.stringify(body));
+
+  const { message, language_code, telegram_id, image, context, user_id } = body;
+
+  if (!message || typeof message !== "string") {
+    return new Response(
+      JSON.stringify({ success: false, message: "Message required" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  // Service-role client (no JWT verification needed for internal ops)
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  let userId: string | null = null;
-  if (token !== serviceRoleKey) {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error || !user) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-    userId = user.id;
-  }
-
-  const { user_id, message, language_code, telegram_id, image, context } = await req.json();
-  if (!message || typeof message !== "string") {
-    return new Response(JSON.stringify({ error: "Message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-
-  const effectiveUserId = user_id ?? userId;
+  // Use telegram_id as stable user identifier (no Supabase JWT required)
+  const effectiveUserId = telegram_id ? `tg_${telegram_id}` : (user_id ?? "anonymous");
   const lang = language_code || detectLanguage(message);
   const history = await fetchConversationHistory(supabase, effectiveUserId);
   const contextText = [...history.map((h) => `${h.role}: ${h.content}`), `user: ${message}`].join("\n");
@@ -87,10 +100,13 @@ serve(async (req) => {
     model = aiResult.model;
   } catch (error) {
     console.error("AI Router failed:", error);
-    reply = "⚠️ AI временно переключается на резервный сервер. Попробуйте позже.";
+    return new Response(
+      JSON.stringify({ success: false, message: "AI временно недоступен" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
-  // Save to assistant_messages
+  // Save to assistant_messages (best-effort)
   try {
     await supabase.from("assistant_messages").insert([
       {
@@ -117,8 +133,8 @@ serve(async (req) => {
     console.error("Failed to save history:", e);
   }
 
-  return new Response(JSON.stringify({ reply, model, language: lang }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-    status: 200,
-  });
+  return new Response(
+    JSON.stringify({ reply, model, language: lang, success: true }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+  );
 });
