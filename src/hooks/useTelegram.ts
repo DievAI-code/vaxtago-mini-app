@@ -62,13 +62,18 @@ export function useTelegram() {
   const [initData, setInitData] = useState<string>("");
 
   useEffect(() => {
+    // Non-blocking: if Telegram API is missing, just skip
     const tg = window.Telegram?.WebApp;
     if (tg) {
-      tg.ready();
-      tg.expand();
-      setWebApp(tg);
-      setUser(tg.initDataUnsafe.user ?? null);
-      setInitData(tg.initData);
+      try {
+        tg.ready();
+        tg.expand();
+        setWebApp(tg);
+        setUser(tg.initDataUnsafe.user ?? null);
+        setInitData(tg.initData);
+      } catch (e) {
+        console.warn("Telegram WebApp init failed:", e);
+      }
     }
   }, []);
 

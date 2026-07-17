@@ -3,12 +3,13 @@ import { Bot, ScanLine, Briefcase, Building2, Languages, Scale, Crown, Search, F
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FeatureCard } from "@/components/FeatureCard";
-import { ChatWidget } from "@/components/ChatWidget";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { FadeUp, stagger, fadeUp } from "@/components/animations";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
+
+const ChatWidget = lazy(() => import("@/components/ChatWidget").then(m => ({ default: m.ChatWidget })));
 
 const QUICK = [
   { label: "Найти работу", q: "Найди работу сварщика" },
@@ -193,7 +194,9 @@ export default function Index() {
           <h2 className="text-3xl font-bold mb-6">{t("chat_title")}</h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">{t("chat_desc")}</p>
         </FadeUp>
-        <ChatWidget />
+        <Suspense fallback={<div className="h-[500px] flex items-center justify-center"><div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" /></div>}>
+          <ChatWidget />
+        </Suspense>
       </section>
 
       <section className="max-w-6xl mx-auto px-4 py-20">

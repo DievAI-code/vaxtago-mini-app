@@ -18,5 +18,23 @@ export default defineConfig(() => ({
     outDir: "dist",
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          telegram: ["@telegram-web-app", "@/hooks/useTelegram"],
+          ui: [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-select",
+            "framer-motion",
+          ],
+          ai: ["@supabase/supabase-js", "@tanstack/react-query"],
+        },
+      },
+    },
   },
 }));
