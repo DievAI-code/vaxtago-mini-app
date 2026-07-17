@@ -29,9 +29,9 @@ const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
   assistant:
     "Ты AI помощник VaxtaGo.\nПомогай пользователям с работой,\nдокументами и миграцией.\nОтвечай на языке пользователя.",
   vision:
-    "Ты система OCR и анализа документов VaxtaGo.\nРаспознай текст и проанализируй документ.\nОбъясни простым языком.",
+    "Ты система OCR и анализа документов VaxtaGo.\nРаспознай текст на изображении и верни ТОЛЬКО распознанный текст без комментариев.\nЕсли текста нет — напиши 'Текст не найден'.",
   translation:
-    "Переведи текст на указанный язык.\nСохраняй смысл и структуру документа.",
+    "Переведи текст на указанный язык.\nСохраняй смысл и структуру документа.\nВерни ТОЛЬКО перевод.",
   document:
     "Проанализируй документ.\nОбъясни права и риски простым языком.",
   vacancy:
@@ -48,26 +48,18 @@ function getApiKey(): string | undefined {
   return Deno.env.get("OPENROUTER_API_KEY");
 }
 
-function getDefaultModel(): string {
-  return Deno.env.get("AI_DEFAULT_MODEL") || "google/gemini-2.5-flash";
+function getPrimaryModel(): string {
+  // TEXT, VISION, OCR all use Gemini 2.5 Flash
+  return "google/gemini-2.5-flash";
 }
 
 function getFallbackModels(): string[] {
-  const env = Deno.env.get("AI_FALLBACK_MODELS");
-  if (env) {
-    return env.split(",").map((m) => m.trim()).filter(Boolean);
-  }
-  return [
-    "google/gemini-2.0-flash",
-    "openai/gpt-4o-mini",
-    "anthropic/claude-3.5-haiku",
-  ];
+  // Fallback to openrouter/free
+  return ["openrouter/free"];
 }
 
 function getModelsList(): string[] {
-  const def = getDefaultModel();
-  const fallbacks = getFallbackModels();
-  return Array.from(new Set([def, ...fallbacks]));
+  return Array.from(new Set([getPrimaryModel(), ...getFallbackModels()]));
 }
 
 function detectTask(input: string, hasImage: boolean = false): AIRequestType {
@@ -120,7 +112,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
         temperature: 0.7,
         max_tokens: 1500,
         messages,
-        provider: { allow_fallbacks: true, require_parameters: false },
+        provider: { allow_fallbacks: false, require_parameters: false },
       }),
       signal: controller.signal,
     });
@@ -140,8 +132,8 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
   if (response.status === 429) throw new Error("Rate limit");
   if (response.status === 404) throw new Error("Model unavailable (404)");
   if (response.status >= 500) throw new Error(`Server error ${response.status}`);
-  if (/guardrail|No endpoints available|No allowed providers/i.test(bodyText)) {
-    throw new Error(`Model ${model} unavailable: ${bodyText.slice(0, 200)}`);
+  if (/guardrail|No endpoints available|No allowed providers|privacy/i.test(bodyText)) {
+    throw new Error(`Model ${model} blocked: ${bodyText.slice(0, 200)}`);
   }
 
   let data: any;

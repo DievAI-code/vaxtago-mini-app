@@ -55,6 +55,7 @@ export async function analyzeDocument(
 ): Promise<{ result: string; imageType: string; provider: string; model: string }> {
   const imageUrl = await downloadTelegramFile(botToken, fileId);
   const imageType = detectImageType(instruction);
-  const aiResult = await createAIRequest({ type: "vision", image: imageUrl, text: instruction, language: lang, userId });
+  // Step 1: OCR — recognize text only
+  const aiResult = await createAIRequest({ type: "vision", image: imageUrl, text: "Распознай текст", language: lang, userId });
   return { result: aiResult.text, imageType, provider: aiResult.provider, model: aiResult.model };
 }

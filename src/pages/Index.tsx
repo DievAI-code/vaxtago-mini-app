@@ -7,6 +7,7 @@ import { ChatWidget } from "@/components/ChatWidget";
 import { FadeUp, stagger, fadeUp } from "@/components/animations";
 import { useStrings } from "@/lib/theme";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const QUICK = [
   { label: "Найти работу", q: "Найди работу сварщика" },
@@ -27,6 +28,22 @@ const STATS = [
 export default function Index() {
   const s = useStrings();
   const nav = useNavigate();
+
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "VaxtaGo",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web, Telegram",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Person", "name": "Dmitry Diev" },
+      "description": "AI-помощник для трудовых мигрантов: поиск работы, проверка работодателей, перевод документов.",
+    });
+    document.head.appendChild(script);
+  }, []);
 
   const cards = [
     { icon: <Bot />, title: s.ai, desc: s.ai_d, action: () => document.getElementById("chat")?.scrollIntoView({ behavior: "smooth" }) },

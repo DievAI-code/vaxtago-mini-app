@@ -1,10 +1,3 @@
-/*
-VaxtaGo
-Created by Dmitry Diev
-AI Development Assistant: ChatGPT (OpenAI)
-Copyright © 2026
-*/
-
 import { useEffect, useState } from "react";
 
 interface TelegramUser {

@@ -2,7 +2,7 @@
 import { createAIRequest } from "../_shared/ai-router.ts";
 
 export function getModels(): string[] {
-  return ["google/gemini-2.5-flash", "google/gemini-2.0-flash", "openai/gpt-4o-mini"];
+  return ["google/gemini-2.5-flash", "openrouter/free"];
 }
 
 export async function getAIResponse(
