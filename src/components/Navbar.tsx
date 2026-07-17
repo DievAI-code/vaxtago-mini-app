@@ -1,18 +1,20 @@
-import { useApp, useStrings } from "@/lib/theme";
+import { useApp } from "@/lib/theme";
+import { useTranslation } from "react-i18next";
 import { Moon, Sun, Globe } from "lucide-react";
 import { useState } from "react";
+import { SUPPORTED_LANGS, Lang } from "@/i18n";
 
-const LANGS = [
+const LANGS: { code: Lang; label: string; flag: string }[] = [
   { code: "ru", label: "Русский", flag: "🇷🇺" },
   { code: "uz", label: "O'zbekcha", flag: "🇺🇿" },
   { code: "tg", label: "Тоҷикӣ", flag: "🇹🇯" },
   { code: "ky", label: "Кыргызча", flag: "🇰🇬" },
   { code: "en", label: "English", flag: "🇬🇧" },
-] as const;
+];
 
 export function Navbar() {
   const { lang, setLang, theme, toggleTheme } = useApp();
-  const s = useStrings();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   return (
@@ -24,7 +26,7 @@ export function Navbar() {
           </div>
           <div className="flex flex-col">
             <span className="font-bold text-lg text-slate-800 dark:text-white leading-tight">VaxtaGo</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">AI-помощник для мигрантов</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">{t("tagline")}</span>
           </div>
         </div>
 

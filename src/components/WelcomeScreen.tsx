@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import { Bot } from "lucide-react";
 import { useTelegramUser } from "./TelegramProvider";
-import { useStrings } from "@/lib/theme";
+import { useTranslation } from "react-i18next";
 
 export function WelcomeScreen() {
   const { firstName, isInTelegram } = useTelegramUser();
-  const s = useStrings();
+  const { t } = useTranslation();
 
   return (
     <motion.div
@@ -29,7 +29,7 @@ export function WelcomeScreen() {
         transition={{ delay: 0.2 }}
         className="text-3xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent"
       >
-        VaxtaGo
+        {t("welcome_title")}
       </motion.h1>
 
       <motion.p
@@ -38,7 +38,7 @@ export function WelcomeScreen() {
         transition={{ delay: 0.3 }}
         className="mt-2 text-lg font-semibold text-slate-700 dark:text-slate-200"
       >
-        {isInTelegram && firstName ? `👋 Добро пожаловать, ${firstName}!` : "👋 Добро пожаловать в VaxtaGo"}
+        {isInTelegram && firstName ? t("welcome_greeting") + ", " + firstName + "!" : t("welcome_greeting")}
       </motion.p>
 
       <motion.p
@@ -47,7 +47,7 @@ export function WelcomeScreen() {
         transition={{ delay: 0.4 }}
         className="mt-1 text-sm text-slate-500 dark:text-slate-400"
       >
-        Основатель: Диев Дмитрий Сергеевич
+        {t("welcome_founder")}
       </motion.p>
 
       <motion.div
@@ -57,7 +57,7 @@ export function WelcomeScreen() {
         className="mt-6 max-w-sm p-5 rounded-2xl bg-white/70 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 shadow-sm"
       >
         <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-          AI помощник для работы, документов и жизни в России.
+          {t("welcome_subtitle")}
         </p>
       </motion.div>
     </motion.div>

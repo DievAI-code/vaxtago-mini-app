@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, ReactNode } from "react";
 import { useTelegram } from "@/hooks/useTelegram";
 import { supabase } from "@/integrations/supabase/client";
+import { useApp } from "@/lib/theme";
 
 interface TelegramContextType {
   telegramId: number | null;
@@ -24,6 +25,7 @@ export function useTelegramUser() {
 
 export function TelegramProvider({ children }: { children: ReactNode }) {
   const { user, initData } = useTelegram();
+  const { lang } = useApp();
   const isInTelegram = !!user;
 
   useEffect(() => {
@@ -35,7 +37,8 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
             telegram_id: user.id,
             username: user.username ?? null,
             first_name: [user.first_name, user.last_name].filter(Boolean).join(" ") || null,
-            language: user.language_code?.slice(0, 2) || "ru",
+            language: user.language_code?.slice(0, 2) || lang,
+            language_code: user.language_code ?? null,
             last_activity: new Date().toISOString(),
           },
           { onConflict: "telegram_id" }
@@ -45,7 +48,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       }
     };
     syncUser();
-  }, [user, initData]);
+  }, [user, initData, lang]);
 
   return (
     <TelegramContext.Provider

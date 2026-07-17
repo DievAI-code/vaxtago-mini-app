@@ -20,6 +20,7 @@ import Jobs from "./pages/Jobs";
 import Profile from "./pages/Profile";
 import Chat from "./pages/Chat";
 import Footer from "./components/Footer";
+import "@/i18n";
 
 const queryClient = new QueryClient();
 

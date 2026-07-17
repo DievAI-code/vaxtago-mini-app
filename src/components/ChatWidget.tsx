@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, Image as ImageIcon, Paperclip, Mic, X, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TypingDots } from "./animations";
-import { useStrings } from "@/lib/theme";
+import { useTranslation } from "react-i18next";
+import { useApp } from "@/lib/theme";
 
 interface Msg {
   role: "user" | "assistant";
@@ -11,9 +12,10 @@ interface Msg {
 }
 
 export function ChatWidget() {
-  const s = useStrings();
+  const { t } = useTranslation();
+  const { lang } = useApp();
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: "Привет! Я VaxtaGo AI. Напишите вопрос — я сам пойму, чем помочь." },
+    { role: "assistant", content: t("ai_hello") },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,12 +34,12 @@ export function ChatWidget() {
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id ?? "anonymous";
       const { data, error } = await supabase.functions.invoke("ai-router", {
-        body: { type: image ? "vision" : "assistant", userId, text, image },
+        body: { type: image ? "vision" : "assistant", userId, text, image, language: lang },
       });
       if (error) throw error;
       setMessages((m) => [...m, { role: "assistant", content: data.reply ?? data.text }]);
     } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "Ошибка связи с AI." }]);
+      setMessages((m) => [...m, { role: "assistant", content: t("ai_error") }]);
     } finally {
       setLoading(false);
     }
@@ -59,7 +61,7 @@ export function ChatWidget() {
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center">
               <Bot className="w-4 h-4 text-white" />
             </div>
-            <span className="font-semibold">VaxtaGo AI</span>
+            <span className="font-semibold">{t("chat_title")}</span>
           </div>
           <button className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700">
             <X className="w-4 h-4" />
@@ -115,7 +117,7 @@ export function ChatWidget() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}
             rows={1}
-            placeholder={s.chat_ph}
+            placeholder={t("chat_ph")}
             className="flex-1 resize-none max-h-24 px-4 py-3 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 outline-none text-sm text-slate-800 dark:text-white"
           />
           <button
