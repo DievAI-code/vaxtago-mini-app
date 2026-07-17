@@ -220,7 +220,7 @@ export default function Index() {
             Задайте любой вопрос — я сам определю: поиск работы, перевод, документы, работодатель, юрист или миграция.
           </p>
         </FadeUp>
-        <ChatWidgetBridge />
+        <ChatWidget />
       </section>
 
       {/* Social Proof */}
@@ -294,10 +294,4 @@ export default function Index() {
       <Footer />
     </div>
   );
-}
-
-// Bridge to allow quick actions to send to chat
-import { ChatWidget } from "@/components/ChatWidget";
-function ChatWidgetBridge() {
-  return <ChatWidget />;
 }
