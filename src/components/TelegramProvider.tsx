@@ -28,28 +28,31 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   const isInTelegram = !!user;
 
   useEffect(() => {
+    // App already opened — run sync in background, never block UI
     if (!user) return;
-    let cancelled = false;
-    // Dynamic import keeps supabase (ai chunk) out of the initial bundle
-    import("@/integrations/supabase/client").then(async ({ supabase }) => {
-      if (cancelled) return;
-      try {
-        await supabase.from("telegram_users").upsert(
-          {
-            telegram_id: user.id,
-            username: user.username ?? null,
-            first_name: [user.first_name, user.last_name].filter(Boolean).join(" ") || null,
-            language: user.language_code?.slice(0, 2) || lang,
-            language_code: user.language_code ?? null,
-            last_activity: new Date().toISOString(),
-          },
-          { onConflict: "telegram_id" }
-        );
-      } catch (err) {
-        console.error("Failed to sync Telegram user:", err);
-      }
-    });
-    return () => { cancelled = true; };
+    const timer = setTimeout(() => {
+      import("@/integrations/supabase/client")
+        .then(async ({ supabase }) => {
+          try {
+            await supabase.from("telegram_users").upsert(
+              {
+                telegram_id: user.id,
+                username: user.username ?? null,
+                first_name: [user.first_name, user.last_name].filter(Boolean).join(" ") || null,
+                language: user.language_code?.slice(0, 2) || lang,
+                language_code: user.language_code ?? null,
+                last_activity: new Date().toISOString(),
+              },
+              { onConflict: "telegram_id" }
+            );
+          } catch (err) {
+            // Never break the Mini App on Supabase error
+            console.warn("Telegram user sync failed (non-blocking):", err);
+          }
+        })
+        .catch((err) => console.warn("Supabase import failed (non-blocking):", err));
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [user, initData, lang]);
 
   return (

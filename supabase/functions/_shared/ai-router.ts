@@ -17,7 +17,7 @@ export type AIRequestType =
 export interface AIRequest {
   type: AIRequestType;
   text?: string;
-  image?: string; // base64 data URI
+  image?: string;
   language?: string;
   userId?: string | number;
   context?: string;
@@ -48,14 +48,6 @@ export type Intent =
   | "LEGAL"
   | "MIGRATION";
 
-export interface RouterOutput {
-  intent: Intent;
-  reply: string;
-  action: string;
-  confidence: number;
-  language: string;
-}
-
 const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
   assistant:
     "Ты VaxtaGo AI Assistant.\nТы помогаешь пользователям из Узбекистана найти работу в России, разобраться с документами и переводами.\nОпределяй намерение пользователя самостоятельно.\nНе задавай лишние вопросы.\nОтвечай на языке пользователя.\nПоддерживаемые языки: Русский, Узбекский, Таджикский, Кыргызский, Английский.",
@@ -81,11 +73,11 @@ const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
     "Ты помощник по приложению VaxtaGo.\nОбъясни как пользоваться: поиск работы, перевод, сканер, профиль, премиум.\nОтвечай кратко и по делу.",
 };
 
+// Fallback chain — order matters
 const MODELS = [
-  "google/gemini-2.5-flash",
-  "google/gemini-2.0-flash",
   "openai/gpt-4o-mini",
-  "openrouter/free",
+  "google/gemini-2.5-flash",
+  "anthropic/claude-3.5-haiku",
 ];
 
 function getApiKey(): string | undefined {
@@ -95,7 +87,6 @@ function getApiKey(): string | undefined {
 export function detectIntent(input: string, hasImage: boolean = false, previousMessages: Array<{ role: string; content: string }> = []): Intent {
   const low = input.toLowerCase();
 
-  // If previous message was about translation and current is plain text → TRANSLATE
   if (previousMessages.length > 0) {
     const lastUserMsg = [...previousMessages].reverse().find((m) => m.role === "user");
     if (lastUserMsg) {
@@ -116,33 +107,15 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
     return "OCR";
   }
 
-  if (low.includes("премиум") || low.includes("premium") || low.includes("купить") || low.includes("оплат") || low.includes("подписк")) {
-    return "PREMIUM";
-  }
-  if (low.includes("помощ") || low.includes("help") || low.includes("как пользовать") || low.includes("инструкц") || low.includes("что умеешь")) {
-    return "HELP";
-  }
-  if (low.includes("перевед") || low.includes("translate") || low.includes("перевод")) {
-    return "TRANSLATE";
-  }
-  if (low.includes("закон") || low.includes("право") || low.includes("юрист") || low.includes("штраф") || low.includes("суд") || low.includes("law") || low.includes("legal") || low.includes("патент")) {
-    return "LEGAL";
-  }
-  if (low.includes("миграц") || low.includes("мвд") || low.includes("регистрац") || low.includes("виза") || low.includes("migration")) {
-    return "MIGRATION";
-  }
-  if (low.includes("работ") || low.includes("ваканс") || low.includes("job") || low.includes("иш") || low.includes("vacancy")) {
-    return "JOB_SEARCH";
-  }
-  if (low.includes("проверь работодателя") || low.includes("employer") || low.includes("проверка") || low.includes("инн") || low.includes("огрн")) {
-    return "EMPLOYER_CHECK";
-  }
-  if (low.includes("паспорт") || low.includes("договор") || low.includes("документ") || low.includes("разрешение") || low.includes("document") || low.includes("contract") || low.includes("ҳуҷҷат")) {
-    return "DOCUMENT_ANALYSIS";
-  }
-  if (low.includes("привет") || low.includes("hello") || low.includes("hi") || low.includes("salom") || low.includes("салом")) {
-    return "CHAT";
-  }
+  if (low.includes("премиум") || low.includes("premium") || low.includes("купить") || low.includes("оплат") || low.includes("подписк")) return "PREMIUM";
+  if (low.includes("помощ") || low.includes("help") || low.includes("как пользовать") || low.includes("инструкц") || low.includes("что умеешь")) return "HELP";
+  if (low.includes("перевед") || low.includes("translate") || low.includes("перевод")) return "TRANSLATE";
+  if (low.includes("закон") || low.includes("право") || low.includes("юрист") || low.includes("штраф") || low.includes("суд") || low.includes("law") || low.includes("legal") || low.includes("патент")) return "LEGAL";
+  if (low.includes("миграц") || low.includes("мвд") || low.includes("регистрац") || low.includes("виза") || low.includes("migration")) return "MIGRATION";
+  if (low.includes("работ") || low.includes("ваканс") || low.includes("job") || low.includes("иш") || low.includes("vacancy")) return "JOB_SEARCH";
+  if (low.includes("проверь работодателя") || low.includes("employer") || low.includes("проверка") || low.includes("инн") || low.includes("огрн")) return "EMPLOYER_CHECK";
+  if (low.includes("паспорт") || low.includes("договор") || low.includes("документ") || low.includes("разрешение") || low.includes("document") || low.includes("contract") || low.includes("ҳуҷҷат")) return "DOCUMENT_ANALYSIS";
+  if (low.includes("привет") || low.includes("hello") || low.includes("hi") || low.includes("salom") || low.includes("салом")) return "CHAT";
   return "CHAT";
 }
 
@@ -200,7 +173,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
         temperature: 0.7,
         max_tokens: 1500,
         messages,
-        provider: { allow_fallbacks: true },
+        // Removed provider guardrails that caused "No endpoints available matching guardrail" errors
       }),
       signal: controller.signal,
     });
@@ -247,7 +220,7 @@ async function withRetry(fn: () => Promise<string>, retries = 2): Promise<string
       return await fn();
     } catch (e) {
       lastError = e instanceof Error ? e : new Error("unknown");
-      console.log(`AI ROUTER - RETRY ${i + 1}/${retries}: ${lastError.message}`);
+      console.log(`AI ROUTER - RETRY ${i + 1}/2: ${lastError.message}`);
       if (i < retries) await new Promise((r) => setTimeout(r, 500 * (i + 1)));
     }
   }
@@ -256,14 +229,13 @@ async function withRetry(fn: () => Promise<string>, retries = 2): Promise<string
 
 export async function createAIRequest(req: AIRequest): Promise<AIResult> {
   const startTime = Date.now();
-  const models = MODELS;
   const previous = req.previousMessages ?? [];
   const intent = detectIntent(req.text || "", !!req.image || !!req.hasImage, previous);
   const requestType = mapIntentToRequestType(intent);
   console.log("AI ROUTER START - intent:", intent, "type:", requestType);
   let lastError: Error | null = null;
 
-  for (const model of models) {
+  for (const model of MODELS) {
     try {
       const messages = buildMessages(req, requestType, previous);
       const text = await withRetry(() => tryModel(model, messages));

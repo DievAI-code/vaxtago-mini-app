@@ -2,10 +2,14 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./globals.css";
 
-// Initialize Telegram WebApp for mobile
+// Initialize Telegram WebApp for mobile (guarded — safe outside Telegram)
 if (typeof window !== "undefined" && window.Telegram?.WebApp) {
-  window.Telegram.WebApp.ready();
-  window.Telegram.WebApp.expand();
+  try {
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+  } catch (e) {
+    console.warn("Telegram WebApp init failed:", e);
+  }
 }
 
 const rootElement = document.getElementById("root");

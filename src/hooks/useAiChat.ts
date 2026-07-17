@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useApp } from "@/lib/theme";
 import { useTelegramUser } from "@/components/TelegramProvider";
+import { useTelegram } from "@/hooks/useTelegram";
 
 const AI_URL = "https://watkanjjfsvqbhebchpk.supabase.co/functions/v1/ai-assistant";
 
@@ -11,6 +12,7 @@ interface UseAiChatOptions {
 export function useAiChat(options?: UseAiChatOptions) {
   const { lang } = useApp();
   const { telegramId, isInTelegram } = useTelegramUser();
+  const { webApp } = useTelegram();
   const [loading, setLoading] = useState(false);
 
   const detectDevice = () => {
@@ -24,36 +26,49 @@ export function useAiChat(options?: UseAiChatOptions) {
     async (message: string, imageBase64?: string): Promise<string | null> => {
       if (!navigator.onLine) {
         const offlineMsg = "Проверьте интернет соединение";
+        console.error("AI ERROR: offline");
         options?.onError?.(offlineMsg);
         return null;
       }
 
       setLoading(true);
       const device = detectDevice();
-      console.log("DEVICE:", device.toUpperCase());
-      console.log("AI SEND START", message);
-      console.log("AI URL", AI_URL);
+
+      // Debug: Telegram Mini App environment
+      if (window.Telegram?.WebApp) {
+        console.log({
+          platform: "telegram",
+          user: window.Telegram.WebApp.initDataUnsafe?.user,
+          version: window.Telegram.WebApp.version,
+          device,
+        });
+      }
 
       const payload = {
         message,
         telegram_id: isInTelegram ? telegramId : null,
+        user_id: isInTelegram ? `tg_${telegramId}` : "anonymous",
         language: lang,
         context: imageBase64 ? "vision" : "chat",
         image: imageBase64,
         has_image: !!imageBase64,
         image_url: undefined as string | undefined,
-        platform: "telegram",
+        platform: isInTelegram ? "telegram" : "web",
         device,
+        init_data: window.Telegram?.WebApp?.initData ?? null,
       };
 
+      console.log("AI REQUEST", payload);
+
       const attemptRequest = async (attempt: number): Promise<string | null> => {
-        console.log(`AI ATTEMPT ${attempt}:`, JSON.stringify(payload));
+        console.log(`AI ATTEMPT ${attempt}`);
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 20000);
+        const timeout = setTimeout(() => controller.abort(), 25000);
 
         try {
           const response = await fetch(AI_URL, {
             method: "POST",
+            cache: "no-store",
             headers: {
               "Content-Type": "application/json; charset=utf-8",
             },
@@ -64,25 +79,26 @@ export function useAiChat(options?: UseAiChatOptions) {
           console.log("AI RESPONSE STATUS", response.status);
 
           const data = await response.json();
-          console.log("AI RESPONSE DATA", JSON.stringify(data));
+          console.log("AI RESPONSE", data);
 
-          if (data?.success === true && data.reply) {
-            console.log("ADDING AI MESSAGE", data.reply);
-            return data.reply;
+          if (data?.success === true && (data.reply || data.message)) {
+            return data.reply || data.message;
           }
-          if (data?.reply) {
-            console.log("ADDING AI MESSAGE", data.reply);
-            return data.reply;
+          if (data?.reply || data?.message) {
+            return data.reply || data.message;
+          }
+          if (data?.success === false) {
+            throw new Error(data.error || "AI returned failure");
           }
           throw new Error("Empty or invalid response: " + JSON.stringify(data));
         } catch (err: any) {
           clearTimeout(timeout);
-          console.error("AI ERROR:", err?.message || err);
+          console.error("AI ERROR", err?.message || err);
           if (attempt < 3) {
             console.log(`AI RETRY ${attempt + 1}...`);
             return attemptRequest(attempt + 1);
           }
-          options?.onError?.("Ошибка: " + (err?.message || "неизвестно"));
+          options?.onError?.("Не удалось связаться с AI. Попробуйте ещё раз.");
           return null;
         }
       };
@@ -90,7 +106,7 @@ export function useAiChat(options?: UseAiChatOptions) {
       try {
         const reply = await attemptRequest(1);
         if (reply) return reply;
-        options?.onError?.("Связь слабая. Повторяем запрос...");
+        options?.onError?.("Связь слабая. Повторите запрос.");
         return null;
       } finally {
         setLoading(false);

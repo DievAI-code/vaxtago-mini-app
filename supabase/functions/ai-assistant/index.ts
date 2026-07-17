@@ -7,7 +7,7 @@ import { logRequest } from "../_shared/logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-telegram-init-data",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json; charset=utf-8",
 };
@@ -60,16 +60,16 @@ serve(async (req) => {
     body = await req.json();
   } catch {
     return new Response(
-      JSON.stringify({ success: false, message: "Invalid JSON body" }),
+      JSON.stringify({ success: false, error: "Invalid JSON body" }),
       { status: 400, headers: corsHeaders },
     );
   }
 
-  const { message, language_code, telegram_id, image, image_url, context, user_id, has_image } = body;
+  const { message, language_code, telegram_id, image, image_url, context, user_id, has_image, init_data } = body;
 
   if (!message || typeof message !== "string") {
     return new Response(
-      JSON.stringify({ success: false, message: "Message required" }),
+      JSON.stringify({ success: false, error: "Message required" }),
       { status: 400, headers: corsHeaders },
     );
   }
@@ -84,7 +84,6 @@ serve(async (req) => {
   const intent = detectIntent(message, !!image || !!has_image, history);
   const action = getActionForIntent(intent);
 
-  // Step 1+2: Get AI response first (fast path)
   let reply: string;
   let model = "none";
   try {
@@ -103,18 +102,11 @@ serve(async (req) => {
     model = aiResult.model;
   } catch (error) {
     console.error("AI Router failed:", error);
-    reply = "AI временно занят. Попробуйте ещё раз.";
+    return new Response(
+      JSON.stringify({ success: false, error: "AI временно недоступен. Попробуйте позже." }),
+      { headers: corsHeaders, status: 200 },
+    );
   }
-
-  // Step 3: Save history AFTER response (non-blocking)
-  const responseData = {
-    success: true,
-    intent,
-    action,
-    reply,
-    model,
-    language: lang,
-  };
 
   // Fire-and-forget history save
   (async () => {
@@ -146,6 +138,16 @@ serve(async (req) => {
       console.error("Failed to save history:", e);
     }
   })();
+
+  const responseData = {
+    success: true,
+    message: reply,
+    intent,
+    action,
+    reply,
+    model,
+    language: lang,
+  };
 
   console.log("AI ASSISTANT RESPONSE:", JSON.stringify(responseData));
 
