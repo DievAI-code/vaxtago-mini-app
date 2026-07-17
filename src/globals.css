@@ -107,25 +107,31 @@
     position: static;
   }
 
-  /* Main app container with proper flex hierarchy */
+  /* Telegram Mini App: lock viewport to avoid keyboard shift */
+  body.telegram-app {
+    overflow: hidden;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* App container - no global clip, lets body scroll like first screen */
   .app-container {
     display: flex;
     flex-direction: column;
-    height: 100dvh;
-    overflow: hidden;
-    position: relative;
+    min-height: 100dvh;
   }
 
-  /* Page container with proper flex hierarchy */
+  /* Page container - natural height, scrolls with body if needed */
   .page-container {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
   }
 
-  /* Messages area - the only element that should scroll */
+  /* Messages area - scrolls internally when height-constrained */
   .messages-area {
     flex: 1;
     min-height: 0;
