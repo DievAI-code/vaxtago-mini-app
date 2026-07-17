@@ -1,66 +1,52 @@
-/*
-VaxtaGo
-Created by Dmitry Diev
-AI Development Assistant: ChatGPT (OpenAI)
-Copyright © 2026
-*/
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
-'use client';
-
-import { useEffect, useState } from 'react';
-
-export function SplashScreen() {
-  const [loading, setLoading] = useState(true);
+export function SplashScreen({ onDone }: { onDone: () => void }) {
+  const [show, setShow] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, []);
+    const t = setTimeout(() => {
+      setShow(false);
+      setTimeout(onDone, 600);
+    }, 2200);
+    return () => clearTimeout(t);
+  }, [onDone]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      {/* Loading indicator */}
-      {loading ? (
-        <>
-          <svg
-            className="h-12 w-12 animate-spin text-blue-600"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8z"
-            />
-          </svg>
-          <p className="mt-4 text-lg text-gray-600">Loading...</p>
-        </>
-      ) : (
-        <div className="text-center">
-          <h2 className="text-xl font-semibold">VaxtaGo</h2>
-          <p className="text-gray-600">Ready to help you</p>
-        </div>
-      )}
-
-      {/* Authorship signature at bottom */}
-      <div className="mt-8 text-sm text-gray-600">
-        © 2026 VaxtaGo
-        <br />
-        Made by Dmitry Diev • Built with ChatGPT
-      </div>
-    </div>
+    <motion.div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400"
+      animate={{ opacity: show ? 1 : 0 }}
+      transition={{ duration: 0.6 }}
+    >
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 120, damping: 14 }}
+        className="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur-xl flex items-center justify-center shadow-2xl"
+      >
+        <span className="text-4xl font-black text-white">V</span>
+      </motion.div>
+      <motion.h1
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="mt-6 text-2xl font-bold text-white tracking-tight"
+      >
+        VaxtaGo
+      </motion.h1>
+      <motion.div
+        className="mt-4 w-32 h-1 bg-white/30 rounded-full overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
+        <motion.div
+          className="h-full bg-white rounded-full"
+          initial={{ x: "-100%" }}
+          animate={{ x: "100%" }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </motion.div>
+    </motion.div>
   );
 }
-
-export default SplashScreen;

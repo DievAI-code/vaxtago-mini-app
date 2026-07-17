@@ -1,74 +1,129 @@
-import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Bot, ScanLine, Briefcase, Building2, Languages, Scale, Crown, Search, FileText, ShieldCheck, FileCheck, BookOpen, MapPin } from "lucide-react";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { FeatureCard } from "@/components/FeatureCard";
+import { ChatWidget } from "@/components/ChatWidget";
+import { FadeUp, stagger, fadeUp } from "@/components/animations";
+import { useStrings } from "@/lib/theme";
+import { useNavigate } from "react-router-dom";
+
+const QUICK = [
+  { label: "Найти работу", q: "Найди работу сварщика" },
+  { label: "Перевести паспорт", q: "Переведи паспорт на узбекский" },
+  { label: "Проверить работодателя", q: "Проверь работодателя по ИНН" },
+  { label: "Условия патента", q: "Какие условия патента для мигранта?" },
+  { label: "Миграционный учет", q: "Как встать на миграционный учет?" },
+  { label: "Проверить договор", q: "Проверь трудовой договор" },
+];
+
+const STATS = [
+  { n: "1000+", l: "проверенных вакансий" },
+  { n: "50+", l: "городов России" },
+  { n: "24/7", l: "AI поддержка" },
+  { n: "4", l: "языка" },
+];
 
 export default function Index() {
+  const s = useStrings();
+  const nav = useNavigate();
+
+  const cards = [
+    { icon: <Bot />, title: s.ai, desc: s.ai_d, action: () => document.getElementById("chat")?.scrollIntoView({ behavior: "smooth" }) },
+    { icon: <ScanLine />, title: s.scan, desc: s.scan_d, action: () => nav("/scanner") },
+    { icon: <Briefcase />, title: s.jobs, desc: s.jobs_d, action: () => nav("/jobs") },
+    { icon: <Building2 />, title: s.employer, desc: s.employer_d, action: () => {} },
+    { icon: <Languages />, title: s.translate, desc: s.translate_d, action: () => {} },
+    { icon: <Scale />, title: s.lawyer, desc: s.lawyer_d, action: () => {} },
+    { icon: <Crown />, title: s.premium, desc: s.premium_d, action: () => {} },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h1 className="mb-4 text-3xl font-bold text-gray-900">
-            VaxtaGo — ваш AI-ассистент для успешной работы в России
-          </h1>
-          <p className="mb-6 text-xl text-gray-700">
-            Платформа, которая помогает узбекским мигрантам находить работу,
-            оформлять документы, проверять работодателей и оставаться в
-            безопасности.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link
-              to="/mini/home"
-              className="flex items-center justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 text-slate-800 dark:text-slate-100">
+      <Navbar />
+
+      {/* Hero */}
+      <section className="relative overflow-hidden px-4 pt-20 pb-16">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-cyan-400/5 to-transparent" />
+        <motion.div
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          className="relative max-w-3xl mx-auto text-center"
+        >
+          <motion.div variants={fadeUp} className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white text-4xl font-black shadow-2xl">
+            V
+          </motion.div>
+          <motion.h1 variants={fadeUp} className="mt-6 text-5xl font-black tracking-tight bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+            VaxtaGo
+          </motion.h1>
+          <motion.p variants={fadeUp} className="mt-3 text-xl font-medium text-slate-600 dark:text-slate-300">
+            {s.tagline}
+          </motion.p>
+          <motion.p variants={fadeUp} className="mt-4 text-base text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
+            {s.desc}
+          </motion.p>
+        </motion.div>
+      </section>
+
+      {/* Features */}
+      <section className="max-w-6xl mx-auto px-4 py-8">
+        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {cards.map((c) => (
+            <FeatureCard key={c.title} icon={c.icon} title={c.title} desc={c.desc} onClick={c.action} />
+          ))}
+        </motion.div>
+      </section>
+
+      {/* Quick Actions */}
+      <section className="max-w-6xl mx-auto px-4 py-8">
+        <FadeUp>
+          <h2 className="text-2xl font-bold mb-4">{s.popular}</h2>
+        </FadeUp>
+        <div className="flex flex-wrap gap-2">
+          {QUICK.map((q) => (
+            <button
+              key={q.label}
+              onClick={() => {
+                document.getElementById("chat")?.scrollIntoView({ behavior: "smooth" });
+                // dispatch to chat via custom event
+                window.dispatchEvent(new CustomEvent("vaxtago-quick", { detail: q.q }));
+              }}
+              className="px-4 py-2 rounded-full bg-white/70 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-sm font-medium hover:bg-blue-50 dark:hover:bg-slate-700 transition"
             >
-              <span className="mr-2">🚀</span>
-              Открыть Mini App
-            </Link>
-            <Link
-              to="/ai-assistant"
-              className="flex items-center justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
-            >
-              <span className="mr-2">🤖</span>
-              AI-ассистент
-            </Link>
-          </div>
+              {q.label}
+            </button>
+          ))}
         </div>
+      </section>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h3 className="mb-3 text-lg font-semibold text-gray-900">💼 Поиск работы</h3>
-            <p className="text-gray-600">
-              Подбор вакансий с анализом зарплаты, рисков и реального дохода.
-            </p>
-          </div>
+      {/* Chat */}
+      <section id="chat" className="max-w-3xl mx-auto px-4 py-8">
+        <FadeUp>
+          <h2 className="text-2xl font-bold mb-4">💬 AI Помощник</h2>
+        </FadeUp>
+        <ChatWidgetBridge />
+      </section>
 
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h3 className="mb-3 text-lg font-semibold text-gray-900">📄 Документы</h3>
-            <p className="text-gray-600">
-              OCR и перевод паспортов, виз, трудовых договоров.
-            </p>
-          </div>
+      {/* Stats */}
+      <section className="max-w-6xl mx-auto px-4 py-8">
+        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {STATS.map((st) => (
+            <motion.div key={st.l} variants={fadeUp} className="text-center p-6 rounded-3xl bg-white/70 dark:bg-slate-800/70 backdrop-blur border border-slate-200/60 dark:border-slate-700/60">
+              <div className="text-3xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">{st.n}</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{st.l}</div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
 
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h3 className="mb-3 text-lg font-semibold text-gray-900">🛡️ Безопасность</h3>
-            <p className="text-gray-600">
-              Проверка работодателя по ИНН/ОГРН, SOS-кнопка.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-12 text-center">
-          <a
-            href="/login"
-            className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
-          >
-            Начать работу
-          </a>
-        </div>
-
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            © 2026 VaxtaGo • Made by Dmitry Diev • Built with ChatGPT
-          </p>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
+}
+
+// Bridge to allow quick actions to send to chat
+import { ChatWidget } from "@/components/ChatWidget";
+function ChatWidgetBridge() {
+  return <ChatWidget />;
 }

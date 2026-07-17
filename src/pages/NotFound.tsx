@@ -1,34 +1,22 @@
-/*
-VaxtaGo
-Created by Dmitry Diev
-AI Development Assistant: ChatGPT (OpenAI)
-Copyright © 2026
-*/
+import { Link } from "react-router-dom";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { FadeUp } from "@/components/animations";
 
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
-
-const NotFound = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname,
-    );
-  }, [location.pathname]);
-
+export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-xl text-gray-600 mb-4">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 underline">
-          Return to Home
-        </a>
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 text-slate-800 dark:text-white">
+      <Navbar />
+      <div className="max-w-md mx-auto px-4 py-32 text-center">
+        <FadeUp>
+          <div className="text-8xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">404</div>
+          <p className="mt-4 text-lg text-slate-500 dark:text-slate-400">Страница не найдена</p>
+          <Link to="/" className="inline-block mt-6 px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold hover:opacity-90">
+            На главную
+          </Link>
+        </FadeUp>
       </div>
+      <Footer />
     </div>
   );
-};
-
-export default NotFound;
+}
