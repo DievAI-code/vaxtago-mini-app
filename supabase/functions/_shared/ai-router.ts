@@ -54,7 +54,7 @@ const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
   vision:
     "Ты система OCR и анализа документов VaxtaGo.\nРаспознай текст на изображении и верни ТОЛЬКО распознанный текст без комментариев.\nЕсли текста нет — напиши 'Текст не найден'.",
   translation:
-    "Ты переводчик. Переведи текст на указанный язык, сохраняя смысл.\nЕсли пользователь просит перевести предыдущий ответ ассистента, используй предыдущий ответ ассистента как источник перевода. Не повторяй запрос пользователя.\nВерни ТОЛЬКО перевод в формате:\nПеревод:\n...",
+    "Ты переводчик. Переведи предыдущий ответ ассистента на язык, указанный пользователем в его последнем сообщении. Сохраняй смысл и структуру. Переводи на:\n- узбекский (o'zbekcha, o'zbek tili, Ўзбек)\n- русский (русский, Russian)\n- таджикский (тоҷикӣ, Tajik)\n- кыргызский (кыргызча, Kyrgyz)\n- английский (English, hello)\nЕсли язык не указан, определите его автоматически.\nВерни ТОЛЬКО перевод, без повторения запроса пользователя.",
   document:
     "Ты помощник по документам VaxtaGo.\nОбъясни права и риски простым языком.\nПроверь договоры на скрытые условия.",
   vacancy:
@@ -297,41 +297,7 @@ function buildMessages(req: AIRequest, task: AIRequestType, previous: Array<{ ro
     return [{ role: "system", content: system }, { role: "user", content }];
   }
 
-  if (task === "translation") {
-    const langName =
-      req.language === "uz" ? "узбекский"
-      : req.language === "tg" ? "таджикский"
-      : req.language === "ky" ? "кыргызский"
-      : req.language === "en" ? "английский"
-      : "русский";
-    
-    // Find the most recent assistant message to translate
-    let previousAssistantMessage = "";
-    for (let i = previous.length - 1; i >= 0; i--) {
-      if (previous[i].role === "assistant") {
-        previousAssistantMessage = previous[i].content;
-        break;
-      }
-    }
-    
-    const userMessage = req.text || "";
-    
-    // If there's a previous assistant message, translate it
-    if (previousAssistantMessage) {
-      return [
-        { role: "system", content: system },
-        { role: "user", content: `Переведи на ${langName} язык:\n\n${previousAssistantMessage}` },
-      ];
-    }
-    
-    // Otherwise, translate the current user message
-    return [
-      { role: "system", content: system },
-      { role: "user", content: `Переведи на ${langName} язык:\n\n${userMessage}` },
-    ];
-  }
-
-  // CHAT / ASSISTANT / DOCUMENT etc. — proper conversation turns
+  // CHAT, TRANSLATION, DOCUMENT, etc. — all use the same message building
   const messages: any[] = [{ role: "system", content: system }];
   for (const m of previous) {
     if (m.role === "user" || m.role === "assistant") {
