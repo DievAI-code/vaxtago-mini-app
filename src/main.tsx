@@ -2,11 +2,13 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./globals.css";
 
-// Initialize Telegram WebApp for mobile (guarded — safe outside Telegram)
 if (typeof window !== "undefined" && window.Telegram?.WebApp) {
   try {
     window.Telegram.WebApp.ready();
     window.Telegram.WebApp.expand();
+    if (typeof window.Telegram.WebApp.disableVerticalSwipes === "function") {
+      window.Telegram.WebApp.disableVerticalSwipes();
+    }
   } catch (e) {
     console.warn("Telegram WebApp init failed:", e);
   }
