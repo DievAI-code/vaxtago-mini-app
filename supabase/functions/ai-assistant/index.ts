@@ -53,7 +53,6 @@ serve(async (req) => {
   }
 
   console.log("AI ASSISTANT REQUEST");
-  console.log("AUTH:", req.headers.get("Authorization"));
   console.log("ORIGIN:", req.headers.get("Origin"));
 
   let body: any;
@@ -65,8 +64,6 @@ serve(async (req) => {
       { status: 400, headers: corsHeaders },
     );
   }
-
-  console.log("BODY:", JSON.stringify(body));
 
   const { message, language_code, telegram_id, image, context, user_id } = body;
 
@@ -89,6 +86,7 @@ serve(async (req) => {
   const intent = detectIntent(message, !!image);
   const action = getActionForIntent(intent);
 
+  // Step 1+2: Get AI response first (fast path)
   let reply: string;
   let model = "none";
   try {
@@ -106,34 +104,7 @@ serve(async (req) => {
     reply = "AI временно занят. Попробуйте ещё раз.";
   }
 
-  try {
-    await supabase.from("assistant_messages").insert([
-      {
-        user_id: effectiveUserId,
-        telegram_id: telegram_id ?? null,
-        role: "user",
-        content: message,
-        language: lang,
-        context: context ?? "chat",
-        created_at: new Date().toISOString(),
-      },
-      {
-        user_id: effectiveUserId,
-        telegram_id: telegram_id ?? null,
-        role: "assistant",
-        content: reply,
-        language: lang,
-        model: model,
-        context: context ?? "chat",
-        intent: intent,
-        action: action,
-        created_at: new Date().toISOString(),
-      },
-    ]);
-  } catch (e) {
-    console.error("Failed to save history:", e);
-  }
-
+  // Step 3: Save history AFTER response (non-blocking)
   const responseData = {
     success: true,
     reply,
@@ -142,6 +113,37 @@ serve(async (req) => {
     intent,
     action,
   };
+
+  // Fire-and-forget history save
+  (async () => {
+    try {
+      await supabase.from("assistant_messages").insert([
+        {
+          user_id: effectiveUserId,
+          telegram_id: telegram_id ?? null,
+          role: "user",
+          content: message,
+          language: lang,
+          context: context ?? "chat",
+          created_at: new Date().toISOString(),
+        },
+        {
+          user_id: effectiveUserId,
+          telegram_id: telegram_id ?? null,
+          role: "assistant",
+          content: reply,
+          language: lang,
+          model: model,
+          context: context ?? "chat",
+          intent: intent,
+          action: action,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+    } catch (e) {
+      console.error("Failed to save history:", e);
+    }
+  })();
 
   console.log("AI ASSISTANT RESPONSE:", JSON.stringify(responseData));
 

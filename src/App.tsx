@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, useEffect, Suspense, lazy } from "react";
 import { AppProvider } from "@/lib/theme";
-import { VaxtaGoSplash } from "@/components/VaxtaGoSplash";
+import { AppSplash } from "@/components/AppSplash";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TelegramProvider } from "@/components/TelegramProvider";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
@@ -59,7 +59,7 @@ const App = () => {
             <ErrorBoundary>
               <Toaster />
               <Sonner />
-              {loading && <VaxtaGoSplash />}
+              {loading && <AppSplash />}
               <BrowserRouter>
                 <Suspense fallback={<PageFallback />}>
                   <Routes>

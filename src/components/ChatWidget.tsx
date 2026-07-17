@@ -1,26 +1,34 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Image as ImageIcon, Paperclip, Mic, X, Bot, Languages } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { TypingDots } from "./animations";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/lib/theme";
 import { useTelegramUser } from "./TelegramProvider";
+import { useAiChat } from "@/hooks/useAiChat";
 
 interface Msg {
   role: "user" | "assistant";
   content: string;
 }
 
+const CACHE_KEY = "vaxtago_chat_messages";
+
 export function ChatWidget() {
   const { t } = useTranslation();
   const { lang } = useApp();
-  const { telegramId, isInTelegram } = useTelegramUser();
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: t("ai_hello") },
-  ]);
+  const { isInTelegram } = useTelegramUser();
+  const { sendMessage, loading } = useAiChat({
+    onError: (msg) => setMessages((m) => [...m, { role: "assistant", content: msg }]),
+  });
+  const [messages, setMessages] = useState<Msg[]>(() => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return [{ role: "assistant", content: t("ai_hello") }];
+  });
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -28,47 +36,27 @@ export function ChatWidget() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function send(text: string, image?: string) {
-    if (!text.trim() && !image) return;
-    const userMessage = image ? "📷 " + t("scanner_title") : text;
-    setMessages((m) => [...m, { role: "user", content: userMessage }]);
-    setLoading(true);
+  useEffect(() => {
     try {
-      const payload = {
-        message: text,
-        telegram_id: isInTelegram ? telegramId : null,
-        language: lang,
-        context: image ? "vision" : "chat",
-        image: image,
-      };
-      console.log("AI REQUEST", JSON.stringify(payload));
-      const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: payload,
-      });
-      console.log("AI STATUS", error ? "ERROR" : "OK");
-      console.log("AI DATA", JSON.stringify(data));
-      if (data?.success === true) {
-        setMessages((m) => [...m, { role: "assistant", content: data.reply ?? data.text ?? t("ai_error") }]);
-        setInput("");
-      } else if (error) {
-        console.error("AI ERROR:", error.message);
-        setMessages((m) => [...m, { role: "assistant", content: "AI помощник временно недоступен" }]);
-      } else {
-        console.error("AI UNEXPECTED RESPONSE:", JSON.stringify(data));
-        setMessages((m) => [...m, { role: "assistant", content: data?.reply ?? "AI помощник временно недоступен" }]);
-      }
-    } catch (err) {
-      console.error("AI CHAT EXCEPTION:", err);
-      setMessages((m) => [...m, { role: "assistant", content: "AI помощник временно недоступен" }]);
-    } finally {
-      setLoading(false);
+      localStorage.setItem(CACHE_KEY, JSON.stringify(messages.slice(-20)));
+    } catch {}
+  }, [messages]);
+
+  async function handleSend(text: string, image?: string) {
+    if (!text.trim() && !image) return;
+    const userContent = image ? "📷 " + t("scanner_title") : text;
+    setMessages((m) => [...m, { role: "user", content: userContent }]);
+    if (!image) setInput("");
+    const reply = await sendMessage(text, image);
+    if (reply) {
+      setMessages((m) => [...m, { role: "assistant", content: reply }]);
     }
   }
 
   function onKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      send(input);
+      handleSend(input);
     }
   }
 
@@ -109,8 +97,9 @@ export function ChatWidget() {
           ))}
         </AnimatePresence>
         {loading && (
-          <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl w-fit">
+          <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl w-fit flex items-center gap-2">
             <TypingDots />
+            <span className="text-sm text-slate-500">🤖 VaxtaGo AI думает...</span>
           </div>
         )}
         <div ref={endRef} />
@@ -118,20 +107,20 @@ export function ChatWidget() {
 
       <div className="border-t border-slate-200/60 dark:border-slate-700/60 p-4 bg-slate-50/50 dark:bg-slate-800/50">
         <div className="flex items-end gap-2">
-          <button onClick={() => fileRef.current?.click()} className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Attach">
+          <button onClick={() => fileRef.current?.click()} className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Attach" disabled={loading}>
             <Paperclip size={18} />
           </button>
-          <button onClick={() => fileRef.current?.click()} className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Photo">
+          <button onClick={() => fileRef.current?.click()} className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Photo" disabled={loading}>
             <ImageIcon size={18} />
           </button>
-          <button className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Voice">
+          <button className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Voice" disabled={loading}>
             <Mic size={18} />
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
             const f = e.target.files?.[0];
             if (!f) return;
             const r = new FileReader();
-            r.onload = () => send("Распознай текст на изображении", (r.result as string).split(",")[1]);
+            r.onload = () => handleSend("Распознай текст на изображении", (r.result as string).split(",")[1]);
             r.readAsDataURL(f);
           }} />
           <textarea
@@ -140,10 +129,11 @@ export function ChatWidget() {
             onKeyDown={onKey}
             rows={1}
             placeholder={t("chat_ph")}
-            className="flex-1 resize-none max-h-24 px-4 py-3 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 outline-none text-sm text-slate-800 dark:text-white"
+            disabled={loading}
+            className="flex-1 resize-none max-h-24 px-4 py-3 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 outline-none text-sm text-slate-800 dark:text-white disabled:opacity-50"
           />
           <button
-            onClick={() => send(input)}
+            onClick={() => handleSend(input)}
             disabled={loading}
             className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 text-white hover:scale-105 transition-all duration-200 shadow-lg disabled:opacity-50"
             aria-label="Send"

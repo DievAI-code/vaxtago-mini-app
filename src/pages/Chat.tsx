@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Image as ImageIcon, Bot } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/lib/theme";
 import { useTelegramUser } from "@/components/TelegramProvider";
+import { useAiChat } from "@/hooks/useAiChat";
 
 interface Message {
   role: "user" | "assistant";
@@ -13,68 +13,42 @@ interface Message {
 export default function Chat() {
   const { t } = useTranslation();
   const { lang } = useApp();
-  const { telegramId, isInTelegram } = useTelegramUser();
+  const { isInTelegram } = useTelegramUser();
+  const { sendMessage, loading } = useAiChat({
+    onError: (msg) => setMessages((prev) => [...prev, { role: "assistant", content: msg }]),
+  });
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: t("ai_hello") },
   ]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, loading]);
 
-  async function sendToRouter(message: string, imageBase64?: string) {
-    if (!message.trim() && !imageBase64) return;
-    const userMessage = imageBase64 ? "📷 " + t("scanner_title") : message;
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
-    setIsLoading(true);
-    try {
-      const payload = {
-        message,
-        telegram_id: isInTelegram ? telegramId : null,
-        language: lang,
-        image: imageBase64,
-        context: imageBase64 ? "vision" : "chat",
-      };
-      console.log("AI REQUEST", JSON.stringify(payload));
-      const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: payload,
-      });
-      console.log("AI STATUS", error ? "ERROR" : "OK");
-      console.log("AI DATA", JSON.stringify(data));
-      if (data?.success === true) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.reply ?? data.text ?? t("ai_error") }]);
-        setInput("");
-      } else if (error) {
-        console.error("AI ERROR:", error.message);
-        setMessages((prev) => [...prev, { role: "assistant", content: "AI помощник временно недоступен" }]);
-      } else {
-        console.error("AI UNEXPECTED RESPONSE:", JSON.stringify(data));
-        setMessages((prev) => [...prev, { role: "assistant", content: data?.reply ?? "AI помощник временно недоступен" }]);
-      }
-    } catch (err) {
-      console.error("AI CHAT EXCEPTION:", err);
-      setMessages((prev) => [...prev, { role: "assistant", content: "AI помощник временно недоступен" }]);
-    } finally {
-      setIsLoading(false);
+  async function handleSend() {
+    if (!input.trim() || loading) return;
+    const text = input;
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
+    setInput("");
+    const reply = await sendMessage(text);
+    if (reply) {
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     }
-  }
-
-  function handleSend() {
-    if (!input.trim() || isLoading) return;
-    sendToRouter(input);
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || loading) return;
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1];
-      sendToRouter("Распознай текст на изображении", base64);
+      setMessages((prev) => [...prev, { role: "user", content: "📷 " + t("scanner_title") }]);
+      sendMessage("Распознай текст на изображении", base64).then((reply) => {
+        if (reply) setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      });
     };
     reader.readAsDataURL(file);
   }
@@ -94,20 +68,21 @@ export default function Chat() {
             {msg.content}
           </div>
         ))}
-        {isLoading && (
+        {loading && (
           <div className="bg-white p-3 rounded-2xl shadow-sm text-gray-500 flex items-center gap-2">
             <TypingDotsLocal />
+            <span className="text-sm">🤖 VaxtaGo AI думает...</span>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
       <div className="bg-white border-t p-3 flex items-center gap-2">
-        <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200" disabled={isLoading}>
+        <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200" disabled={loading}>
           <ImageIcon size={20} />
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && handleSend()} placeholder={t("chat_ph")} className="flex-1 p-2 border rounded-full px-4 outline-none focus:border-blue-400" disabled={isLoading} />
-        <button onClick={handleSend} className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" disabled={isLoading}>
+        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && handleSend()} placeholder={t("chat_ph")} className="flex-1 p-2 border rounded-full px-4 outline-none focus:border-blue-400" disabled={loading} />
+        <button onClick={handleSend} className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
           <Send size={20} />
         </button>
       </div>

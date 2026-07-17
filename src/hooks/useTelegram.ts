@@ -46,6 +46,8 @@ interface TelegramWebApp {
   ready: () => void;
   expand: () => void;
   close: () => void;
+  requestViewport: () => void;
+  disableVerticalSwipes: () => void;
 }
 
 declare global {
@@ -62,12 +64,19 @@ export function useTelegram() {
   const [initData, setInitData] = useState<string>("");
 
   useEffect(() => {
-    // Non-blocking: if Telegram API is missing, just skip (fallback for browser)
     const tg = window.Telegram?.WebApp;
     if (tg) {
       try {
         tg.ready();
         tg.expand();
+        // Request fresh viewport for Android
+        if (typeof tg.requestViewport === "function") {
+          tg.requestViewport();
+        }
+        // Prevent accidental swipe-down close on Android
+        if (typeof tg.disableVerticalSwipes === "function") {
+          tg.disableVerticalSwipes();
+        }
         setWebApp(tg);
         setUser(tg.initDataUnsafe.user ?? null);
         setInitData(tg.initData);
