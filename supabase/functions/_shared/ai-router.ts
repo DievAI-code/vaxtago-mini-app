@@ -4,7 +4,6 @@ import { logRequest } from "./logger.ts";
 export type AIRequestType =
   | "assistant"
   | "vision"
-  | "translation"
   | "document"
   | "vacancy"
   | "employer_check"
@@ -37,7 +36,6 @@ export interface AIResult {
 
 export type Intent =
   | "CHAT"
-  | "TRANSLATE"
   | "OCR"
   | "OCR_TRANSLATE"
   | "DOCUMENT_ANALYSIS"
@@ -50,11 +48,9 @@ export type Intent =
 
 const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
   assistant:
-    "Ты VaxtaGo AI Assistant.\nТы помогаешь пользователям из Узбекистана найти работу в России, разобраться с документами и переводами.\nОтвечай на языке пользователя.\nПоддерживаемые языки: Русский, Узбекский, Таджикский, Кыргызский, Английский.",
+    "Ты VaxtaGo AI — дружелюбный помощник для трудовых мигрантов в России.\nОтвечай естественно, как живой человек. Помогай с работой, документами, переводами, юридическими и миграционными вопросами.\nПоддерживай контекст беседы. Если просят перевести, сделать короче, продолжить или объяснить — просто выполняй на основе предыдущих сообщений.\nЯзыки: Русский, Узбекский, Таджикский, Кыргызский, Английский. Отвечай на языке пользователя.",
   vision:
     "Ты система OCR и анализа документов VaxtaGo.\nРаспознай текст на изображении и верни ТОЛЬКО распознанный текст без комментариев.\nЕсли текста нет — напиши 'Текст не найден'.",
-  translation:
-    "Ты переводчик. Переведи предыдущий ответ ассистента на язык, указанный пользователем в его последнем сообщении. Сохраняй смысл и структуру. Переводи на:\n- узбекский (o'zbekcha, o'zbek tili, Ўзбек)\n- русский (русский, Russian)\n- таджикский (тоҷикӣ, Tajik)\n- кыргызский (кыргызча, Kyrgyz)\n- английский (English, hello)\nЕсли язык не указан, определите его автоматически.\nВерни ТОЛЬКО перевод, без повторения запроса пользователя.",
   document:
     "Ты помощник по документам VaxtaGo.\nОбъясни права и риски простым языком.\nПроверь договоры на скрытые условия.",
   vacancy:
@@ -73,7 +69,6 @@ const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
     "Ты помощник по приложению VaxtaGo.\nОбъясни как пользоваться: поиск работы, перевод, сканер, профиль, премиум.\nОтвечай кратко и по делу.",
 };
 
-// Fallback chain — order matters
 const MODELS = [
   "openai/gpt-4o-mini",
   "google/gemini-2.5-flash",
@@ -87,20 +82,7 @@ function getApiKey(): string | undefined {
 export function detectIntent(input: string, hasImage: boolean = false, previousMessages: Array<{ role: string; content: string }> = []): Intent {
   const low = input.toLowerCase();
 
-  if (previousMessages.length > 0) {
-    const lastUserMsg = [...previousMessages].reverse().find((m) => m.role === "user");
-    if (lastUserMsg) {
-      const lastLow = lastUserMsg.content.toLowerCase();
-      if ((lastLow.includes("перевед") || lastLow.includes("translate")) && !lastLow.includes("оригинал") && !hasImage) {
-        if (low.trim().length > 0 && !low.includes("перевед") && !low.includes("translate")) {
-          return "TRANSLATE";
-        }
-      }
-    }
-  }
-
   if (hasImage) {
-    if (low.includes("перевед") || low.includes("translate") || low.includes("перевод")) return "OCR_TRANSLATE";
     if (low.includes("документ") || low.includes("паспорт") || low.includes("договор") || low.includes("справка") || low.includes("contract") || low.includes("document") || low.includes("ҳуҷҷат")) return "DOCUMENT_ANALYSIS";
     if (low.includes("адрес") || low.includes("address") || low.includes("где")) return "OCR";
     if (low.includes("ваканс") || low.includes("работ") || low.includes("vacancy") || low.includes("job")) return "OCR";
@@ -109,7 +91,6 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
 
   if (low.includes("премиум") || low.includes("premium") || low.includes("купить") || low.includes("оплат") || low.includes("подписк")) return "PREMIUM";
   if (low.includes("помощ") || low.includes("help") || low.includes("как пользовать") || low.includes("инструкц") || low.includes("что умеешь")) return "HELP";
-  if (low.includes("перевед") || low.includes("translate") || low.includes("перевод")) return "TRANSLATE";
   if (low.includes("закон") || low.includes("право") || low.includes("юрист") || low.includes("штраф") || low.includes("суд") || low.includes("law") || low.includes("legal") || low.includes("патент")) return "LEGAL";
   if (low.includes("миграц") || low.includes("мвд") || low.includes("регистрац") || low.includes("виза") || low.includes("migration")) return "MIGRATION";
   if (low.includes("работ") || low.includes("ваканс") || low.includes("job") || low.includes("иш") || low.includes("vacancy")) return "JOB_SEARCH";
@@ -122,7 +103,6 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
 export function getActionForIntent(intent: Intent): string {
   switch (intent) {
     case "JOB_SEARCH": return "search_jobs";
-    case "TRANSLATE": return "open_ocr";
     case "OCR": return "process_image";
     case "OCR_TRANSLATE": return "process_image_translate";
     case "DOCUMENT_ANALYSIS": return "analyze_document";
@@ -138,7 +118,6 @@ export function getActionForIntent(intent: Intent): string {
 function mapIntentToRequestType(intent: Intent): AIRequestType {
   switch (intent) {
     case "JOB_SEARCH": return "vacancy";
-    case "TRANSLATE": return "translation";
     case "OCR": return "vision";
     case "OCR_TRANSLATE": return "vision";
     case "DOCUMENT_ANALYSIS": return "document";
@@ -235,7 +214,7 @@ async function withRetry(fn: () => Promise<string>, retries = 2): Promise<string
 
 export async function createAIRequest(req: AIRequest): Promise<AIResult> {
   const startTime = Date.now();
-  const previous = req.previousMessages ?? [];
+  const previous = (req.previousMessages ?? []).slice(-20);
   const intent = detectIntent(req.text || "", !!req.image || !!req.hasImage, previous);
   const requestType = mapIntentToRequestType(intent);
   console.log("AI ROUTER START - intent:", intent, "type:", requestType);
@@ -297,7 +276,7 @@ function buildMessages(req: AIRequest, task: AIRequestType, previous: Array<{ ro
     return [{ role: "system", content: system }, { role: "user", content }];
   }
 
-  // CHAT, TRANSLATION, DOCUMENT, etc. — all use the same message building
+  // Unified: system + history (last 20) + current user message
   const messages: any[] = [{ role: "system", content: system }];
   for (const m of previous) {
     if (m.role === "user" || m.role === "assistant") {
