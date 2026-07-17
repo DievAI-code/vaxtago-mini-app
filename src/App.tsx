@@ -5,10 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, useEffect, Suspense, lazy } from "react";
 import { AppProvider } from "@/lib/theme";
-import { AppSplash } from "@/components/AppSplash";
+import { SplashScreen } from "@/components/SplashScreen";
+import { AuthScreen } from "@/components/AuthScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TelegramProvider } from "@/components/TelegramProvider";
-import { WelcomeScreen } from "@/components/WelcomeScreen";
+import { motion, AnimatePresence } from "framer-motion";
 import Index from "./pages/Index";
 import Footer from "./components/Footer";
 import "@/i18n";
@@ -27,13 +28,14 @@ const Chat = lazy(() => import("./pages/Chat"));
 const queryClient = new QueryClient();
 
 const PageFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] dark:bg-slate-950">
-    <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900">
+    <div className="w-8 h-8 rounded-full border-2 border-white/40 border-t-white animate-spin" />
   </div>
 );
 
 const App = () => {
   const [loading, setLoading] = useState(true);
+  const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
     document.title = "VaxtaGo — AI помощник для мигрантов";
@@ -47,7 +49,7 @@ const App = () => {
     if (bootSplash) bootSplash.remove();
 
     // Minimal loading delay for smooth transition
-    const t = setTimeout(() => setLoading(false), 800);
+    const t = setTimeout(() => setLoading(false), 1200);
     return () => clearTimeout(t);
   }, []);
 
@@ -59,24 +61,37 @@ const App = () => {
             <ErrorBoundary>
               <Toaster />
               <Sonner />
-              {loading && <AppSplash />}
-              <BrowserRouter>
-                <Suspense fallback={<PageFallback />}>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/welcome" element={<WelcomeScreen />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/contacts" element={<Contacts />} />
-                    <Route path="/privacy" element={<Privacy />} />
-                    <Route path="/terms" element={<Terms />} />
-                    <Route path="/scanner" element={<Scanner />} />
-                    <Route path="/jobs" element={<Jobs />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/chat" element={<Chat />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </BrowserRouter>
+              <AnimatePresence mode="wait">
+                {loading ? (
+                  <SplashScreen />
+                ) : !authed ? (
+                  <AuthScreen onAuth={() => setAuthed(true)} />
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950"
+                  >
+                    <BrowserRouter>
+                      <Suspense fallback={<PageFallback />}>
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/about" element={<About />} />
+                          <Route path="/contacts" element={<Contacts />} />
+                          <Route path="/privacy" element={<Privacy />} />
+                          <Route path="/terms" element={<Terms />} />
+                          <Route path="/scanner" element={<Scanner />} />
+                          <Route path="/jobs" element={<Jobs />} />
+                          <Route path="/profile" element={<Profile />} />
+                          <Route path="/chat" element={<Chat />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </Suspense>
+                    </BrowserRouter>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </ErrorBoundary>
           </TooltipProvider>
         </TelegramProvider>
