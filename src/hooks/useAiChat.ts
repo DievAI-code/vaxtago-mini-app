@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/theme";
 import { useTelegramUser } from "@/components/TelegramProvider";
+
+const AI_URL = "https://watkanjjfsvqbhebchpk.supabase.co/functions/v1/ai-assistant";
 
 interface UseAiChatOptions {
   onError?: (msg: string) => void;
@@ -29,9 +30,9 @@ export function useAiChat(options?: UseAiChatOptions) {
 
       setLoading(true);
       const device = detectDevice();
-      const startTime = Date.now();
       console.log("DEVICE:", device.toUpperCase());
-      console.log("AI REQUEST TIME:", new Date().toISOString());
+      console.log("AI SEND START", message);
+      console.log("AI URL", AI_URL);
 
       const payload = {
         message,
@@ -49,22 +50,25 @@ export function useAiChat(options?: UseAiChatOptions) {
         const timeout = setTimeout(() => controller.abort(), 20000);
 
         try {
-          const { data, error } = await supabase.functions.invoke("ai-assistant", {
-            body: payload,
-            signal: controller.signal as any,
+          const response = await fetch(AI_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
           });
           clearTimeout(timeout);
-          console.log("AI STATUS:", error ? "ERROR" : "OK");
-          console.log("AI DATA:", JSON.stringify(data));
+          console.log("AI RESPONSE STATUS", response.status);
+
+          const data = await response.json();
+          console.log("AI RESPONSE DATA", JSON.stringify(data));
 
           if (data?.success === true && data.reply) {
             return data.reply;
           }
-          if (error) {
-            throw new Error(error.message);
-          }
           if (data?.reply) return data.reply;
-          throw new Error("Empty response");
+          throw new Error("Empty or invalid response: " + JSON.stringify(data));
         } catch (err: any) {
           clearTimeout(timeout);
           console.error("AI ERROR:", err?.message || err);
@@ -72,14 +76,14 @@ export function useAiChat(options?: UseAiChatOptions) {
             console.log(`AI RETRY ${attempt + 1}...`);
             return attemptRequest(attempt + 1);
           }
+          // Show real error to user for debugging
+          options?.onError?.("Ошибка: " + (err?.message || "неизвестно"));
           return null;
         }
       };
 
       try {
         const reply = await attemptRequest(1);
-        const duration = Date.now() - startTime;
-        console.log("AI DONE in", duration, "ms");
         if (reply) return reply;
         options?.onError?.("Связь слабая. Повторяем запрос...");
         return null;
