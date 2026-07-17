@@ -85,14 +85,7 @@ serve(async (req) => {
 
   const effectiveUserId = telegram_id ? `tg_${telegram_id}` : (user_id ?? "anonymous");
   const lang = language_code || detectLanguage(message);
-
-  // Load DB history; fall back to React session history if empty
-  let history = await fetchConversationHistory(supabase, effectiveUserId);
-  if (history.length === 0 && Array.isArray(session_history) && session_history.length > 0) {
-    console.log("Using React session history fallback, messages:", session_history.length);
-    history = session_history.filter((m: any) => m.role === "user" || m.role === "assistant");
-  }
-
+  const history = await fetchConversationHistory(supabase, effectiveUserId);
   const intent = detectIntent(message, !!image || !!has_image, history);
   const action = getActionForIntent(intent);
 
