@@ -48,9 +48,31 @@ const App = () => {
     const bootSplash = document.getElementById("boot-splash");
     if (bootSplash) bootSplash.remove();
 
+    // Telegram Mini App viewport handling
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      try {
+        tg.ready();
+        tg.expand();
+      } catch (e) {
+        console.warn("Telegram WebApp init failed:", e);
+      }
+    }
+
+    const setViewport = () => {
+      const height = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty("--app-height", `${height}px`);
+    };
+    setViewport();
+    window.visualViewport?.addEventListener("resize", setViewport);
+
     // Minimal loading delay for smooth transition
     const t = setTimeout(() => setLoading(false), 1200);
-    return () => clearTimeout(t);
+
+    return () => {
+      clearTimeout(t);
+      window.visualViewport?.removeEventListener("resize", setViewport);
+    };
   }, []);
 
   return (
@@ -71,7 +93,7 @@ const App = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5 }}
-                    className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950"
+                    className="app-root"
                   >
                     <BrowserRouter>
                       <Suspense fallback={<PageFallback />}>

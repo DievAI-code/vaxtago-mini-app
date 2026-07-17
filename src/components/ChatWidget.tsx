@@ -51,10 +51,13 @@ export function ChatWidget() {
   });
   const [input, setInput] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
-  const endRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [messages, loading]);
 
   useEffect(() => {
@@ -91,8 +94,8 @@ export function ChatWidget() {
   }
 
   return (
-    <div className="rounded-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xl overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-600/10 to-cyan-400/10 p-4 border-b border-slate-200/60 dark:border-slate-700/60">
+    <div className="chat-container rounded-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xl overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-600/10 to-cyan-400/10 p-4 border-b border-slate-200/60 dark:border-slate-700/60 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center">
@@ -108,8 +111,8 @@ export function ChatWidget() {
           </button>
         </div>
       </div>
-      
-      <div className="h-[420px] overflow-y-auto p-4 space-y-3">
+
+      <div ref={messagesContainerRef} className="chat-messages p-4 space-y-3">
         <AnimatePresence>
           {messages.map((m) => (
             <motion.div
@@ -132,10 +135,9 @@ export function ChatWidget() {
             <span className="text-sm text-slate-500">🤖 VaxtaGo AI думает...</span>
           </div>
         )}
-        <div ref={endRef} />
       </div>
 
-      <div className="border-t border-slate-200/60 dark:border-slate-700/60 p-4 bg-slate-50/50 dark:bg-slate-800/50">
+      <div className="chat-input border-t border-slate-200/60 dark:border-slate-700/60 p-4 bg-slate-50/50 dark:bg-slate-800/50">
         <div className="flex items-end gap-2">
           <button onClick={() => fileRef.current?.click()} className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Attach" disabled={loading}>
             <Paperclip size={18} />

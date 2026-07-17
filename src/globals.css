@@ -95,7 +95,45 @@
     @apply border-border;
   }
 
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
+    position: fixed;
+    inset: 0;
   }
+
+  /* Telegram Mini App dynamic viewport */
+  .app-root {
+    height: 100dvh;
+    min-height: 100dvh;
+    height: var(--app-height, 100dvh);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Chat layout helpers for Telegram WebView */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-input {
+  position: sticky;
+  bottom: 0;
+  flex-shrink: 0;
 }
