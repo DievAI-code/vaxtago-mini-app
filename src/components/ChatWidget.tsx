@@ -8,25 +8,46 @@ import { useTelegramUser } from "./TelegramProvider";
 import { useAiChat } from "@/hooks/useAiChat";
 
 interface Msg {
+  id: string;
   role: "user" | "assistant";
   content: string;
+  createdAt: Date;
 }
 
 const CACHE_KEY = "vaxtago_chat_messages";
+
+const makeId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
 
 export function ChatWidget() {
   const { t } = useTranslation();
   const { lang } = useApp();
   const { isInTelegram } = useTelegramUser();
   const { sendMessage, loading } = useAiChat({
-    onError: (msg) => setMessages((m) => [...m, { role: "assistant", content: msg }]),
+    onError: (msg) =>
+      setMessages((m) => [
+        ...m,
+        { id: makeId(), role: "assistant", content: msg, createdAt: new Date() },
+      ]),
   });
   const [messages, setMessages] = useState<Msg[]>(() => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) return JSON.parse(cached);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return parsed.map((x: any) => ({
+          id: x.id || makeId(),
+          role: x.role,
+          content: x.content,
+          createdAt: new Date(x.createdAt || Date.now()),
+        }));
+      }
     } catch {}
-    return [{ role: "assistant", content: t("ai_hello") }];
+    return [
+      { id: makeId(), role: "assistant", content: t("ai_hello"), createdAt: new Date() },
+    ];
   });
   const [input, setInput] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -38,18 +59,27 @@ export function ChatWidget() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(messages.slice(-20)));
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify(messages.slice(-20).map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))),
+      );
     } catch {}
   }, [messages]);
 
   async function handleSend(text: string, image?: string) {
     if (!text.trim() && !image) return;
     const userContent = image ? "📷 " + t("scanner_title") : text;
-    setMessages((m) => [...m, { role: "user", content: userContent }]);
+    setMessages((m) => [
+      ...m,
+      { id: makeId(), role: "user", content: userContent, createdAt: new Date() },
+    ]);
     if (!image) setInput("");
     const reply = await sendMessage(text, image);
     if (reply) {
-      setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      setMessages((m) => [
+        ...m,
+        { id: makeId(), role: "assistant", content: reply, createdAt: new Date() },
+      ]);
     }
   }
 
@@ -81,9 +111,9 @@ export function ChatWidget() {
       
       <div className="h-[420px] overflow-y-auto p-4 space-y-3">
         <AnimatePresence>
-          {messages.map((m, i) => (
+          {messages.map((m) => (
             <motion.div
-              key={i}
+              key={m.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className={`max-w-[85%] p-3 rounded-2xl ${

@@ -6,19 +6,30 @@ import { useTelegramUser } from "@/components/TelegramProvider";
 import { useAiChat } from "@/hooks/useAiChat";
 
 interface Message {
+  id: string;
   role: "user" | "assistant";
   content: string;
+  createdAt: Date;
 }
+
+const makeId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
 
 export default function Chat() {
   const { t } = useTranslation();
   const { lang } = useApp();
   const { isInTelegram } = useTelegramUser();
   const { sendMessage, loading } = useAiChat({
-    onError: (msg) => setMessages((prev) => [...prev, { role: "assistant", content: msg }]),
+    onError: (msg) =>
+      setMessages((prev) => [
+        ...prev,
+        { id: makeId(), role: "assistant", content: msg, createdAt: new Date() },
+      ]),
   });
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: t("ai_hello") },
+    { id: makeId(), role: "assistant", content: t("ai_hello"), createdAt: new Date() },
   ]);
   const [input, setInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,11 +42,17 @@ export default function Chat() {
   async function handleSend() {
     if (!input.trim() || loading) return;
     const text = input;
-    setMessages((prev) => [...prev, { role: "user", content: text }]);
+    setMessages((prev) => [
+      ...prev,
+      { id: makeId(), role: "user", content: text, createdAt: new Date() },
+    ]);
     setInput("");
     const reply = await sendMessage(text);
     if (reply) {
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      setMessages((prev) => [
+        ...prev,
+        { id: makeId(), role: "assistant", content: reply, createdAt: new Date() },
+      ]);
     }
   }
 
@@ -45,9 +62,16 @@ export default function Chat() {
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1];
-      setMessages((prev) => [...prev, { role: "user", content: "📷 " + t("scanner_title") }]);
+      setMessages((prev) => [
+        ...prev,
+        { id: makeId(), role: "user", content: "📷 " + t("scanner_title"), createdAt: new Date() },
+      ]);
       sendMessage("Распознай текст на изображении", base64).then((reply) => {
-        if (reply) setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+        if (reply)
+          setMessages((prev) => [
+            ...prev,
+            { id: makeId(), role: "assistant", content: reply, createdAt: new Date() },
+          ]);
       });
     };
     reader.readAsDataURL(file);
@@ -63,8 +87,8 @@ export default function Chat() {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg, i) => (
-          <div key={i} className={`max-w-[80%] p-3 rounded-2xl ${msg.role === "user" ? "ml-auto bg-blue-600 text-white" : "bg-white text-gray-800 shadow-sm"}`}>
+        {messages.map((msg) => (
+          <div key={msg.id} className={`max-w-[80%] p-3 rounded-2xl ${msg.role === "user" ? "ml-auto bg-blue-600 text-white" : "bg-white text-gray-800 shadow-sm"}`}>
             {msg.content}
           </div>
         ))}

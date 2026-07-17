@@ -65,9 +65,13 @@ export function useAiChat(options?: UseAiChatOptions) {
           console.log("AI RESPONSE DATA", JSON.stringify(data));
 
           if (data?.success === true && data.reply) {
+            console.log("ADDING AI MESSAGE", data.reply);
             return data.reply;
           }
-          if (data?.reply) return data.reply;
+          if (data?.reply) {
+            console.log("ADDING AI MESSAGE", data.reply);
+            return data.reply;
+          }
           throw new Error("Empty or invalid response: " + JSON.stringify(data));
         } catch (err: any) {
           clearTimeout(timeout);
@@ -76,7 +80,6 @@ export function useAiChat(options?: UseAiChatOptions) {
             console.log(`AI RETRY ${attempt + 1}...`);
             return attemptRequest(attempt + 1);
           }
-          // Show real error to user for debugging
           options?.onError?.("Ошибка: " + (err?.message || "неизвестно"));
           return null;
         }
