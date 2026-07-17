@@ -54,6 +54,7 @@ serve(async (req) => {
 
   console.log("AI ASSISTANT REQUEST");
   console.log("AUTH:", req.headers.get("Authorization"));
+  console.log("ORIGIN:", req.headers.get("Origin"));
 
   let body: any;
   try {
@@ -141,6 +142,8 @@ serve(async (req) => {
     intent,
     action,
   };
+
+  console.log("AI ASSISTANT RESPONSE:", JSON.stringify(responseData));
 
   return new Response(
     JSON.stringify(responseData),

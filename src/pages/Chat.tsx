@@ -27,40 +27,45 @@ export default function Chat() {
   }, [messages]);
 
   async function sendToRouter(message: string, imageBase64?: string) {
+    if (!message.trim() && !imageBase64) return;
+    const userMessage = imageBase64 ? "📷 " + t("scanner_title") : message;
+    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
     try {
-      const body = {
+      const payload = {
         message,
         telegram_id: isInTelegram ? telegramId : null,
         language: lang,
         image: imageBase64,
         context: imageBase64 ? "vision" : "chat",
       };
-      console.log("AI REQUEST:", JSON.stringify(body));
+      console.log("AI REQUEST", JSON.stringify(payload));
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body,
+        body: payload,
       });
-      console.log("AI STATUS:", error ? "ERROR" : "OK");
-      console.log("AI RESPONSE:", JSON.stringify(data));
+      console.log("AI STATUS", error ? "ERROR" : "OK");
+      console.log("AI DATA", JSON.stringify(data));
       if (data?.success === true) {
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply ?? data.text ?? t("ai_error") }]);
+        setInput("");
       } else if (error) {
-        setMessages((prev) => [...prev, { role: "assistant", content: "AI помощник временно занят. Попробуйте ещё раз." }]);
+        console.error("AI ERROR:", error.message);
+        setMessages((prev) => [...prev, { role: "assistant", content: "AI помощник временно недоступен" }]);
       } else {
-        setMessages((prev) => [...prev, { role: "assistant", content: data?.reply ?? "AI помощник временно занят. Попробуйте ещё раз." }]);
+        console.error("AI UNEXPECTED RESPONSE:", JSON.stringify(data));
+        setMessages((prev) => [...prev, { role: "assistant", content: data?.reply ?? "AI помощник временно недоступен" }]);
       }
-    } catch {
-      setMessages((prev) => [...prev, { role: "assistant", content: "AI помощник временно занят. Попробуйте ещё раз." }]);
+    } catch (err) {
+      console.error("AI CHAT EXCEPTION:", err);
+      setMessages((prev) => [...prev, { role: "assistant", content: "AI помощник временно недоступен" }]);
     } finally {
       setIsLoading(false);
     }
   }
 
   function handleSend() {
-    if (!input.trim()) return;
-    setMessages((prev) => [...prev, { role: "user", content: input }]);
+    if (!input.trim() || isLoading) return;
     sendToRouter(input);
-    setInput("");
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -69,7 +74,6 @@ export default function Chat() {
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1];
-      setMessages((prev) => [...prev, { role: "user", content: "📷 " + t("scanner_title") }]);
       sendToRouter("Распознай текст на изображении", base64);
     };
     reader.readAsDataURL(file);
@@ -98,12 +102,12 @@ export default function Chat() {
         <div ref={messagesEndRef} />
       </div>
       <div className="bg-white border-t p-3 flex items-center gap-2">
-        <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200">
+        <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200" disabled={isLoading}>
           <ImageIcon size={20} />
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && handleSend()} placeholder={t("chat_ph")} className="flex-1 p-2 border rounded-full px-4 outline-none focus:border-blue-400" />
-        <button onClick={handleSend} className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700">
+        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && handleSend()} placeholder={t("chat_ph")} className="flex-1 p-2 border rounded-full px-4 outline-none focus:border-blue-400" disabled={isLoading} />
+        <button onClick={handleSend} className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" disabled={isLoading}>
           <Send size={20} />
         </button>
       </div>

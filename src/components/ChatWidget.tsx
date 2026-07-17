@@ -30,31 +30,36 @@ export function ChatWidget() {
 
   async function send(text: string, image?: string) {
     if (!text.trim() && !image) return;
-    setMessages((m) => [...m, { role: "user", content: image ? "📷 " + t("scanner_title") : text }]);
+    const userMessage = image ? "📷 " + t("scanner_title") : text;
+    setMessages((m) => [...m, { role: "user", content: userMessage }]);
     setLoading(true);
     try {
-      const body = {
+      const payload = {
         message: text,
         telegram_id: isInTelegram ? telegramId : null,
         language: lang,
         context: image ? "vision" : "chat",
         image: image,
       };
-      console.log("AI REQUEST:", JSON.stringify(body));
+      console.log("AI REQUEST", JSON.stringify(payload));
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body,
+        body: payload,
       });
-      console.log("AI STATUS:", error ? "ERROR" : "OK");
-      console.log("AI RESPONSE:", JSON.stringify(data));
+      console.log("AI STATUS", error ? "ERROR" : "OK");
+      console.log("AI DATA", JSON.stringify(data));
       if (data?.success === true) {
         setMessages((m) => [...m, { role: "assistant", content: data.reply ?? data.text ?? t("ai_error") }]);
+        setInput("");
       } else if (error) {
-        setMessages((m) => [...m, { role: "assistant", content: "AI помощник временно занят. Попробуйте ещё раз." }]);
+        console.error("AI ERROR:", error.message);
+        setMessages((m) => [...m, { role: "assistant", content: "AI помощник временно недоступен" }]);
       } else {
-        setMessages((m) => [...m, { role: "assistant", content: data?.reply ?? "AI помощник временно занят. Попробуйте ещё раз." }]);
+        console.error("AI UNEXPECTED RESPONSE:", JSON.stringify(data));
+        setMessages((m) => [...m, { role: "assistant", content: data?.reply ?? "AI помощник временно недоступен" }]);
       }
-    } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "AI помощник временно занят. Попробуйте ещё раз." }]);
+    } catch (err) {
+      console.error("AI CHAT EXCEPTION:", err);
+      setMessages((m) => [...m, { role: "assistant", content: "AI помощник временно недоступен" }]);
     } finally {
       setLoading(false);
     }
@@ -64,7 +69,6 @@ export function ChatWidget() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send(input);
-      setInput("");
     }
   }
 
@@ -139,8 +143,9 @@ export function ChatWidget() {
             className="flex-1 resize-none max-h-24 px-4 py-3 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 outline-none text-sm text-slate-800 dark:text-white"
           />
           <button
-            onClick={() => { send(input); setInput(""); }}
-            className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 text-white hover:scale-105 transition-all duration-200 shadow-lg"
+            onClick={() => send(input)}
+            disabled={loading}
+            className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 text-white hover:scale-105 transition-all duration-200 shadow-lg disabled:opacity-50"
             aria-label="Send"
           >
             <Send size={18} />
