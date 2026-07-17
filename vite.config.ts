@@ -20,19 +20,22 @@ export default defineConfig(() => ({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          telegram: ["@telegram-web-app", "@/hooks/useTelegram"],
-          ui: [
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-tooltip",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-select",
-            "framer-motion",
-          ],
-          ai: ["@supabase/supabase-js", "@tanstack/react-query"],
+        manualChunks(id: string) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) {
+              return "vendor";
+            }
+            if (id.includes("@twa-dev") || id.includes("telegram")) {
+              return "telegram";
+            }
+            if (id.includes("@radix-ui") || id.includes("framer-motion")) {
+              return "ui";
+            }
+            if (id.includes("@supabase") || id.includes("@tanstack")) {
+              return "ai";
+            }
+            return "vendor";
+          }
         },
       },
     },
