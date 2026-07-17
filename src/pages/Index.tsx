@@ -4,6 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FeatureCard } from "@/components/FeatureCard";
 import { ChatWidget } from "@/components/ChatWidget";
+import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { FadeUp, stagger, fadeUp } from "@/components/animations";
 import { useStrings } from "@/lib/theme";
 import { useNavigate } from "react-router-dom";
@@ -59,8 +60,13 @@ export default function Index() {
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 text-slate-800 dark:text-slate-100">
       <Navbar />
 
+      {/* Welcome for Mini App */}
+      <div className="max-w-2xl mx-auto">
+        <WelcomeScreen />
+      </div>
+
       {/* Hero Section */}
-      <section className="relative px-4 pt-20 pb-32 overflow-hidden">
+      <section className="relative px-4 pt-10 pb-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-cyan-400/5 to-transparent" />
         <div className="absolute inset-0 bg-grid-slate-100/50 dark:bg-grid-slate-800/50 bg-[size:20px_20px]" />
         

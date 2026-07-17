@@ -7,6 +7,8 @@ import { useState, useEffect } from "react";
 import { AppProvider } from "@/lib/theme";
 import { SplashScreen } from "@/components/SplashScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { TelegramProvider } from "@/components/TelegramProvider";
+import { WelcomeScreen } from "@/components/WelcomeScreen";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
@@ -35,27 +37,30 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AppProvider>
-        <TooltipProvider>
-          <ErrorBoundary>
-            <Toaster />
-            <Sonner />
-            {loading && <SplashScreen onDone={() => setLoading(false)} />}
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contacts" element={<Contacts />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/scanner" element={<Scanner />} />
-                <Route path="/jobs" element={<Jobs />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/chat" element={<Chat />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </ErrorBoundary>
-        </TooltipProvider>
+        <TelegramProvider>
+          <TooltipProvider>
+            <ErrorBoundary>
+              <Toaster />
+              <Sonner />
+              {loading && <SplashScreen onDone={() => setLoading(false)} />}
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/welcome" element={<WelcomeScreen />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contacts" element={<Contacts />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/scanner" element={<Scanner />} />
+                  <Route path="/jobs" element={<Jobs />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/chat" element={<Chat />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </ErrorBoundary>
+          </TooltipProvider>
+        </TelegramProvider>
       </AppProvider>
     </QueryClientProvider>
   );
