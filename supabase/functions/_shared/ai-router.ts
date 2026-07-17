@@ -50,7 +50,7 @@ export type Intent =
 
 const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
   assistant:
-    "Ты VaxtaGo AI Assistant.\nТы помогаешь пользователям из Узбекистана найти работу в России, разобраться с документами и переводами.\nОпределяй намерение пользователя самостоятельно.\nНе задавай лишние вопросы.\nОтвечай на языке пользователя.\nПоддерживаемые языки: Русский, Узбекский, Таджикский, Кыргызский, Английский.",
+    "Ты VaxtaGo AI Assistant.\nТы помогаешь пользователям из Узбекистана найти работу в России, разобраться с документами и переводами.\nОтвечай на языке пользователя.\nПоддерживаемые языки: Русский, Узбекский, Таджикский, Кыргызский, Английский.",
   vision:
     "Ты система OCR и анализа документов VaxtaGo.\nРаспознай текст на изображении и верни ТОЛЬКО распознанный текст без комментариев.\nЕсли текста нет — напиши 'Текст не найден'.",
   translation:
@@ -156,6 +156,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
   if (!key) throw new Error("OPENROUTER_API_KEY not set");
 
   console.log("AI MODEL TRY:", model);
+  console.log("Messages sent:", JSON.stringify(messages, null, 2));
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
   let response: Response;
@@ -173,7 +174,6 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
         temperature: 0.7,
         max_tokens: 1500,
         messages,
-        // Removed provider guardrails that caused "No endpoints available matching guardrail" errors
       }),
       signal: controller.signal,
     });
@@ -210,6 +210,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
     data?.choices?.[0]?.message?.content ||
     (typeof data?.choices?.[0]?.text === "string" ? data.choices[0].text : null);
   if (!answer) throw new Error("Empty AI response");
+  console.log("Model response:", answer.slice(0, 200));
   return answer.trim();
 }
 
@@ -283,16 +284,14 @@ export async function createAIRequest(req: AIRequest): Promise<AIResult> {
 
 function buildMessages(req: AIRequest, task: AIRequestType, previous: Array<{ role: string; content: string }>): any[] {
   const system = SYSTEM_PROMPTS[task];
-  const contextBlock = previous.length > 0
-    ? `\n\nКонтекст предыдущих сообщений:\n${previous.map((m) => `${m.role}: ${m.content}`).join("\n")}`
-    : "";
 
   if (task === "vision") {
-    const content: any[] = [{ type: "text", text: (req.text || "Распознай текст на изображении.") + contextBlock }];
+    const content: any[] = [{ type: "text", text: (req.text || "Распознай текст на изображении.") }];
     if (req.image) content.push({ type: "image_url", image_url: { url: req.image } });
     if (req.imageUrl) content.push({ type: "image_url", image_url: { url: req.imageUrl } });
     return [{ role: "system", content: system }, { role: "user", content }];
   }
+
   if (task === "translation") {
     const langName =
       req.language === "uz" ? "узбекский"
@@ -302,8 +301,17 @@ function buildMessages(req: AIRequest, task: AIRequestType, previous: Array<{ ro
       : "русский";
     return [
       { role: "system", content: system },
-      { role: "user", content: `Переведи на ${langName} язык. Только перевод:\n\n${req.text || ""}${contextBlock}` },
+      { role: "user", content: `Переведи на ${langName} язык. Только перевод:\n\n${req.text || ""}` },
     ];
   }
-  return [{ role: "system", content: system + contextBlock }, { role: "user", content: req.text || "" }];
+
+  // CHAT / ASSISTANT / DOCUMENT etc. — proper conversation turns
+  const messages: any[] = [{ role: "system", content: system }];
+  for (const m of previous) {
+    if (m.role === "user" || m.role === "assistant") {
+      messages.push({ role: m.role, content: m.content });
+    }
+  }
+  messages.push({ role: "user", content: req.text || "" });
+  return messages;
 }

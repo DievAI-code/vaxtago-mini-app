@@ -108,6 +108,8 @@ serve(async (req) => {
     );
   }
 
+  console.log("Model response:", reply.slice(0, 200));
+
   // Fire-and-forget history save
   (async () => {
     try {
@@ -149,7 +151,7 @@ serve(async (req) => {
     language: lang,
   };
 
-  console.log("AI ASSISTANT RESPONSE:", JSON.stringify(responseData));
+  console.log("AI ASSISTANT RESPONSE:", JSON.stringify(responseData).slice(0, 300));
 
   return new Response(
     JSON.stringify(responseData),

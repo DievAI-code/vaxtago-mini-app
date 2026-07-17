@@ -34,16 +34,6 @@ export function useAiChat(options?: UseAiChatOptions) {
       setLoading(true);
       const device = detectDevice();
 
-      // Debug: Telegram Mini App environment
-      if (window.Telegram?.WebApp) {
-        console.log({
-          platform: "telegram",
-          user: window.Telegram.WebApp.initDataUnsafe?.user,
-          version: window.Telegram.WebApp.version,
-          device,
-        });
-      }
-
       const payload = {
         message,
         telegram_id: isInTelegram ? telegramId : null,
@@ -81,6 +71,7 @@ export function useAiChat(options?: UseAiChatOptions) {
           const data = await response.json();
           console.log("AI RESPONSE", data);
 
+          // Display the assistant reply, not the user prompt
           if (data?.success === true && (data.reply || data.message)) {
             return data.reply || data.message;
           }
