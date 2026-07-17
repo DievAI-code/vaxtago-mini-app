@@ -63,29 +63,62 @@ serve(async (req) => {
     userId = user.id;
   }
 
-  const { user_id, message, language_code } = await req.json();
+  const { user_id, message, language_code, telegram_id, image, context } = await req.json();
   if (!message || typeof message !== "string") {
     return new Response(JSON.stringify({ error: "Message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   const effectiveUserId = user_id ?? userId;
-  const lang = detectLanguage(message, language_code);
+  const lang = language_code || detectLanguage(message);
   const history = await fetchConversationHistory(supabase, effectiveUserId);
   const contextText = [...history.map((h) => `${h.role}: ${h.content}`), `user: ${message}`].join("\n");
 
   let reply: string;
+  let model = "none";
   try {
-    const aiResult = await createAIRequest({ type: "assistant", text: contextText, language: lang, userId: effectiveUserId });
+    const aiResult = await createAIRequest({
+      type: image ? "vision" : "assistant",
+      text: contextText,
+      image,
+      language: lang,
+      userId: effectiveUserId,
+    });
     reply = aiResult.text;
+    model = aiResult.model;
   } catch (error) {
     console.error("AI Router failed:", error);
     reply = "⚠️ AI временно переключается на резервный сервер. Попробуйте позже.";
   }
 
-  await supabase.from("assistant_messages").insert([
-    { user_id: effectiveUserId, role: "user", content: message },
-    { user_id: effectiveUserId, role: "assistant", content: reply },
-  ]);
+  // Save to assistant_messages
+  try {
+    await supabase.from("assistant_messages").insert([
+      {
+        user_id: effectiveUserId,
+        telegram_id: telegram_id ?? null,
+        role: "user",
+        content: message,
+        language: lang,
+        context: context ?? "chat",
+        created_at: new Date().toISOString(),
+      },
+      {
+        user_id: effectiveUserId,
+        telegram_id: telegram_id ?? null,
+        role: "assistant",
+        content: reply,
+        language: lang,
+        model: model,
+        context: context ?? "chat",
+        created_at: new Date().toISOString(),
+      },
+    ]);
+  } catch (e) {
+    console.error("Failed to save history:", e);
+  }
 
-  return new Response(JSON.stringify({ reply }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+  return new Response(JSON.stringify({ reply, model, language: lang }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status: 200,
+  });
 });

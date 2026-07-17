@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Image as ImageIcon } from "lucide-react";
+import { Send, Image as ImageIcon, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/lib/theme";
+import { useTelegramUser } from "@/components/TelegramProvider";
 
 interface Message {
   role: "user" | "assistant";
@@ -12,6 +13,7 @@ interface Message {
 export default function Chat() {
   const { t } = useTranslation();
   const { lang } = useApp();
+  const { telegramId, isInTelegram } = useTelegramUser();
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: t("ai_hello") },
   ]);
@@ -29,8 +31,15 @@ export default function Chat() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id ?? "anonymous";
-      const { data, error } = await supabase.functions.invoke("ai-router", {
-        body: { type: imageBase64 ? "vision" : "assistant", userId, text: message, image: imageBase64, language: lang },
+      const { data, error } = await supabase.functions.invoke("ai-assistant", {
+        body: {
+          message,
+          telegram_id: isInTelegram ? telegramId : null,
+          language: lang,
+          user_id: userId,
+          image: imageBase64,
+          context: imageBase64 ? "vision" : "chat",
+        },
       });
       if (error) throw error;
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply ?? data.text }]);
@@ -55,7 +64,7 @@ export default function Chat() {
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1];
-      setMessages((prev) => [...prev, { role: "user", content: "📷 Изображение" }]);
+      setMessages((prev) => [...prev, { role: "user", content: "📷 " + t("scanner_title") }]);
       sendToRouter("Распознай текст на изображении", base64);
     };
     reader.readAsDataURL(file);
@@ -64,7 +73,11 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <div className="bg-white border-b p-4 shadow-sm">
-        <h1 className="text-xl font-bold text-center">{t("chat_title")}</h1>
+        <div className="flex items-center gap-2 justify-center">
+          <Bot size={20} className="text-blue-600" />
+          <h1 className="text-xl font-bold text-center">{t("chat_title")}</h1>
+          <span className="text-xs text-gray-500 uppercase">{lang}</span>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg, i) => (
@@ -72,7 +85,11 @@ export default function Chat() {
             {msg.content}
           </div>
         ))}
-        {isLoading && <div className="bg-white p-3 rounded-2xl shadow-sm text-gray-500">...</div>}
+        {isLoading && (
+          <div className="bg-white p-3 rounded-2xl shadow-sm text-gray-500 flex items-center gap-2">
+            <TypingDotsLocal />
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
       <div className="bg-white border-t p-3 flex items-center gap-2">
@@ -85,6 +102,16 @@ export default function Chat() {
           <Send size={20} />
         </button>
       </div>
+    </div>
+  );
+}
+
+function TypingDotsLocal() {
+  return (
+    <div className="flex gap-1">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />
+      ))}
     </div>
   );
 }

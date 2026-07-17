@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Image as ImageIcon, Paperclip, Mic, X, Bot } from "lucide-react";
+import { Send, Image as ImageIcon, Paperclip, Mic, X, Bot, Languages } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TypingDots } from "./animations";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/lib/theme";
+import { useTelegramUser } from "./TelegramProvider";
 
 interface Msg {
   role: "user" | "assistant";
@@ -14,6 +15,7 @@ interface Msg {
 export function ChatWidget() {
   const { t } = useTranslation();
   const { lang } = useApp();
+  const { telegramId, isInTelegram } = useTelegramUser();
   const [messages, setMessages] = useState<Msg[]>([
     { role: "assistant", content: t("ai_hello") },
   ]);
@@ -28,13 +30,20 @@ export function ChatWidget() {
 
   async function send(text: string, image?: string) {
     if (!text.trim() && !image) return;
-    setMessages((m) => [...m, { role: "user", content: image ? "📷 Изображение" : text }]);
+    setMessages((m) => [...m, { role: "user", content: image ? "📷 " + t("scanner_title") : text }]);
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id ?? "anonymous";
-      const { data, error } = await supabase.functions.invoke("ai-router", {
-        body: { type: image ? "vision" : "assistant", userId, text, image, language: lang },
+      const { data, error } = await supabase.functions.invoke("ai-assistant", {
+        body: {
+          message: text,
+          telegram_id: isInTelegram ? telegramId : null,
+          language: lang,
+          user_id: userId,
+          context: image ? "vision" : "chat",
+          image: image,
+        },
       });
       if (error) throw error;
       setMessages((m) => [...m, { role: "assistant", content: data.reply ?? data.text }]);
@@ -62,6 +71,9 @@ export function ChatWidget() {
               <Bot className="w-4 h-4 text-white" />
             </div>
             <span className="font-semibold">{t("chat_title")}</span>
+            <span className="flex items-center gap-1 text-xs text-slate-500">
+              <Languages size={12} /> {lang.toUpperCase()}
+            </span>
           </div>
           <button className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700">
             <X className="w-4 h-4" />
@@ -109,7 +121,7 @@ export function ChatWidget() {
             const f = e.target.files?.[0];
             if (!f) return;
             const r = new FileReader();
-            r.onload = () => send("Распознай текст", (r.result as string).split(",")[1]);
+            r.onload = () => send("Распознай текст на изображении", (r.result as string).split(",")[1]);
             r.readAsDataURL(f);
           }} />
           <textarea
