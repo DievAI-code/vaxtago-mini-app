@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useApp } from "@/lib/theme";
 import { useTelegramUser } from "@/components/TelegramProvider";
 import { useTelegram } from "@/hooks/useTelegram";
@@ -14,6 +14,8 @@ export function useAiChat(options?: UseAiChatOptions) {
   const { telegramId, isInTelegram } = useTelegramUser();
   const { webApp } = useTelegram();
   const [loading, setLoading] = useState(false);
+  // React-session fallback history
+  const sessionHistory = useRef<Array<{ role: string; content: string }>>([]);
 
   const detectDevice = () => {
     const ua = navigator.userAgent || "";
@@ -34,6 +36,9 @@ export function useAiChat(options?: UseAiChatOptions) {
       setLoading(true);
       const device = detectDevice();
 
+      // Track session history for fallback
+      sessionHistory.current.push({ role: "user", content: message });
+
       const payload = {
         message,
         telegram_id: isInTelegram ? telegramId : null,
@@ -46,6 +51,8 @@ export function useAiChat(options?: UseAiChatOptions) {
         platform: isInTelegram ? "telegram" : "web",
         device,
         init_data: window.Telegram?.WebApp?.initData ?? null,
+        // Send session history as fallback if DB history missing
+        session_history: sessionHistory.current.slice(-20),
       };
 
       console.log("AI REQUEST", payload);
@@ -73,10 +80,14 @@ export function useAiChat(options?: UseAiChatOptions) {
 
           // Display the assistant reply, not the user prompt
           if (data?.success === true && (data.reply || data.message)) {
-            return data.reply || data.message;
+            const reply = data.reply || data.message;
+            sessionHistory.current.push({ role: "assistant", content: reply });
+            return reply;
           }
           if (data?.reply || data?.message) {
-            return data.reply || data.message;
+            const reply = data.reply || data.message;
+            sessionHistory.current.push({ role: "assistant", content: reply });
+            return reply;
           }
           if (data?.success === false) {
             throw new Error(data.error || "AI returned failure");

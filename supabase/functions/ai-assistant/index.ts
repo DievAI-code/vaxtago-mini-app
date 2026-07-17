@@ -12,7 +12,7 @@ const corsHeaders = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
-const MAX_HISTORY_MESSAGES = 10;
+const MAX_HISTORY_MESSAGES = 20;
 
 function detectLanguage(text: string, telegramLanguageCode?: string): string {
   if (telegramLanguageCode) {
@@ -40,9 +40,14 @@ async function fetchConversationHistory(supabase: any, userId: string): Promise<
       .eq("user_id", userId)
       .order("created_at", { ascending: true })
       .limit(MAX_HISTORY_MESSAGES);
-    if (error) return [];
+    if (error) {
+      console.error("History fetch error:", error.message);
+      return [];
+    }
+    console.log("Loaded history messages:", (data || []).length);
     return (data || []).map((msg: any) => ({ role: msg.role, content: msg.content }));
-  } catch {
+  } catch (e) {
+    console.error("History fetch exception:", e);
     return [];
   }
 }
@@ -65,7 +70,7 @@ serve(async (req) => {
     );
   }
 
-  const { message, language_code, telegram_id, image, image_url, context, user_id, has_image, init_data } = body;
+  const { message, language_code, telegram_id, image, image_url, context, user_id, has_image, init_data, session_history } = body;
 
   if (!message || typeof message !== "string") {
     return new Response(
@@ -80,7 +85,14 @@ serve(async (req) => {
 
   const effectiveUserId = telegram_id ? `tg_${telegram_id}` : (user_id ?? "anonymous");
   const lang = language_code || detectLanguage(message);
-  const history = await fetchConversationHistory(supabase, effectiveUserId);
+
+  // Load DB history; fall back to React session history if empty
+  let history = await fetchConversationHistory(supabase, effectiveUserId);
+  if (history.length === 0 && Array.isArray(session_history) && session_history.length > 0) {
+    console.log("Using React session history fallback, messages:", session_history.length);
+    history = session_history.filter((m: any) => m.role === "user" || m.role === "assistant");
+  }
+
   const intent = detectIntent(message, !!image || !!has_image, history);
   const action = getActionForIntent(intent);
 
@@ -113,7 +125,7 @@ serve(async (req) => {
   // Fire-and-forget history save
   (async () => {
     try {
-      await supabase.from("assistant_messages").insert([
+      const { error } = await supabase.from("assistant_messages").insert([
         {
           user_id: effectiveUserId,
           telegram_id: telegram_id ?? null,
@@ -136,6 +148,7 @@ serve(async (req) => {
           created_at: new Date().toISOString(),
         },
       ]);
+      if (error) console.error("History save error:", error.message);
     } catch (e) {
       console.error("Failed to save history:", e);
     }

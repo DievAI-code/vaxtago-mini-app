@@ -155,8 +155,17 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
   const key = getApiKey();
   if (!key) throw new Error("OPENROUTER_API_KEY not set");
 
+  const body = {
+    model,
+    temperature: 0.7,
+    max_tokens: 1500,
+    messages,
+  };
+
   console.log("AI MODEL TRY:", model);
-  console.log("Messages sent:", JSON.stringify(messages, null, 2));
+  console.log("Messages:", JSON.stringify(messages, null, 2));
+  console.log("OpenRouter request:", JSON.stringify(body, null, 2));
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
   let response: Response;
@@ -169,12 +178,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
         "HTTP-Referer": Deno.env.get("APP_DOMAIN") ?? "https://vaxtago.app",
         "X-Title": "VaxtaGo",
       },
-      body: JSON.stringify({
-        model,
-        temperature: 0.7,
-        max_tokens: 1500,
-        messages,
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
   } catch (err) {
@@ -188,6 +192,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
 
   console.log("AI MODEL RESPONSE STATUS:", response.status);
   const bodyText = await response.text();
+  console.log("OpenRouter response:", bodyText.slice(0, 500));
 
   if (response.status === 401) throw new Error("Auth failed");
   if (response.status === 429) throw new Error("Rate limit");
