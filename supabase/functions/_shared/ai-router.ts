@@ -94,7 +94,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
   const key = getApiKey();
   if (!key) throw new Error("OPENROUTER_API_KEY not set");
 
-  console.log("MODEL:", model);
+  console.log("AI ROUTER - MODEL TRY:", model);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
   let response: Response;
@@ -112,7 +112,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
         temperature: 0.7,
         max_tokens: 1500,
         messages,
-        provider: { allow_fallbacks: false, require_parameters: false },
+        provider: { allow_fallbacks: true },
       }),
       signal: controller.signal,
     });
@@ -125,7 +125,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
   }
   clearTimeout(timeoutId);
 
-  console.log("AI RESPONSE STATUS:", response.status);
+  console.log("AI ROUTER - MODEL RESPONSE STATUS:", response.status);
   const bodyText = await response.text();
 
   if (response.status === 401) throw new Error("Auth failed");
@@ -159,7 +159,7 @@ async function withRetry(fn: () => Promise<string>, retries = 2): Promise<string
       return await fn();
     } catch (e) {
       lastError = e instanceof Error ? e : new Error("unknown");
-      console.log(`RETRY ${i + 1}/${retries}: ${lastError.message}`);
+      console.log(`AI ROUTER - RETRY ${i + 1}/${retries}: ${lastError.message}`);
       if (i < retries) await new Promise((r) => setTimeout(r, 500 * (i + 1)));
     }
   }
@@ -170,7 +170,7 @@ export async function createAIRequest(req: AIRequest): Promise<AIResult> {
   const startTime = Date.now();
   const models = getModelsList();
   const task = detectTask(req.text || "", !!req.image);
-  console.log("AI ROUTER START — task:", task);
+  console.log("AI ROUTER START - task:", task);
   let lastError: Error | null = null;
 
   for (const model of models) {
@@ -186,10 +186,11 @@ export async function createAIRequest(req: AIRequest): Promise<AIResult> {
         duration_ms: duration,
         success: true,
       });
+      console.log("AI ROUTER - MODEL SUCCESS:", model);
       return { text, model, provider: "openrouter" };
     } catch (e) {
       lastError = e instanceof Error ? e : new Error("unknown");
-      console.log("FALLBACK:", model, "->", lastError.message);
+      console.log("AI ROUTER - FALLBACK:", model, "->", lastError.message);
     }
   }
 
