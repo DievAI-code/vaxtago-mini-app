@@ -36,23 +36,21 @@ export default function Chat() {
         image: imageBase64,
         context: imageBase64 ? "vision" : "chat",
       };
-      console.log("AI REQUEST START");
-      console.log("URL: /functions/v1/ai-assistant");
-      console.log("BODY:", JSON.stringify(body));
+      console.log("AI REQUEST:", JSON.stringify(body));
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body,
       });
-      console.log("AI RESPONSE STATUS:", error ? "ERROR" : "OK");
-      console.log("AI RESPONSE DATA:", JSON.stringify(data));
-      if (error) throw error;
-      if (data?.success === false) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.message || t("ai_error") }]);
-      } else {
+      console.log("AI STATUS:", error ? "ERROR" : "OK");
+      console.log("AI RESPONSE:", JSON.stringify(data));
+      if (data?.success === true) {
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply ?? data.text ?? t("ai_error") }]);
+      } else if (error) {
+        setMessages((prev) => [...prev, { role: "assistant", content: "AI помощник временно занят. Попробуйте ещё раз." }]);
+      } else {
+        setMessages((prev) => [...prev, { role: "assistant", content: data?.reply ?? "AI помощник временно занят. Попробуйте ещё раз." }]);
       }
-    } catch (err) {
-      console.error(err);
-      setMessages((prev) => [...prev, { role: "assistant", content: t("ai_error") }]);
+    } catch {
+      setMessages((prev) => [...prev, { role: "assistant", content: "AI помощник временно занят. Попробуйте ещё раз." }]);
     } finally {
       setIsLoading(false);
     }

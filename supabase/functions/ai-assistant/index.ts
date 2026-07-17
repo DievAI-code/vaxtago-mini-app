@@ -2,13 +2,14 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { createAIRequest } from "../_shared/ai-router.ts";
+import { createAIRequest, detectIntent, getActionForIntent } from "../_shared/ai-router.ts";
 import { logRequest } from "../_shared/logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json; charset=utf-8",
 };
 
 const MAX_HISTORY_MESSAGES = 20;
@@ -60,7 +61,7 @@ serve(async (req) => {
   } catch {
     return new Response(
       JSON.stringify({ success: false, message: "Invalid JSON body" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 400, headers: corsHeaders },
     );
   }
 
@@ -71,20 +72,21 @@ serve(async (req) => {
   if (!message || typeof message !== "string") {
     return new Response(
       JSON.stringify({ success: false, message: "Message required" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 400, headers: corsHeaders },
     );
   }
 
-  // Service-role client (no JWT verification needed for internal ops)
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  // Use telegram_id as stable user identifier (no Supabase JWT required)
   const effectiveUserId = telegram_id ? `tg_${telegram_id}` : (user_id ?? "anonymous");
   const lang = language_code || detectLanguage(message);
   const history = await fetchConversationHistory(supabase, effectiveUserId);
   const contextText = [...history.map((h) => `${h.role}: ${h.content}`), `user: ${message}`].join("\n");
+
+  const intent = detectIntent(message, !!image);
+  const action = getActionForIntent(intent);
 
   let reply: string;
   let model = "none";
@@ -100,13 +102,9 @@ serve(async (req) => {
     model = aiResult.model;
   } catch (error) {
     console.error("AI Router failed:", error);
-    return new Response(
-      JSON.stringify({ success: false, message: "AI временно недоступен" }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    reply = "AI временно занят. Попробуйте ещё раз.";
   }
 
-  // Save to assistant_messages (best-effort)
   try {
     await supabase.from("assistant_messages").insert([
       {
@@ -126,6 +124,8 @@ serve(async (req) => {
         language: lang,
         model: model,
         context: context ?? "chat",
+        intent: intent,
+        action: action,
         created_at: new Date().toISOString(),
       },
     ]);
@@ -134,7 +134,14 @@ serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ reply, model, language: lang, success: true }),
-    { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+    JSON.stringify({
+      success: true,
+      reply,
+      model,
+      language: lang,
+      intent,
+      action,
+    }),
+    { headers: corsHeaders, status: 200 },
   );
 });
