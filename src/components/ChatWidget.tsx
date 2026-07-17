@@ -33,15 +33,21 @@ export function ChatWidget() {
     setMessages((m) => [...m, { role: "user", content: image ? "📷 " + t("scanner_title") : text }]);
     setLoading(true);
     try {
+      const body = {
+        message: text,
+        telegram_id: isInTelegram ? telegramId : null,
+        language: lang,
+        context: image ? "vision" : "chat",
+        image: image,
+      };
+      console.log("AI REQUEST START");
+      console.log("URL: /functions/v1/ai-assistant");
+      console.log("BODY:", JSON.stringify(body));
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: {
-          message: text,
-          telegram_id: isInTelegram ? telegramId : null,
-          language: lang,
-          context: image ? "vision" : "chat",
-          image: image,
-        },
+        body,
       });
+      console.log("AI RESPONSE STATUS:", error ? "ERROR" : "OK");
+      console.log("AI RESPONSE DATA:", JSON.stringify(data));
       if (error) throw error;
       if (data?.success === false) {
         setMessages((m) => [...m, { role: "assistant", content: data.message || t("ai_error") }]);
