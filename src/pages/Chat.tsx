@@ -82,11 +82,13 @@ export default function Chat() {
   }
 
   return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <Bot size={20} className="text-blue-600" />
-        <h1 className="text-xl font-bold">{t("chat_title")}</h1>
-        <span className="text-xs text-gray-500 uppercase">{lang}</span>
+    <div className="page-container">
+      <div className="page-header">
+        <div className="flex items-center gap-2 justify-center">
+          <Bot size={20} className="text-blue-600" />
+          <h1 className="text-xl font-bold">{t("chat_title")}</h1>
+          <span className="text-xs text-gray-500 uppercase">{lang}</span>
+        </div>
       </div>
 
       <div ref={messagesContainerRef} className="messages-area">
@@ -106,7 +108,7 @@ export default function Chat() {
         )}
       </div>
 
-      <div className="input-area">
+      <div className="page-footer">
         <div className="flex gap-2">
           <button
             onClick={() => fileInputRef.current?.click()}

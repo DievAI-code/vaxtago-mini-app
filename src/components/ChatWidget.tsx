@@ -94,36 +94,23 @@ export function ChatWidget() {
   }
 
   return (
-    <div className="chat-container rounded-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xl overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-600/10 to-cyan-400/10 p-4 border-b border-slate-200/60 dark:border-slate-700/60 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center">
-              <Bot className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-semibold">{t("chat_title")}</span>
-            <span className="flex items-center gap-1 text-xs text-slate-500">
-              <Languages size={12} /> {lang.toUpperCase()}
-            </span>
-          </div>
-          <button className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700">
-            <X className="w-4 h-4" />
-          </button>
+    <div className="page-container">
+      <div className="page-header">
+        <div className="flex items-center gap-2 justify-center">
+          <Bot size={20} className="text-blue-600" />
+          <h1 className="text-xl font-bold">{t("chat_title")}</h1>
+          <span className="text-xs text-gray-500 uppercase">{lang}</span>
         </div>
       </div>
 
-      <div ref={messagesContainerRef} className="chat-messages p-4 space-y-3">
+      <div ref={messagesContainerRef} className="messages-area">
         <AnimatePresence>
           {messages.map((m) => (
             <motion.div
               key={m.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`max-w-[85%] p-3 rounded-2xl ${
-                m.role === "user"
-                  ? "ml-auto bg-gradient-to-br from-blue-600 to-blue-500 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white"
-              }`}
+              className={`message-bubble ${m.role}`}
             >
               {m.content}
             </motion.div>
@@ -137,7 +124,7 @@ export function ChatWidget() {
         )}
       </div>
 
-      <div className="chat-input border-t border-slate-200/60 dark:border-slate-700/60 p-4 bg-slate-50/50 dark:bg-slate-800/50">
+      <div className="page-footer">
         <div className="flex items-end gap-2">
           <button onClick={() => fileRef.current?.click()} className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Attach" disabled={loading}>
             <Paperclip size={18} />
