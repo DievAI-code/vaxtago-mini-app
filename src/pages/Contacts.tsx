@@ -1,4 +1,13 @@
-<div className="space-y-3">
+import { PageLayout } from "@/components/PageLayout";
+import { Card } from "@/components/ui/Card";
+import { Mail, Send } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+export default function Contacts() {
+  const { t } = useTranslation();
+  return (
+    <PageLayout title={t("contacts")}>
+      <div className="space-y-3">
         <a href="mailto:hello@vaxtago.app" className="block">
           <Card variant="default" className="flex items-center gap-3">
             <Mail className="text-[#06B6D4]" size={20} />

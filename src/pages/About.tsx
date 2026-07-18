@@ -1,4 +1,13 @@
-<div className="flex items-center gap-3 mb-6">
+import { PageLayout } from "@/components/PageLayout";
+import { Card } from "@/components/ui/Card";
+import { VaxtaGoLogo } from "@/components/VaxtaGoLogo";
+import { useTranslation } from "react-i18next";
+
+export default function About() {
+  const { t } = useTranslation();
+  return (
+    <PageLayout title={t("about")}>
+      <div className="flex items-center gap-3 mb-6">
         <VaxtaGoLogo size={48} />
         <div>
           <h1 className="text-2xl font-black bg-gradient-to-r from-[#2563EB] to-[#14B8A6] bg-clip-text text-transparent">VaxtaGo</h1>
