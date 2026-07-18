@@ -1,108 +1,139 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Mic, Camera, Keyboard, Briefcase, FileText, Globe, Shield, MapPin, Wallet, Star } from "lucide-react";
 import { VaxtaGoLogo } from "@/components/VaxtaGoLogo";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { VBrain, VCareer, VDocument, VGlobal, VShield, VPremium } from "@/components/icons/VaxtaGoIcons";
+import { VCareer, VDocument, VGlobal, VShield } from "@/components/icons/VaxtaGoIcons";
 import { useTelegramUser } from "@/components/TelegramProvider";
 import { useApp } from "@/lib/theme";
 import { FadeUp, stagger, fadeUp } from "@/components/animations";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
-const QUICK_ACTIONS = [
-  { icon: <VCareer className="w-6 h-6" />, label: "Работа", path: "/jobs" },
-  { icon: <VDocument className="w-6 h-6" />, label: "Документы", path: "/documents" },
-  { icon: <VGlobal className="w-6 h-6" />, label: "Перевод", path: "/translate" },
-  { icon: <VShield className="w-6 h-6" />, label: "Проверка", path: "/employer" },
-];
-
-const RECENT = [
-  { type: "job", title: "Сварщик в Москве", time: "2 ч назад" },
-  { type: "doc", title: "Патент распознан", time: "1 дн назад" },
-  { type: "translate", title: "Договор → RU", time: "3 дн назад" },
-];
+interface Vacancy {
+  id: string;
+  title: string;
+  company: string;
+  city: string;
+  salary: string;
+  rating: number;
+  verified: boolean;
+}
 
 export default function Index() {
   const nav = useNavigate();
   const { t } = useTranslation();
-  const { firstName } = useTelegramUser();
+  const { firstName, username } = useTelegramUser();
   const { lang } = useApp();
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+
+  useEffect(() => {
+    loadVacancies();
+  }, []);
+
+  async function loadVacancies() {
+    try {
+      const { data } = await supabase.from("vacancies").select("*, employers(name, rating, verified)").limit(3);
+      setVacancies((data || []).map((v: any) => ({
+        id: v.id,
+        title: v.title,
+        company: v.employers?.name || "Компания",
+        city: v.city,
+        salary: `${v.salary_from}–${v.salary_to} ₽`,
+        rating: v.employers?.rating || 4.5,
+        verified: v.employers?.verified || false,
+      })));
+    } catch {}
+  }
+
+  const QUICK = [
+    { icon: <VCareer className="w-6 h-6" />, label: "Найти работу", path: "/jobs" },
+    { icon: <VDocument className="w-6 h-6" />, label: "Проверить документ", path: "/documents" },
+    { icon: <VGlobal className="w-6 h-6" />, label: "Перевести текст", path: "/translate" },
+    { icon: <VShield className="w-6 h-6" />, label: "Проверить работодателя", path: "/employer" },
+  ];
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#0F172A] text-white">
+    <div className="flex flex-col h-[100dvh] bg-[#080B14] text-white">
       <div className="flex-shrink-0 p-4 pt-8">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
-          <VaxtaGoLogo size={40} />
-          <div>
-            <h1 className="text-xl font-bold">VaxtaGo</h1>
-            <p className="text-xs text-[#06B6D4]">AI Assistant</p>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl vg-gradient flex items-center justify-center">
+              <span className="text-white font-bold text-lg">{firstName?.[0]?.toUpperCase() || "V"}</span>
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Добро пожаловать в</p>
+              <h1 className="text-xl font-bold vg-gradient-text">VaxtaGo</h1>
+            </div>
           </div>
-        </motion.div>
-        <FadeUp>
-          <h2 className="text-2xl font-bold mt-6">
-            {firstName ? `Привет, ${firstName}!` : "Привет!"}
-          </h2>
-          <p className="text-slate-400 text-sm mt-1">Чем могу помочь сегодня?</p>
-        </FadeUp>
+          <VaxtaGoLogo size={36} />
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
         <FadeUp>
           <Card variant="gradient" className="mb-6" onClick={() => nav("/ai")}>
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#14B8A6] flex items-center justify-center">
-                <VBrain className="w-7 h-7 text-white" />
-              </div>
+              <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-3xl">🤖</div>
               <div className="flex-1">
-                <h3 className="font-bold text-lg">AI Помощник</h3>
-                <p className="text-slate-400 text-sm">Задайте любой вопрос</p>
+                <h3 className="font-bold text-lg">Vaxta AI</h3>
+                <p className="text-white/70 text-sm">Чем могу помочь?</p>
               </div>
-              <Button size="sm" variant="primary">Открыть</Button>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button size="sm" variant="secondary" icon={<Mic size={16} />} onClick={(e) => { e.stopPropagation(); }}>Голос</Button>
+              <Button size="sm" variant="secondary" icon={<Camera size={16} />} onClick={(e) => { e.stopPropagation(); nav("/scanner"); }}>Фото</Button>
+              <Button size="sm" variant="primary" icon={<Keyboard size={16} />} onClick={(e) => { e.stopPropagation(); nav("/ai"); }}>Написать</Button>
             </div>
           </Card>
         </FadeUp>
 
         <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="grid grid-cols-2 gap-3 mb-6">
-          {QUICK_ACTIONS.map((action, i) => (
+          {QUICK.map((action, i) => (
             <motion.div key={i} variants={fadeUp}>
               <Card onClick={() => nav(action.path)} className="h-full">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2563EB]/20 to-[#14B8A6]/20 flex items-center justify-center text-[#06B6D4] mb-3">
-                  {action.icon}
-                </div>
-                <span className="font-semibold">{action.label}</span>
+                <div className="w-12 h-12 rounded-2xl vg-gradient flex items-center justify-center text-white mb-3">{action.icon}</div>
+                <span className="font-semibold text-sm">{action.label}</span>
               </Card>
             </motion.div>
           ))}
         </motion.div>
 
         <FadeUp>
-          <h3 className="text-lg font-bold mb-3 px-1">Последние операции</h3>
-          <div className="space-y-2">
-            {RECENT.map((item, i) => (
-              <Card key={i} variant="default" className="flex items-center gap-3 py-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center text-[#06B6D4]">
-                  {item.type === "job" && <VCareer className="w-5 h-5" />}
-                  {item.type === "doc" && <VDocument className="w-5 h-5" />}
-                  {item.type === "translate" && <VGlobal className="w-5 h-5" />}
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="text-lg font-bold">Вакансии</h3>
+            <button onClick={() => nav("/jobs")} className="text-sm text-[#7C3AED]">Все →</button>
+          </div>
+          <div className="space-y-3">
+            {vacancies.length === 0 ? (
+              <Card variant="default" className="text-center py-8">
+                <p className="text-slate-400 text-sm">Загрузка вакансий...</p>
+              </Card>
+            ) : vacancies.map((v) => (
+              <Card key={v.id} variant="default" className="hover:bg-white/10">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold truncate">{v.title}</h4>
+                    <p className="text-sm text-slate-400 flex items-center gap-1 mt-1">
+                      {v.company}
+                      {v.verified && <span className="text-[#22C55E]">✓</span>}
+                    </p>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+                      <span className="flex items-center gap-1"><MapPin size={12} /> {v.city}</span>
+                      <span className="flex items-center gap-1 text-[#22C55E]"><Wallet size={12} /> {v.salary}</span>
+                      <span className="flex items-center gap-1 text-amber-400"><Star size={12} /> {v.rating}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{item.title}</p>
-                  <p className="text-xs text-slate-400">{item.time}</p>
+                <div className="flex gap-2 mt-3">
+                  <Button size="sm" variant="primary" onClick={() => nav("/jobs")}>Откликнуться</Button>
+                  <Button size="sm" variant="secondary">Сохранить</Button>
                 </div>
               </Card>
             ))}
           </div>
-        </FadeUp>
-
-        <FadeUp>
-          <Card variant="gradient" className="mt-6 flex items-center gap-3" onClick={() => nav("/premium")}>
-            <VPremium className="w-8 h-8 text-[#14B8A6]" />
-            <div className="flex-1">
-              <p className="font-bold">VaxtaGo Premium</p>
-              <p className="text-xs text-slate-400">Безлимитный AI и приоритет</p>
-            </div>
-            <Button size="sm" variant="secondary">Подключить</Button>
-          </Card>
         </FadeUp>
       </div>
     </div>

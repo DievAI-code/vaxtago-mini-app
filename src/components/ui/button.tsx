@@ -13,9 +13,9 @@ interface ButtonProps {
 }
 
 const variants = {
-  primary: "bg-gradient-to-r from-[#2563EB] to-[#14B8A6] text-white shadow-lg shadow-[#2563EB]/20",
-  secondary: "bg-slate-800/50 text-slate-200 border border-slate-700/50 hover:bg-slate-700/50",
-  ghost: "bg-transparent text-slate-300 hover:bg-slate-800/30",
+  primary: "vg-gradient text-white shadow-lg shadow-[#2563EB]/30",
+  secondary: "glass-card text-slate-200 hover:bg-white/10",
+  ghost: "bg-transparent text-slate-300 hover:bg-white/5",
   danger: "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/20",
 };
 

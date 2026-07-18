@@ -12,9 +12,9 @@ interface CardProps {
 
 export function Card({ children, className, onClick, variant = "glass", delay = 0 }: CardProps) {
   const variants = {
-    default: "bg-slate-800/50 border-slate-700/50",
-    gradient: "bg-gradient-to-br from-[#2563EB]/10 to-[#14B8A6]/10 border-[#2563EB]/20",
-    glass: "bg-white/5 dark:bg-slate-800/30 backdrop-blur-xl border-white/10 dark:border-slate-700/50",
+    default: "glass-card",
+    gradient: "glass-card vg-gradient text-white",
+    glass: "glass-card",
   };
 
   return (
@@ -26,7 +26,7 @@ export function Card({ children, className, onClick, variant = "glass", delay = 
       whileTap={{ scale: onClick ? 0.98 : 1 }}
       onClick={onClick}
       className={cn(
-        "rounded-3xl p-5 shadow-lg border transition-all duration-300",
+        "p-5 shadow-lg transition-all duration-300",
         variants[variant],
         className
       )}

@@ -2,41 +2,25 @@ import { SVGProps } from "react";
 import { motion } from "framer-motion";
 
 export function VaxtaGoLogo({ size = 32, className, animated = false }: { size?: number; className?: string; animated?: boolean }) {
+  const gradId = "vg-grad-" + size;
   const paths = (
     <>
       <defs>
-        <linearGradient id="vg-grad" x1="6" y1="42" x2="42" y2="6" gradientUnits="userSpaceOnUse">
+        <linearGradient id={gradId} x1="4" y1="40" x2="44" y2="8" gradientUnits="userSpaceOnUse">
           <stop stopColor="#2563EB" />
-          <stop offset="0.5" stopColor="#06B6D4" />
-          <stop offset="1" stopColor="#14B8A6" />
+          <stop offset="0.5" stopColor="#7C3AED" />
+          <stop offset="1" stopColor="#22C55E" />
         </linearGradient>
       </defs>
-      {/* Road lines forming V */}
+      {/* V shape */}
       <path
-        d="M8 38 L20 14 L24 14 L12 38 Z"
-        fill="url(#vg-grad)"
-        stroke="url(#vg-grad)"
-        strokeWidth="1"
-        strokeLinejoin="round"
+        d="M8 36 L20 12 L24 12 L24 20 L28 20 L28 12 L40 36 L34 36 L24 18 L14 36 Z"
+        fill={`url(#${gradId})`}
       />
+      {/* Forward arrow accent */}
       <path
-        d="M40 38 L28 14 L24 14 L36 38 Z"
-        fill="url(#vg-grad)"
-        stroke="url(#vg-grad)"
-        strokeWidth="1"
-        strokeLinejoin="round"
-      />
-      {/* Center divider line */}
-      <path
-        d="M24 14 L24 38"
-        stroke="url(#vg-grad)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      {/* Arrow at top */}
-      <path
-        d="M18 18 L24 10 L30 18"
-        stroke="url(#vg-grad)"
+        d="M20 16 L26 10 L32 16"
+        stroke={`url(#${gradId})`}
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -53,90 +37,52 @@ export function VaxtaGoLogo({ size = 32, className, animated = false }: { size?:
         viewBox="0 0 48 48"
         className={className}
         aria-label="VaxtaGo"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 120, damping: 14 }}
       >
         <motion.path
-          d="M8 38 L20 14 L24 14 L12 38 Z"
-          fill="url(#vg-grad)"
-          stroke="url(#vg-grad)"
-          strokeWidth="1"
-          strokeLinejoin="round"
+          d="M8 36 L20 12 L24 12 L24 20 L28 20 L28 12 L40 36 L34 36 L24 18 L14 36 Z"
+          fill={`url(#${gradId})`}
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
-          transition={{ duration: 0.8, ease: "easeInOut" }}
+          transition={{ duration: 0.9, ease: "easeInOut" }}
         />
         <motion.path
-          d="M40 38 L28 14 L24 14 L36 38 Z"
-          fill="url(#vg-grad)"
-          stroke="url(#vg-grad)"
-          strokeWidth="1"
-          strokeLinejoin="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: "easeInOut" }}
-        />
-        <motion.path
-          d="M24 14 L24 38"
-          stroke="url(#vg-grad)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.6, delay: 0.4, ease: "easeInOut" }}
-        />
-        <motion.path
-          d="M18 18 L24 10 L30 18"
-          stroke="url(#vg-grad)"
+          d="M20 16 L26 10 L32 16"
+          stroke={`url(#${gradId})`}
           strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
-          transition={{ duration: 0.5, delay: 0.6, ease: "easeInOut" }}
+          transition={{ duration: 0.5, delay: 0.6 }}
         />
       </motion.svg>
     );
   }
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 48 48"
-      className={className}
-      aria-label="VaxtaGo"
-    >
+    <svg width={size} height={size} viewBox="0 0 48 48" className={className} aria-label="VaxtaGo">
       {paths}
     </svg>
   );
 }
 
 export function VaxtaGoMark({ size = 32, className }: { size?: number; className?: string }) {
+  const gradId = "vg-mark-" + size;
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 48 48"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-label="VaxtaGo"
-    >
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} aria-label="VaxtaGo">
       <defs>
-        <linearGradient id="vg-mark-grad" x1="6" y1="42" x2="42" y2="6" gradientUnits="userSpaceOnUse">
+        <linearGradient id={gradId} x1="4" y1="40" x2="44" y2="8" gradientUnits="userSpaceOnUse">
           <stop stopColor="#2563EB" />
-          <stop offset="0.5" stopColor="#06B6D4" />
-          <stop offset="1" stopColor="#14B8A6" />
+          <stop offset="0.5" stopColor="#7C3AED" />
+          <stop offset="1" stopColor="#22C55E" />
         </linearGradient>
       </defs>
-      <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#vg-mark-grad)" />
-      <path d="M14 34 L22 16 L26 16 L18 34 Z" fill="white" />
-      <path d="M34 34 L26 16 L22 16 L30 34 Z" fill="white" />
-      <path d="M24 16 L24 34" stroke="white" strokeWidth="2" strokeLinecap="round" />
-      <path d="M19 20 L24 13 L29 20" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <rect x="2" y="2" width="44" height="44" rx="13" fill={`url(#${gradId})`} />
+      <path d="M12 34 L21 15 L24 15 L24 21 L27 21 L27 15 L36 34 L31 34 L24 20 L17 34 Z" fill="white" />
     </svg>
   );
 }
