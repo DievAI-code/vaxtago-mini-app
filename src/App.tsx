@@ -9,10 +9,9 @@ import { SplashScreen } from "@/components/SplashScreen";
 import { AuthScreen } from "@/components/AuthScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TelegramProvider } from "@/components/TelegramProvider";
-import { BottomNav } from "@/components/BottomNav";
+import { NavStackProvider } from "@/components/NavigationStack";
 import { motion, AnimatePresence } from "framer-motion";
 import Index from "./pages/Index";
-import Footer from "./components/Footer";
 import "@/i18n";
 
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -22,15 +21,19 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Scanner = lazy(() => import("./pages/Scanner"));
 const Jobs = lazy(() => import("./pages/Jobs"));
+const AiAssistant = lazy(() => import("./pages/AiAssistant"));
+const Documents = lazy(() => import("./pages/Documents"));
+const Translate = lazy(() => import("./pages/Translate"));
 const Profile = lazy(() => import("./pages/Profile"));
-const Chat = lazy(() => import("./pages/Chat"));
 const History = lazy(() => import("./pages/History"));
+const Premium = lazy(() => import("./pages/Premium"));
+const Settings = lazy(() => import("./pages/Settings"));
 
 const queryClient = new QueryClient();
 
 const PageFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900">
-    <div className="w-8 h-8 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+  <div className="min-h-screen flex items-center justify-center bg-[#0F172A]">
+    <div className="w-8 h-8 rounded-full border-2 border-[#06B6D4]/40 border-t-[#06B6D4] animate-spin" />
   </div>
 );
 
@@ -66,21 +69,27 @@ const App = () => {
                 {loading ? <SplashScreen /> : !authed ? <AuthScreen onAuth={() => setAuthed(true)} /> : (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="app-container">
                     <BrowserRouter>
-                      <Suspense fallback={<PageFallback />}>
-                        <Routes>
-                          <Route path="/" element={<Index />} />
-                          <Route path="/history" element={<History />} />
-                          <Route path="/about" element={<About />} />
-                          <Route path="/contacts" element={<Contacts />} />
-                          <Route path="/privacy" element={<Privacy />} />
-                          <Route path="/terms" element={<Terms />} />
-                          <Route path="/scanner" element={<Scanner />} />
-                          <Route path="/jobs" element={<Jobs />} />
-                          <Route path="/profile" element={<Profile />} />
-                          <Route path="/chat" element={<Chat />} />
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                      </Suspense>
+                      <NavStackProvider>
+                        <Suspense fallback={<PageFallback />}>
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/ai" element={<AiAssistant />} />
+                            <Route path="/jobs" element={<Jobs />} />
+                            <Route path="/documents" element={<Documents />} />
+                            <Route path="/translate" element={<Translate />} />
+                            <Route path="/profile" element={<Profile />} />
+                            <Route path="/history" element={<History />} />
+                            <Route path="/premium" element={<Premium />} />
+                            <Route path="/settings" element={<Settings />} />
+                            <Route path="/about" element={<About />} />
+                            <Route path="/contacts" element={<Contacts />} />
+                            <Route path="/privacy" element={<Privacy />} />
+                            <Route path="/terms" element={<Terms />} />
+                            <Route path="/scanner" element={<Scanner />} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </Suspense>
+                      </NavStackProvider>
                     </BrowserRouter>
                   </motion.div>
                 )}

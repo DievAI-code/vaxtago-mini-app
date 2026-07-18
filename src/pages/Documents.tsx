@@ -1,22 +1,22 @@
 import { useState, useRef } from "react";
+import { motion } from "framer-motion";
 import { Camera, Upload, FileText, Scan, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { VaxtaGoLogo } from "@/components/VaxtaGoLogo";
-import { VVision } from "@/components/icons/VaxtaGoIcons";
-import { supabase } from "@/integrations/supabase/client";
+import { VDocument, VShield } from "@/components/icons/VaxtaGoIcons";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/lib/theme";
-import { FadeUp } from "@/components/animations";
+import { FadeUp, stagger, fadeUp } from "@/components/animations";
 
-type ScanStatus = "idle" | "processing" | "success" | "error";
+type DocStatus = "idle" | "processing" | "success" | "error";
 
-export default function Scanner() {
+export default function Documents() {
   const { t } = useTranslation();
   const { lang } = useApp();
-  const [status, setStatus] = useState<ScanStatus>("idle");
+  const [status, setStatus] = useState<DocStatus>("idle");
   const [result, setResult] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -29,7 +29,7 @@ export default function Scanner() {
       reader.onload = async () => {
         const base64 = (reader.result as string).split(",")[1];
         await new Promise((r) => setTimeout(r, 2000));
-        setResult("Текст распознан:\nПатент на работу №123456\nСрок: до 2026-12-31\nРегион: Москва\nСтатус: активен");
+        setResult("Документ успешно распознан. Текст: Патент на работу №123456. Срок действия: до 2026-12-31. Регион: Москва.");
         setStatus("success");
       };
       reader.readAsDataURL(file);
@@ -38,9 +38,15 @@ export default function Scanner() {
     }
   };
 
+  const docs = [
+    { name: "Патент_2026.pdf", status: "verified", date: "2 дн назад" },
+    { name: "Договор.docx", status: "warning", date: "5 дн назад" },
+    { name: "Паспорт.jpg", status: "verified", date: "1 нед назад" },
+  ];
+
   return (
     <div className="flex flex-col h-[100dvh] bg-[#0F172A] text-white">
-      <Header title="Сканер" />
+      <Header title="Документы" />
       
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         <FadeUp>
@@ -51,7 +57,7 @@ export default function Scanner() {
             </Card>
             <Card onClick={() => fileRef.current?.click()} className="text-center">
               <Upload className="w-8 h-8 text-[#06B6D4] mx-auto mb-2" />
-              <span className="font-semibold text-sm">Галерея</span>
+              <span className="font-semibold text-sm">Загрузить</span>
             </Card>
           </div>
           <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])} />
@@ -93,19 +99,42 @@ export default function Scanner() {
                 <AlertCircle className="w-5 h-5 text-red-400" />
                 <span className="font-semibold text-red-400">Ошибка</span>
               </div>
-              <p className="text-sm text-slate-300">Не удалось распознать документ.</p>
+              <p className="text-sm text-slate-300">Не удалось распознать документ. Попробуйте еще раз.</p>
               <Button size="sm" variant="danger" className="mt-3" onClick={() => setStatus("idle")}>Повторить</Button>
             </Card>
           </FadeUp>
         )}
 
         <FadeUp>
-          <Card variant="default" className="flex items-center gap-3">
-            <VVision className="w-8 h-8 text-[#14B8A6]" />
+          <h3 className="text-lg font-bold mb-3 px-1">Мои документы</h3>
+          <div className="space-y-2">
+            {docs.map((doc, i) => (
+              <Card key={i} variant="default" className="flex items-center gap-3 py-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center text-[#06B6D4]">
+                  <VDocument className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{doc.name}</p>
+                  <p className="text-xs text-slate-400">{doc.date}</p>
+                </div>
+                {doc.status === "verified" ? (
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-amber-400" />
+                )}
+              </Card>
+            ))}
+          </div>
+        </FadeUp>
+
+        <FadeUp>
+          <Card variant="gradient" className="mt-6 flex items-center gap-3">
+            <VShield className="w-8 h-8 text-[#14B8A6]" />
             <div className="flex-1">
-              <p className="font-bold">AI Vision</p>
-              <p className="text-xs text-slate-400">Распознавание документов любого типа</p>
+              <p className="font-bold">Проверка работодателя</p>
+              <p className="text-xs text-slate-400">Проверьте компанию перед трудоустройством</p>
             </div>
+            <Button size="sm" variant="secondary">Проверить</Button>
           </Card>
         </FadeUp>
       </div>

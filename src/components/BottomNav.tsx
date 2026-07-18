@@ -1,13 +1,13 @@
 import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { VaxtaGoLogo } from "./VaxtaGoLogo";
-import { VBrain, VCareer, VIdentity } from "./icons/VaxtaGoIcons";
-import { History } from "lucide-react";
+import { VBrain, VCareer, VDocument, VGlobal, VIdentity } from "./icons/VaxtaGoIcons";
 
 const ITEMS = [
   { path: "/", icon: VaxtaGoLogo, label: "Главная", isLogo: true },
-  { path: "/history", icon: History, label: "История" },
-  { path: "/jobs", icon: VCareer, label: "Вакансии" },
+  { path: "/ai", icon: VBrain, label: "AI" },
+  { path: "/jobs", icon: VCareer, label: "Работа" },
+  { path: "/documents", icon: VDocument, label: "Документы" },
   { path: "/profile", icon: VIdentity, label: "Профиль" },
 ];
 
@@ -15,9 +15,9 @@ export function BottomNav() {
   const loc = useLocation();
   const nav = useNavigate();
   return (
-    <nav className="flex-shrink-0 flex items-center justify-around px-2 py-2 bg-white/80 dark:bg-[#0F172A]/80 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800">
+    <nav className="flex-shrink-0 flex items-center justify-around px-2 py-2 bg-[#0F172A]/90 backdrop-blur-xl border-t border-slate-800">
       {ITEMS.map((item) => {
-        const active = loc.pathname === item.path;
+        const active = loc.pathname === item.path || (item.path === "/" && loc.pathname === "/ai");
         const Icon = item.icon;
         return (
           <button key={item.path} onClick={() => nav(item.path)} className="relative flex flex-col items-center gap-1 px-3 py-1" aria-label={item.label}>
