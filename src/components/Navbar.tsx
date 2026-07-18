@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Moon, Sun, Globe } from "lucide-react";
 import { useState } from "react";
 import { SUPPORTED_LANGS, Lang } from "@/i18n";
+import { VaxtaGoLogo } from "./VaxtaGoLogo";
 
 const LANGS: { code: Lang; label: string; flag: string }[] = [
   { code: "ru", label: "Русский", flag: "🇷🇺" },
@@ -18,15 +19,13 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-40 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/60 dark:border-slate-700/60">
+    <nav className="sticky top-0 z-40 backdrop-blur-xl bg-white/80 dark:bg-[#0F172A]/80 border-b border-slate-200/60 dark:border-slate-800">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white font-bold text-lg">
-            V
-          </div>
+          <VaxtaGoLogo size={36} />
           <div className="flex flex-col">
-            <span className="font-bold text-lg text-slate-800 dark:text-white leading-tight">VaxtaGo</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">{t("tagline")}</span>
+            <span className="font-bold text-lg text-slate-800 dark:text-white leading-tight tracking-tight">VaxtaGo</span>
+            <span className="text-[11px] text-[#06B6D4] font-medium">AI Assistant</span>
           </div>
         </div>
 
@@ -46,13 +45,8 @@ export function Navbar() {
                 {LANGS.map((l) => (
                   <button
                     key={l.code}
-                    onClick={() => {
-                      setLang(l.code);
-                      setOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors ${
-                      lang === l.code ? "text-blue-600 font-semibold bg-blue-50 dark:bg-blue-900/30" : "text-slate-600 dark:text-slate-300"
-                    }`}
+                    onClick={() => { setLang(l.code); setOpen(false); }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors ${lang === l.code ? "text-[#2563EB] font-semibold bg-blue-50 dark:bg-blue-900/30" : "text-slate-600 dark:text-slate-300"}`}
                   >
                     <span>{l.flag}</span>
                     <span>{l.label}</span>

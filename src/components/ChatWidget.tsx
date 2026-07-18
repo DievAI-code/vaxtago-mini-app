@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, X, Bot, MoreVertical, Plus, Trash2, Copy, Download, Pencil, ChevronDown, User, Menu, Mic, Image as ImageIcon } from "lucide-react";
+import { Send, Paperclip, X, MoreVertical, Plus, Trash2, Copy, Download, Pencil, ChevronDown, User, Menu, Mic, Image as ImageIcon } from "lucide-react";
 import { TypingDots } from "./animations";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/lib/theme";
 import { useTelegramUser } from "./TelegramProvider";
 import { useAiChat } from "@/hooks/useAiChat";
 import { ChatHistory, useChatSessions } from "./ChatHistory";
-import { VBrain } from "./icons/VaxtaGoIcons";
+import { VaxtaGoLogo } from "./VaxtaGoLogo";
 
 interface Msg {
   id: string;
@@ -83,14 +83,14 @@ export function ChatWidget() {
   function deleteChat() { deleteSession(activeId); setMessages([{ id: makeId(), role: "assistant", content: t("ai_hello"), createdAt: new Date() }]); setMenuOpen(false); }
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-slate-50 dark:bg-slate-950" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+    <div className="flex flex-col h-[100dvh] bg-[#F8FAFC] dark:bg-[#0F172A]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white dark:bg-[#0F172A] border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-3">
           {!isInTelegram && <button onClick={() => setHistoryOpen(true)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden" aria-label="History"><Menu size={20} /></button>}
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center"><VBrain className="w-5 h-5 text-white" /></div>
+          <VaxtaGoLogo size={36} />
           <div>
             <h1 className="font-bold text-slate-800 dark:text-white leading-tight">VaxtaGo AI</h1>
-            <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> онлайн</p>
+            <p className="text-xs text-[#14B8A6] flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#14B8A6] inline-block" /> онлайн</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -119,7 +119,7 @@ export function ChatWidget() {
             <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none" />
             <div className="flex gap-2 mt-4">
               <button onClick={() => setRenaming(false)} className="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200">Отмена</button>
-              <button onClick={confirmRename} className="flex-1 py-2 rounded-xl bg-blue-600 text-white">Сохранить</button>
+              <button onClick={confirmRename} className="flex-1 py-2 rounded-xl bg-[#2563EB] text-white">Сохранить</button>
             </div>
           </div>
         </div>
@@ -129,10 +129,10 @@ export function ChatWidget() {
         <AnimatePresence initial={false}>
           {messages.map((m) => (
             <motion.div key={m.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={`flex items-end gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === "user" ? "bg-slate-300 dark:bg-slate-700" : "bg-gradient-to-br from-blue-600 to-cyan-400"}`}>
-                {m.role === "user" ? <User size={16} className="text-slate-600 dark:text-slate-200" /> : <VBrain size={16} className="text-white" />}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === "user" ? "bg-slate-300 dark:bg-slate-700" : "bg-gradient-to-br from-[#2563EB] to-[#14B8A6]"}`}>
+                {m.role === "user" ? <User size={16} className="text-slate-600 dark:text-slate-200" /> : <VaxtaGoLogo size={20} />}
               </div>
-              <div className={`group max-w-[78%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${m.role === "user" ? "bg-blue-600 text-white rounded-br-md" : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-md"}`}>
+              <div className={`group max-w-[78%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${m.role === "user" ? "bg-[#2563EB] text-white rounded-br-md" : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-md"}`}>
                 {m.role === "assistant" ? <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} /> : <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>}
                 <div className={`flex items-center gap-2 mt-1 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                   <span className={`text-[10px] ${m.role === "user" ? "text-blue-100" : "text-slate-400"}`}>{formatTime(m.createdAt)}</span>
@@ -144,23 +144,22 @@ export function ChatWidget() {
         </AnimatePresence>
         {loading && (
           <div className="flex items-end gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center"><VBrain size={16} className="text-white" /></div>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563EB] to-[#14B8A6] flex items-center justify-center"><VaxtaGoLogo size={20} /></div>
             <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm"><TypingDots /></div>
           </div>
         )}
         {showScrollBtn && (
-          <button onClick={() => { const el = messagesContainerRef.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); }} className="sticky bottom-2 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:scale-105 transition" aria-label="Scroll down"><ChevronDown size={20} /></button>
+          <button onClick={() => { const el = messagesContainerRef.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); }} className="sticky bottom-2 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-[#2563EB] text-white shadow-lg flex items-center justify-center hover:scale-105 transition" aria-label="Scroll down"><ChevronDown size={20} /></button>
         )}
       </div>
 
-      {/* Quick actions */}
       <div className="flex-shrink-0 flex gap-2 px-4 py-2 overflow-x-auto">
         {QUICK_ACTIONS.map((q) => (
           <button key={q} onClick={() => handleSend(q)} className="px-3 py-1.5 rounded-full bg-white/70 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-xs whitespace-nowrap hover:bg-blue-50 dark:hover:bg-slate-700">{q}</button>
         ))}
       </div>
 
-      <div className="flex-shrink-0 p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
+      <div className="flex-shrink-0 p-3 bg-white dark:bg-[#0F172A] border-t border-slate-200 dark:border-slate-800" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <div className="flex items-end gap-2">
           <button onClick={() => fileRef.current?.click()} className="p-2.5 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition" aria-label="Attach"><Paperclip size={20} /></button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = () => handleSend("Распознай текст на изображении", (r.result as string).split(",")[1]); r.readAsDataURL(f); }} />
@@ -170,7 +169,7 @@ export function ChatWidget() {
             <textarea ref={undefined} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} rows={1} placeholder={t("chat_ph")} disabled={loading} className="w-full resize-none max-h-32 px-4 py-3 pr-10 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-transparent outline-none text-sm text-slate-800 dark:text-white disabled:opacity-50" />
             {input && (<button onClick={() => setInput("")} className="absolute right-3 top-3 text-slate-400 hover:text-slate-600" aria-label="Clear"><X size={16} /></button>)}
           </div>
-          <button onClick={() => handleSend(input)} disabled={loading || !input.trim()} className="p-3 rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 text-white hover:scale-105 transition shadow-lg disabled:opacity-40 disabled:scale-100" aria-label="Send"><Send size={18} /></button>
+          <button onClick={() => handleSend(input)} disabled={loading || !input.trim()} className="p-3 rounded-full bg-gradient-to-br from-[#2563EB] to-[#14B8A6] text-white hover:scale-105 transition shadow-lg disabled:opacity-40 disabled:scale-100" aria-label="Send"><Send size={18} /></button>
         </div>
       </div>
 
