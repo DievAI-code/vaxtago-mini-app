@@ -74,9 +74,11 @@ const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
 };
 
 const MODELS = [
+  "google/gemini-2.5-flash-lite",
+  "google/gemini-2.0-flash-exp:free",
+  "meta-llama/llama-3.1-8b-instruct:free",
+  "qwen/qwen-2.5-7b-instruct:free",
   "openai/gpt-4o-mini",
-  "google/gemini-2.5-flash",
-  "anthropic/claude-3.5-haiku",
 ];
 
 function getApiKey(): string | undefined {
@@ -143,6 +145,11 @@ function mapIntentToRequestType(intent: Intent): AIRequestType {
   }
 }
 
+// Detect OpenRouter guardrail / policy / availability errors
+function isGuardrailOrPolicyError(bodyText: string): boolean {
+  return /No endpoints available|guardrail|privacy|policy|data policy/i.test(bodyText);
+}
+
 async function tryModel(model: string, messages: any[]): Promise<string> {
   const key = getApiKey();
   if (!key) throw new Error("OPENROUTER_API_KEY not set");
@@ -176,8 +183,10 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
   if (response.status >= 500) throw new Error(`Server error ${response.status}`);
 
   const bodyText = await response.text();
-  if (/guardrail|No endpoints available|No allowed providers|privacy/i.test(bodyText)) {
-    throw new Error(`Model ${model} blocked: ${bodyText.slice(0, 200)}`);
+  if (isGuardrailOrPolicyError(bodyText)) {
+    // Log full reason for Supabase debugging
+    console.error(`[OpenRouter Guardrail/Policy] model=${model} status=${response.status} body=${bodyText.slice(0, 500)}`);
+    throw new Error(`Model ${model} blocked by guardrail/policy: ${bodyText.slice(0, 200)}`);
   }
   let data: any;
   try { data = JSON.parse(bodyText); } catch { throw new Error("Invalid JSON from AI"); }
@@ -187,7 +196,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
   return answer.trim();
 }
 
-async function withRetry(fn: () => Promise<string>, retries = 2): Promise<string> {
+async function withRetry(fn: () => Promise<string>, retries = 1): Promise<string> {
   let lastError: Error | null = null;
   for (let i = 0; i <= retries; i++) {
     try { return await fn(); } catch (e) {
@@ -212,12 +221,16 @@ export async function createAIRequest(req: AIRequest): Promise<AIResult> {
       logRequest({ user: req.userId, task: requestType, model, provider: "openrouter", duration_ms: Date.now() - startTime, success: true });
       return { text, model, provider: "openrouter", intent, action: getActionForIntent(intent), language: req.language };
     } catch (e) {
-      lastError = e instanceof Error ? e : new Error("unknown");
+      const err = e instanceof Error ? e : new Error("unknown");
+      lastError = err;
+      // Log each model failure with full context
+      console.error(`[AI Router] model=${model} task=${requestType} error=${err.message}`);
+      // Continue to next model automatically (fallback)
     }
   }
 
   logRequest({ user: req.userId, task: requestType, duration_ms: Date.now() - startTime, success: false, error: lastError?.message || "all models failed" });
-  return { text: "AI временно занят. Попробуйте ещё раз.", model: "none", provider: "none", intent, action: getActionForIntent(intent), language: req.language };
+  return { text: "AI временно переключается на резервную модель.", model: "none", provider: "none", intent, action: getActionForIntent(intent), language: req.language };
 }
 
 function buildMessages(req: AIRequest, task: AIRequestType, previous: Array<{ role: string; content: string }>): any[] {
