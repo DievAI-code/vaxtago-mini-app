@@ -1,13 +1,13 @@
 import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { VaxtaGoLogo } from "./VaxtaGoLogo";
-import { VBrain, VCareer, VDocument, VIdentity } from "./icons/VaxtaGoIcons";
+import { VBrain, VCareer, VIdentity } from "./icons/VaxtaGoIcons";
+import { History } from "lucide-react";
 
 const ITEMS = [
   { path: "/", icon: VaxtaGoLogo, label: "Главная", isLogo: true },
-  { path: "/chat", icon: VBrain, label: "AI" },
+  { path: "/history", icon: History, label: "История" },
   { path: "/jobs", icon: VCareer, label: "Вакансии" },
-  { path: "/scanner", icon: VDocument, label: "Сканер" },
   { path: "/profile", icon: VIdentity, label: "Профиль" },
 ];
 

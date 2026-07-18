@@ -24,6 +24,7 @@ const Scanner = lazy(() => import("./pages/Scanner"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Chat = lazy(() => import("./pages/Chat"));
+const History = lazy(() => import("./pages/History"));
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => {
                       <Suspense fallback={<PageFallback />}>
                         <Routes>
                           <Route path="/" element={<Index />} />
+                          <Route path="/history" element={<History />} />
                           <Route path="/about" element={<About />} />
                           <Route path="/contacts" element={<Contacts />} />
                           <Route path="/privacy" element={<Privacy />} />
