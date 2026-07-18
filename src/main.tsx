@@ -1,3 +1,14 @@
+/*
+ VaxtaGo AI
+
+ Founder:
+ Диев Дмитрий Сергеевич
+
+ Copyright © 2026 VaxtaGo
+
+ All rights reserved.
+*/
+
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./globals.css";

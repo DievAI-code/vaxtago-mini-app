@@ -9,12 +9,12 @@ import { SplashScreen } from "@/components/SplashScreen";
 import { AuthScreen } from "@/components/AuthScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TelegramProvider } from "@/components/TelegramProvider";
+import { BottomNav } from "@/components/BottomNav";
 import { motion, AnimatePresence } from "framer-motion";
 import Index from "./pages/Index";
 import Footer from "./components/Footer";
 import "@/i18n";
 
-// Lazy-load all non-home pages for faster first paint
 const NotFound = lazy(() => import("./pages/NotFound"));
 const About = lazy(() => import("./pages/About"));
 const Contacts = lazy(() => import("./pages/Contacts"));
@@ -38,43 +38,19 @@ const App = () => {
   const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
-    document.title = "VaxtaGo — AI помощник для мигрантов";
-    const meta = document.createElement("meta");
-    meta.name = "description";
-    meta.content = "VaxtaGo: поиск работы, проверка работодателей, перевод документов, юридическая помощь и миграция.";
-    document.head.appendChild(meta);
-
-    // Remove boot splash from index.html once React is ready
+    document.title = "VaxtaGo 2.0 — AI Super App";
     const bootSplash = document.getElementById("boot-splash");
     if (bootSplash) bootSplash.remove();
-
-    // Telegram Mini App viewport handling
     const isTelegram = Boolean(window.Telegram?.WebApp?.initData);
     const tg = window.Telegram?.WebApp;
     if (isTelegram && tg) {
-      try {
-        tg.ready();
-        tg.expand();
-        document.body.classList.add("telegram-app");
-      } catch (e) {
-        console.warn("Telegram WebApp init failed:", e);
-      }
+      try { tg.ready(); tg.expand(); document.body.classList.add("telegram-app"); } catch (e) { console.warn("Telegram WebApp init failed:", e); }
     }
-
-    const setViewport = () => {
-      const height = window.visualViewport?.height || window.innerHeight;
-      document.documentElement.style.setProperty("--app-height", `${height}px`);
-    };
+    const setViewport = () => { const h = window.visualViewport?.height || window.innerHeight; document.documentElement.style.setProperty("--app-height", `${h}px`); };
     setViewport();
     window.visualViewport?.addEventListener("resize", setViewport);
-
-    // Minimal loading delay for smooth transition
     const t = setTimeout(() => setLoading(false), 1200);
-
-    return () => {
-      clearTimeout(t);
-      window.visualViewport?.removeEventListener("resize", setViewport);
-    };
+    return () => { clearTimeout(t); window.visualViewport?.removeEventListener("resize", setViewport); };
   }, []);
 
   return (
@@ -86,17 +62,8 @@ const App = () => {
               <Toaster />
               <Sonner />
               <AnimatePresence mode="wait">
-                {loading ? (
-                  <SplashScreen />
-                ) : !authed ? (
-                  <AuthScreen onAuth={() => setAuthed(true)} />
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                    className="app-container"
-                  >
+                {loading ? <SplashScreen /> : !authed ? <AuthScreen onAuth={() => setAuthed(true)} /> : (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="app-container">
                     <BrowserRouter>
                       <Suspense fallback={<PageFallback />}>
                         <Routes>

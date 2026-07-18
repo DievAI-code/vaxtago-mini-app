@@ -11,7 +11,8 @@ export type AIRequestType =
   | "migration"
   | "premium"
   | "chat"
-  | "help";
+  | "help"
+  | "translation";
 
 export interface AIRequest {
   type: AIRequestType;
@@ -35,20 +36,23 @@ export interface AIResult {
 }
 
 export type Intent =
-  | "CHAT"
-  | "OCR"
-  | "OCR_TRANSLATE"
+  | "GENERAL_CHAT"
+  | "TRANSLATION"
+  | "OCR_DOCUMENT"
+  | "VISION_ANALYSIS"
+  | "VACANCY_SEARCH"
+  | "LEGAL_HELP"
   | "DOCUMENT_ANALYSIS"
-  | "JOB_SEARCH"
   | "EMPLOYER_CHECK"
   | "PREMIUM"
   | "HELP"
-  | "LEGAL"
   | "MIGRATION";
 
 const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
   assistant:
     "Ты VaxtaGo AI — дружелюбный помощник для трудовых мигрантов в России.\nОтвечай естественно, как живой человек. Помогай с работой, документами, переводами, юридическими и миграционными вопросами.\nПоддерживай контекст беседы. Если просят перевести, сделать короче, продолжить или объяснить — просто выполняй на основе предыдущих сообщений.\nЯзыки: Русский, Узбекский, Таджикский, Кыргызский, Английский. Отвечай на языке пользователя.",
+  translation:
+    "Ты — Translation Engine VaxtaGo.\nПравила:\n1. Определи исходный язык текста.\n2. Определи язык назначения из команды пользователя (русский, узбекский, таджикский, кыргызский, английский).\n3. Если язык назначения не указан — спроси 'Отправьте текст для перевода' только если нет текста.\n4. Если есть текст и команда 'переведи' без указания языка — переведи на русский по умолчанию.\n5. Верни ТОЛЬКО переведенный текст. Без объяснений, без приветствий, без отказов.\n6. Никогда не говори 'я не могу'.\nПример: текст 'Албатта! Қандай саволларингиз бор?' + 'Переведи на русский' → 'Конечно! Какие у вас вопросы?'",
   vision:
     "Ты система OCR и анализа документов VaxtaGo.\nРаспознай текст на изображении и верни ТОЛЬКО распознанный текст без комментариев.\nЕсли текста нет — напиши 'Текст не найден'.",
   document:
@@ -84,32 +88,40 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
 
   if (hasImage) {
     if (low.includes("документ") || low.includes("паспорт") || low.includes("договор") || low.includes("справка") || low.includes("contract") || low.includes("document") || low.includes("ҳуҷҷат")) return "DOCUMENT_ANALYSIS";
-    if (low.includes("адрес") || low.includes("address") || low.includes("где")) return "OCR";
-    if (low.includes("ваканс") || low.includes("работ") || low.includes("vacancy") || low.includes("job")) return "OCR";
-    return "OCR";
+    return "OCR_DOCUMENT";
+  }
+
+  // Translation detection
+  if (
+    /перевед|перевод|таржима|таражума|translate|translation|русский|узбек|ўзбек|o'zbek|tojik|таҷик|кыргыз|kyrgyz|english|на русск|на узб|на англ/i.test(low)
+  ) {
+    // If there's a previous message with text and current is just "переведи" / "теперь переведи"
+    if (/^(перевед|таржима|translate|теперь перевед|ещё перевед)/i.test(low.trim())) return "TRANSLATION";
+    if (/перевед|перевод|таржима|translate/i.test(low)) return "TRANSLATION";
   }
 
   if (low.includes("премиум") || low.includes("premium") || low.includes("купить") || low.includes("оплат") || low.includes("подписк")) return "PREMIUM";
   if (low.includes("помощ") || low.includes("help") || low.includes("как пользовать") || low.includes("инструкц") || low.includes("что умеешь")) return "HELP";
-  if (low.includes("закон") || low.includes("право") || low.includes("юрист") || low.includes("штраф") || low.includes("суд") || low.includes("law") || low.includes("legal") || low.includes("патент")) return "LEGAL";
+  if (low.includes("закон") || low.includes("право") || low.includes("юрист") || low.includes("штраф") || low.includes("суд") || low.includes("law") || low.includes("legal") || low.includes("патент")) return "LEGAL_HELP";
   if (low.includes("миграц") || low.includes("мвд") || low.includes("регистрац") || low.includes("виза") || low.includes("migration")) return "MIGRATION";
-  if (low.includes("работ") || low.includes("ваканс") || low.includes("job") || low.includes("иш") || low.includes("vacancy")) return "JOB_SEARCH";
+  if (low.includes("работ") || low.includes("ваканс") || low.includes("job") || low.includes("иш") || low.includes("vacancy")) return "VACANCY_SEARCH";
   if (low.includes("проверь работодателя") || low.includes("employer") || low.includes("проверка") || low.includes("инн") || low.includes("огрн")) return "EMPLOYER_CHECK";
   if (low.includes("паспорт") || low.includes("договор") || low.includes("документ") || low.includes("разрешение") || low.includes("document") || low.includes("contract") || low.includes("ҳуҷҷат")) return "DOCUMENT_ANALYSIS";
-  if (low.includes("привет") || low.includes("hello") || low.includes("hi") || low.includes("salom") || low.includes("салом")) return "CHAT";
-  return "CHAT";
+  if (low.includes("привет") || low.includes("hello") || low.includes("hi") || low.includes("salom") || low.includes("салом")) return "GENERAL_CHAT";
+  return "GENERAL_CHAT";
 }
 
 export function getActionForIntent(intent: Intent): string {
   switch (intent) {
-    case "JOB_SEARCH": return "search_jobs";
-    case "OCR": return "process_image";
-    case "OCR_TRANSLATE": return "process_image_translate";
+    case "VACANCY_SEARCH": return "search_jobs";
+    case "OCR_DOCUMENT": return "process_image";
+    case "VISION_ANALYSIS": return "vision_analysis";
     case "DOCUMENT_ANALYSIS": return "analyze_document";
+    case "TRANSLATION": return "translate";
     case "EMPLOYER_CHECK": return "check_employer";
     case "PREMIUM": return "open_premium";
     case "HELP": return "show_help";
-    case "LEGAL": return "show_legal";
+    case "LEGAL_HELP": return "show_legal";
     case "MIGRATION": return "show_migration";
     default: return "chat";
   }
@@ -117,14 +129,15 @@ export function getActionForIntent(intent: Intent): string {
 
 function mapIntentToRequestType(intent: Intent): AIRequestType {
   switch (intent) {
-    case "JOB_SEARCH": return "vacancy";
-    case "OCR": return "vision";
-    case "OCR_TRANSLATE": return "vision";
+    case "VACANCY_SEARCH": return "vacancy";
+    case "OCR_DOCUMENT": return "vision";
+    case "VISION_ANALYSIS": return "vision";
     case "DOCUMENT_ANALYSIS": return "document";
+    case "TRANSLATION": return "translation";
     case "EMPLOYER_CHECK": return "employer_check";
     case "PREMIUM": return "premium";
     case "HELP": return "help";
-    case "LEGAL": return "legal";
+    case "LEGAL_HELP": return "legal";
     case "MIGRATION": return "migration";
     default: return "chat";
   }
@@ -134,17 +147,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
   const key = getApiKey();
   if (!key) throw new Error("OPENROUTER_API_KEY not set");
 
-  const body = {
-    model,
-    temperature: 0.7,
-    max_tokens: 1500,
-    messages,
-  };
-
-  console.log("AI MODEL TRY:", model);
-  console.log("Messages:", JSON.stringify(messages, null, 2));
-  console.log("OpenRouter request:", JSON.stringify(body, null, 2));
-
+  const body = { model, temperature: 0.7, max_tokens: 1500, messages };
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
   let response: Response;
@@ -162,50 +165,33 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
     });
   } catch (err) {
     clearTimeout(timeoutId);
-    if (err instanceof Error && err.name === "AbortError") {
-      throw new Error("OpenRouter timeout (30s)");
-    }
+    if (err instanceof Error && err.name === "AbortError") throw new Error("OpenRouter timeout (30s)");
     throw err;
   }
   clearTimeout(timeoutId);
-
-  console.log("AI MODEL RESPONSE STATUS:", response.status);
-  const bodyText = await response.text();
-  console.log("OpenRouter response:", bodyText.slice(0, 500));
 
   if (response.status === 401) throw new Error("Auth failed");
   if (response.status === 429) throw new Error("Rate limit");
   if (response.status === 404) throw new Error("Model unavailable (404)");
   if (response.status >= 500) throw new Error(`Server error ${response.status}`);
+
+  const bodyText = await response.text();
   if (/guardrail|No endpoints available|No allowed providers|privacy/i.test(bodyText)) {
     throw new Error(`Model ${model} blocked: ${bodyText.slice(0, 200)}`);
   }
-
   let data: any;
-  try {
-    data = JSON.parse(bodyText);
-  } catch {
-    throw new Error("Invalid JSON from AI");
-  }
-  if (data?.error) {
-    throw new Error(`OpenRouter error: ${data.error.message || "unknown"}`);
-  }
-  const answer =
-    data?.choices?.[0]?.message?.content ||
-    (typeof data?.choices?.[0]?.text === "string" ? data.choices[0].text : null);
+  try { data = JSON.parse(bodyText); } catch { throw new Error("Invalid JSON from AI"); }
+  if (data?.error) throw new Error(`OpenRouter error: ${data.error.message || "unknown"}`);
+  const answer = data?.choices?.[0]?.message?.content || (typeof data?.choices?.[0]?.text === "string" ? data.choices[0].text : null);
   if (!answer) throw new Error("Empty AI response");
-  console.log("Model response:", answer.slice(0, 200));
   return answer.trim();
 }
 
 async function withRetry(fn: () => Promise<string>, retries = 2): Promise<string> {
   let lastError: Error | null = null;
   for (let i = 0; i <= retries; i++) {
-    try {
-      return await fn();
-    } catch (e) {
+    try { return await fn(); } catch (e) {
       lastError = e instanceof Error ? e : new Error("unknown");
-      console.log(`AI ROUTER - RETRY ${i + 1}/2: ${lastError.message}`);
       if (i < retries) await new Promise((r) => setTimeout(r, 500 * (i + 1)));
     }
   }
@@ -214,74 +200,37 @@ async function withRetry(fn: () => Promise<string>, retries = 2): Promise<string
 
 export async function createAIRequest(req: AIRequest): Promise<AIResult> {
   const startTime = Date.now();
-  const previous = (req.previousMessages ?? []).slice(-20);
+  const previous = (req.previousMessages ?? []).slice(-10);
   const intent = detectIntent(req.text || "", !!req.image || !!req.hasImage, previous);
   const requestType = mapIntentToRequestType(intent);
-  console.log("AI ROUTER START - intent:", intent, "type:", requestType);
   let lastError: Error | null = null;
 
   for (const model of MODELS) {
     try {
       const messages = buildMessages(req, requestType, previous);
       const text = await withRetry(() => tryModel(model, messages));
-      console.log("AI MODEL SUCCESS:", model);
-      const duration = Date.now() - startTime;
-      logRequest({
-        user: req.userId,
-        task: requestType,
-        model,
-        provider: "openrouter",
-        duration_ms: duration,
-        success: true,
-      });
-      return {
-        text,
-        model,
-        provider: "openrouter",
-        intent,
-        action: getActionForIntent(intent),
-        language: req.language,
-      };
+      logRequest({ user: req.userId, task: requestType, model, provider: "openrouter", duration_ms: Date.now() - startTime, success: true });
+      return { text, model, provider: "openrouter", intent, action: getActionForIntent(intent), language: req.language };
     } catch (e) {
       lastError = e instanceof Error ? e : new Error("unknown");
-      console.log("AI MODEL FAILED:", model, "->", lastError.message);
     }
   }
 
-  const duration = Date.now() - startTime;
-  logRequest({
-    user: req.userId,
-    task: requestType,
-    duration_ms: duration,
-    success: false,
-    error: lastError?.message || "all models failed",
-  });
-  return {
-    text: "AI временно занят. Попробуйте ещё раз.",
-    model: "none",
-    provider: "none",
-    intent,
-    action: getActionForIntent(intent),
-    language: req.language,
-  };
+  logRequest({ user: req.userId, task: requestType, duration_ms: Date.now() - startTime, success: false, error: lastError?.message || "all models failed" });
+  return { text: "AI временно занят. Попробуйте ещё раз.", model: "none", provider: "none", intent, action: getActionForIntent(intent), language: req.language };
 }
 
 function buildMessages(req: AIRequest, task: AIRequestType, previous: Array<{ role: string; content: string }>): any[] {
   const system = SYSTEM_PROMPTS[task];
-
   if (task === "vision") {
     const content: any[] = [{ type: "text", text: (req.text || "Распознай текст на изображении.") }];
     if (req.image) content.push({ type: "image_url", image_url: { url: req.image } });
     if (req.imageUrl) content.push({ type: "image_url", image_url: { url: req.imageUrl } });
     return [{ role: "system", content: system }, { role: "user", content }];
   }
-
-  // Unified: system + history (last 20) + current user message
   const messages: any[] = [{ role: "system", content: system }];
   for (const m of previous) {
-    if (m.role === "user" || m.role === "assistant") {
-      messages.push({ role: m.role, content: m.content });
-    }
+    if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.content });
   }
   messages.push({ role: "user", content: req.text || "" });
   return messages;
