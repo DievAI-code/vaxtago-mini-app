@@ -49,6 +49,7 @@ interface TelegramWebApp {
   close: () => void;
   requestViewport: () => void;
   disableVerticalSwipes: () => void;
+  requestContact: (callback: (ok: boolean, contact: any) => void) => void;
 }
 
 declare global {
@@ -70,11 +71,9 @@ export function useTelegram() {
       try {
         tg.ready();
         tg.expand();
-        // Request fresh viewport for Android
         if (typeof tg.requestViewport === "function") {
           tg.requestViewport();
         }
-        // Prevent accidental swipe-down close on Android
         if (typeof tg.disableVerticalSwipes === "function") {
           tg.disableVerticalSwipes();
         }

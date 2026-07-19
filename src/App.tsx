@@ -28,6 +28,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const History = lazy(() => import("./pages/History"));
 const Premium = lazy(() => import("./pages/Premium"));
 const Settings = lazy(() => import("./pages/Settings"));
+const PhotoTranslator = lazy(() => import("./pages/PhotoTranslator"));
 
 const queryClient = new QueryClient();
 
@@ -39,7 +40,7 @@ const PageFallback = () => (
 
 const AppContent = () => {
   const [loading, setLoading] = useState(true);
-  const { isInTelegram: inTg, isAuthed, authLoading } = useTelegramUser();
+  const { isInTelegram: inTg, isAuthed, needsPhone, authLoading } = useTelegramUser();
 
   useEffect(() => {
     document.title = "VaxtaGo 2.0 — AI Super App";
@@ -57,16 +58,17 @@ const AppContent = () => {
     return () => { clearTimeout(t); window.visualViewport?.removeEventListener("resize", setViewport); };
   }, []);
 
-  // Inside Telegram: skip AuthScreen entirely, go straight to app when authed
-  // Outside Telegram: show AuthScreen (which shows the "open in Telegram" page)
   const showAuth = !inTg || (inTg && !isAuthed && !authLoading);
+  const showPhone = inTg && needsPhone;
 
   return (
     <AnimatePresence mode="wait">
       {loading ? (
         <SplashScreen />
+      ) : showPhone ? (
+        <AuthScreen mode="phone" />
       ) : showAuth ? (
-        <AuthScreen onAuth={() => {}} />
+        <AuthScreen mode="telegram-only" />
       ) : (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="app-container">
           <BrowserRouter>
@@ -78,6 +80,7 @@ const AppContent = () => {
                   <Route path="/jobs" element={<Jobs />} />
                   <Route path="/documents" element={<Documents />} />
                   <Route path="/translate" element={<Translate />} />
+                  <Route path="/photo-translator" element={<PhotoTranslator />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/history" element={<History />} />
                   <Route path="/premium" element={<Premium />} />

@@ -5,7 +5,7 @@ import { Mic, Camera, Keyboard, Briefcase, FileText, Globe, Shield, MapPin, Wall
 import { VaxtaGoLogo } from "@/components/VaxtaGoLogo";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { VCareer, VDocument, VGlobal, VShield } from "@/components/icons/VaxtaGoIcons";
+import { VCareer, VDocument, VGlobal, VShield, VVision } from "@/components/icons/VaxtaGoIcons";
 import { useTelegramUser } from "@/components/TelegramProvider";
 import { useApp } from "@/lib/theme";
 import { FadeUp, stagger, fadeUp } from "@/components/animations";
@@ -25,7 +25,7 @@ interface Vacancy {
 export default function Index() {
   const nav = useNavigate();
   const { t } = useTranslation();
-  const { firstName, username } = useTelegramUser();
+  const { firstName } = useTelegramUser();
   const { lang } = useApp();
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
 
@@ -52,6 +52,7 @@ export default function Index() {
     { icon: <VCareer className="w-6 h-6" />, label: "Найти работу", path: "/jobs" },
     { icon: <VDocument className="w-6 h-6" />, label: "Проверить документ", path: "/documents" },
     { icon: <VGlobal className="w-6 h-6" />, label: "Перевести текст", path: "/translate" },
+    { icon: <VVision className="w-6 h-6" />, label: "Фото переводчик", path: "/photo-translator" },
     { icon: <VShield className="w-6 h-6" />, label: "Проверить работодателя", path: "/employer" },
   ];
 

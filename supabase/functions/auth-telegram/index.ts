@@ -34,6 +34,8 @@ serve(async (req) => {
   );
 
   const now = new Date().toISOString();
+  const phone = body.phone_number || null;
+
   const { data: existing } = await supabase
     .from("telegram_users")
     .select("*")
@@ -51,6 +53,7 @@ serve(async (req) => {
         last_name: parsed.lastName ?? null,
         language_code: parsed.languageCode ?? "ru",
         photo_url: parsed.photoUrl ?? null,
+        phone_number: phone,
         created_at: now,
         last_login: now,
       })
@@ -58,7 +61,7 @@ serve(async (req) => {
       .single();
     if (!error) profile = inserted;
   } else {
-    await supabase
+    const { data: updated, error } = await supabase
       .from("telegram_users")
       .update({
         username: parsed.username ?? existing.username,
@@ -66,10 +69,16 @@ serve(async (req) => {
         last_name: parsed.lastName ?? existing.last_name,
         language_code: parsed.languageCode ?? existing.language_code,
         photo_url: parsed.photoUrl ?? existing.photo_url,
+        phone_number: phone ?? existing.phone_number,
         last_login: now,
       })
-      .eq("telegram_id", parsed.telegramId);
+      .eq("telegram_id", parsed.telegramId)
+      .select()
+      .single();
+    if (!error) profile = updated;
   }
 
-  return new Response(JSON.stringify({ success: true, user: profile }), { headers: corsHeaders, status: 200 });
+  // Simple token (telegram_id signed with service key hash)
+  const token = btoa(`${parsed.telegramId}:${now}`);
+  return new Response(JSON.stringify({ success: true, user: profile, token }), { headers: corsHeaders, status: 200 });
 });

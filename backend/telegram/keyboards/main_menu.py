@@ -60,6 +60,7 @@ def saved_vacancy_inline_keyboard(vacancy_id: int, lang: str = "ru") -> InlineKe
 
 def bot_main_inline_keyboard(lang: str = "ru", mini_app_url: str = "") -> InlineKeyboardMarkup:
     """Main menu shown after /start with Mini App launch button."""
+    MINI_APP_URL = "https://vaxtago-bydievds.vercel.app/"
     builder = InlineKeyboardBuilder()
     builder.button(text="🔍 Найти работу", callback_data="bot:jobs")
     builder.button(text="🤖 AI Помощник", callback_data="bot:ai")
@@ -67,7 +68,6 @@ def bot_main_inline_keyboard(lang: str = "ru", mini_app_url: str = "") -> Inline
     builder.button(text="🛡 Проверить работодателя", callback_data="bot:employer")
     builder.button(text="⭐ Избранное", callback_data="bot:favorites")
     builder.button(text="👤 Профиль", callback_data="bot:profile")
-    if mini_app_url:
-        builder.button(text="🚀 Открыть VaxtaGo", web_app={"url": mini_app_url})
+    builder.button(text="🚀 Открыть VaxtaGo", web_app={"url": MINI_APP_URL})
     builder.adjust(2)
     return builder.as_markup()
