@@ -6,7 +6,11 @@ export function isInTelegram(): boolean {
 }
 
 export function openTelegram(): void {
-  // Always use HTTPS Mini App deep link (no tg:// scheme)
+  // Use the official Telegram Mini App deep link
   const url = `https://t.me/${BOT_USERNAME}?startapp=auth`;
   window.location.href = url;
+}
+
+export function getMiniAppUrl(): string {
+  return MINI_APP_URL;
 }
