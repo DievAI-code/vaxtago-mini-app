@@ -1,6 +1,6 @@
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
-import { Card } from "@/components/ui/Card";
+import { Card } from "@/components/ui/card";
 import { ChatHistory, useChatSessions } from "@/components/ChatHistory";
 import { useNavigate } from "react-router-dom";
 import { FadeUp } from "@/components/animations";

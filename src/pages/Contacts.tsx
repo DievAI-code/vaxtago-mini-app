@@ -1,5 +1,5 @@
 import { PageLayout } from "@/components/PageLayout";
-import { Card } from "@/components/ui/Card";
+import { Card } from "@/components/ui/card";
 import { Mail, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

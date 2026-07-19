@@ -1,5 +1,5 @@
 import { PageLayout } from "@/components/PageLayout";
-import { Card } from "@/components/ui/Card";
+import { Card } from "@/components/ui/card";
 import { useTranslation } from "react-i18next";
 
 export default function Terms() {

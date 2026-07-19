@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { Moon, Sun, Globe, Bell, Lock, HelpCircle, ChevronRight } from "lucide-react";
+import { Moon, Sun, Globe, Bell, Lock, HelpCircle, ChevronRight, Check } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
-import { Card } from "@/components/ui/Card";
+import { Card } from "@/components/ui/card";
 import { useApp } from "@/lib/theme";
 import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGS, Lang } from "@/i18n";
