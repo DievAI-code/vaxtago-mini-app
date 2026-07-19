@@ -20,8 +20,8 @@ export function getPlatform(): "windows" | "macos" | "linux" | "android" | "ios"
 
 export function openTelegram(): void {
   const platform = getPlatform();
-  const tgUrl = `tg://resolve?domain=${BOT_USERNAME}`;
-  const webUrl = `https://t.me/${BOT_USERNAME}`;
+  const tgUrl = `tg://resolve?domain=${BOT_USERNAME}&startapp`;
+  const webUrl = `https://t.me/${BOT_USERNAME}?startapp`;
 
   if (platform === "android" || platform === "ios") {
     // Try tg:// first, then fallback to web
