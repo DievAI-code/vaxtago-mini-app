@@ -87,13 +87,10 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           setProfile(u);
           localStorage.setItem("vaxtago_token", data.token || "");
           localStorage.setItem("vaxtago_user", JSON.stringify(u));
-          if (u.phone_number || u.phone) {
-            setPhone(u.phone_number || u.phone);
-            setIsAuthed(true);
-            analytics.track("telegram_auth_success");
-          } else {
-            setNeedsPhone(true);
-          }
+          setPhone(u.phone_number || u.phone || null);
+          setIsAuthed(true);
+          analytics.track("telegram_auth_success");
+          analytics.track("telegram_login_success");
         } else {
           console.warn("Telegram auth failed:", error || data?.error);
         }

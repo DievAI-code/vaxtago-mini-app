@@ -5,12 +5,8 @@ export function isInTelegram(): boolean {
   return Boolean(window.Telegram?.WebApp?.initData);
 }
 
+// No external redirect — auth only works inside the Telegram Mini App.
 export function openTelegram(): void {
-  // Use the official Telegram Mini App deep link
-  const url = `https://t.me/${BOT_USERNAME}?startapp=auth`;
-  window.location.href = url;
-}
-
-export function getMiniAppUrl(): string {
-  return MINI_APP_URL;
+  // Intentionally a no-op: the app must be opened from Telegram itself.
+  console.warn("openTelegram called but Mini App must be launched from Telegram.");
 }

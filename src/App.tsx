@@ -12,9 +12,10 @@ import { TelegramProvider, useTelegramUser } from "@/components/TelegramProvider
 import { NavStackProvider } from "@/components/NavigationStack";
 import { motion, AnimatePresence } from "framer-motion";
 import { analytics } from "@/services/Analytics";
-import Index from "./pages/Index";
 import "@/i18n";
 
+const Index = lazy(() => import("./pages/Index"));
+const Home = lazy(() => import("./pages/Home"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const About = lazy(() => import("./pages/About"));
 const Contacts = lazy(() => import("./pages/Contacts"));
@@ -60,7 +61,6 @@ const AppContent = () => {
     return () => { clearTimeout(t); window.visualViewport?.removeEventListener("resize", setViewport); };
   }, []);
 
-  // Track app_open when authed
   useEffect(() => {
     if (isAuthed) {
       analytics.track("app_open");
@@ -84,7 +84,8 @@ const AppContent = () => {
             <NavStackProvider>
               <Suspense fallback={<PageFallback />}>
                 <Routes>
-                  <Route path="/" element={<Index />} />
+                  <Route path="/" element={<Home />} />
+                  <Route path="/home" element={<Home />} />
                   <Route path="/ai" element={<AiAssistant />} />
                   <Route path="/jobs" element={<Jobs />} />
                   <Route path="/documents" element={<Documents />} />

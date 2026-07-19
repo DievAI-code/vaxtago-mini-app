@@ -37,7 +37,7 @@ serve(async (req) => {
   const phone = body.phone_number || null;
 
   const { data: existing } = await supabase
-    .from("telegram_users")
+    .from("users")
     .select("*")
     .eq("telegram_id", parsed.telegramId)
     .maybeSingle();
@@ -45,32 +45,26 @@ serve(async (req) => {
   let profile = existing;
   if (!existing) {
     const { data: inserted, error } = await supabase
-      .from("telegram_users")
+      .from("users")
       .insert({
         telegram_id: parsed.telegramId,
         username: parsed.username ?? null,
         first_name: parsed.firstName ?? null,
         last_name: parsed.lastName ?? null,
         language_code: parsed.languageCode ?? "ru",
-        photo_url: parsed.photoUrl ?? null,
-        phone_number: phone,
         created_at: now,
-        last_login: now,
       })
       .select()
       .single();
     if (!error) profile = inserted;
   } else {
     const { data: updated, error } = await supabase
-      .from("telegram_users")
+      .from("users")
       .update({
         username: parsed.username ?? existing.username,
         first_name: parsed.firstName ?? existing.first_name,
         last_name: parsed.lastName ?? existing.last_name,
         language_code: parsed.languageCode ?? existing.language_code,
-        photo_url: parsed.photoUrl ?? existing.photo_url,
-        phone_number: phone ?? existing.phone_number,
-        last_login: now,
       })
       .eq("telegram_id", parsed.telegramId)
       .select()
@@ -78,7 +72,6 @@ serve(async (req) => {
     if (!error) profile = updated;
   }
 
-  // Simple token (telegram_id signed with service key hash)
   const token = btoa(`${parsed.telegramId}:${now}`);
   return new Response(JSON.stringify({ success: true, user: profile, token }), { headers: corsHeaders, status: 200 });
 });

@@ -5,7 +5,9 @@ export type AppEventName =
   | "app_open"
   | "telegram_auth_start"
   | "telegram_auth_success"
+  | "telegram_login_success"
   | "phone_verified"
+  | "home_open"
   | "vacancy_open"
   | "vacancy_apply"
   | "photo_translate_start"
@@ -24,13 +26,20 @@ class AnalyticsService {
   async track(eventName: AppEventName, page?: string) {
     try {
       const { telegram_id, user_id } = this.getContext();
+      // Legacy app_events (still used by admin page)
       await supabase.from("app_events").insert({
         event_name: eventName,
         page: page || window.location.pathname,
         telegram_id: telegram_id || null,
         user_id: user_id || null,
         created_at: new Date().toISOString(),
-      });
+      }).catch(() => {});
+      // New analytics_events
+      await supabase.from("analytics_events").insert({
+        event_name: eventName,
+        user_id: user_id || null,
+        created_at: new Date().toISOString(),
+      }).catch(() => {});
     } catch (error) {
       console.warn("Analytics track failed:", error);
     }
@@ -66,7 +75,6 @@ class AnalyticsService {
           e.event_name === "photo_translate_success"
       ).length;
 
-      // Popular functions
       const funcCounts: Record<string, number> = {};
       events.forEach((e) => {
         if (["vacancy_open", "vacancy_apply", "photo_translate_start", "ai_assistant_used"].includes(e.event_name)) {

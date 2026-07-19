@@ -1,21 +1,12 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { MessageCircle, Phone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { VaxtaGoLogo } from "./VaxtaGoLogo";
 import { useTelegramUser } from "./TelegramProvider";
-import { openTelegram } from "@/utils/telegram-utils";
 
 export function AuthScreen({ mode }: { mode: "telegram-only" | "phone" }) {
   const { t } = useTranslation();
   const { requestPhone } = useTelegramUser();
-  const [loading, setLoading] = useState(false);
-
-  const handleOpenTelegram = () => {
-    setLoading(true);
-    openTelegram();
-    setTimeout(() => setLoading(false), 1500);
-  };
 
   if (mode === "phone") {
     return (
@@ -55,14 +46,8 @@ export function AuthScreen({ mode }: { mode: "telegram-only" | "phone" }) {
             <p className="text-sm text-slate-400 mt-2">AI помощник для мигрантов</p>
             <div className="mt-6 p-4 rounded-2xl bg-white/5 border border-white/10">
               <p className="text-slate-300 text-sm leading-relaxed">
-                Откройте VaxtaGo через Telegram для безопасной авторизации.
+                Откройте VaxtaGo через Telegram
               </p>
-            </div>
-            <div className="mt-8">
-              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleOpenTelegram} disabled={loading} className="w-full py-4 rounded-2xl vg-gradient text-white font-semibold text-lg flex items-center justify-center gap-3 disabled:opacity-50 transition-all">
-                <MessageCircle size={22} />
-                {loading ? "Открываем..." : "Войти через Telegram"}
-              </motion.button>
             </div>
           </div>
         </motion.div>
