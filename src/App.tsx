@@ -11,6 +11,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TelegramProvider, useTelegramUser } from "@/components/TelegramProvider";
 import { NavStackProvider } from "@/components/NavigationStack";
 import { motion, AnimatePresence } from "framer-motion";
+import { analytics } from "@/services/Analytics";
 import Index from "./pages/Index";
 import "@/i18n";
 
@@ -29,6 +30,7 @@ const History = lazy(() => import("./pages/History"));
 const Premium = lazy(() => import("./pages/Premium"));
 const Settings = lazy(() => import("./pages/Settings"));
 const PhotoTranslator = lazy(() => import("./pages/PhotoTranslator"));
+const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 
 const queryClient = new QueryClient();
 
@@ -57,6 +59,13 @@ const AppContent = () => {
     const t = setTimeout(() => setLoading(false), 1200);
     return () => { clearTimeout(t); window.visualViewport?.removeEventListener("resize", setViewport); };
   }, []);
+
+  // Track app_open when authed
+  useEffect(() => {
+    if (isAuthed) {
+      analytics.track("app_open");
+    }
+  }, [isAuthed]);
 
   const showAuth = !inTg || (inTg && !isAuthed && !authLoading);
   const showPhone = inTg && needsPhone;
@@ -90,6 +99,7 @@ const AppContent = () => {
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/scanner" element={<Scanner />} />
+                  <Route path="/admin/analytics" element={<AdminAnalytics />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

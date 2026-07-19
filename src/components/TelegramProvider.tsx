@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, ReactNode, useState } from "react
 import { useTelegram } from "@/hooks/useTelegram";
 import { isInTelegram } from "@/utils/telegram-utils";
 import { supabase } from "@/integrations/supabase/client";
+import { analytics } from "@/services/Analytics";
 
 interface TelegramContextType {
   telegramId: number | null;
@@ -75,6 +76,8 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    analytics.track("telegram_auth_start");
+
     supabase.functions.invoke("auth-telegram", {
       body: { initData: tg.initData },
     })
@@ -87,6 +90,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           if (u.phone_number || u.phone) {
             setPhone(u.phone_number || u.phone);
             setIsAuthed(true);
+            analytics.track("telegram_auth_success");
           } else {
             setNeedsPhone(true);
           }
@@ -130,6 +134,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       setPhone(phoneNumber);
       setNeedsPhone(false);
       setIsAuthed(true);
+      analytics.track("phone_verified");
     } else {
       console.warn("Phone save failed:", error || data?.error);
     }

@@ -11,6 +11,7 @@ import { useApp } from "@/lib/theme";
 import { FadeUp, stagger, fadeUp } from "@/components/animations";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import { analytics } from "@/services/Analytics";
 
 interface Vacancy {
   id: string;
@@ -31,6 +32,7 @@ export default function Index() {
 
   useEffect(() => {
     loadVacancies();
+    analytics.track("app_open");
   }, []);
 
   async function loadVacancies() {
@@ -75,7 +77,7 @@ export default function Index() {
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
         <FadeUp>
-          <Card variant="gradient" className="mb-6" onClick={() => nav("/ai")}>
+          <Card variant="gradient" className="mb-6" onClick={() => { analytics.track("ai_assistant_used"); nav("/ai"); }}>
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-3xl">🤖</div>
               <div className="flex-1">
@@ -113,7 +115,7 @@ export default function Index() {
                 <p className="text-slate-400 text-sm">Загрузка вакансий...</p>
               </Card>
             ) : vacancies.map((v) => (
-              <Card key={v.id} variant="default" className="hover:bg-white/10">
+              <Card key={v.id} variant="default" className="hover:bg-white/10" onClick={() => analytics.track("vacancy_open")}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold truncate">{v.title}</h4>
@@ -129,7 +131,7 @@ export default function Index() {
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3">
-                  <Button size="sm" variant="primary" onClick={() => nav("/jobs")}>Откликнуться</Button>
+                  <Button size="sm" variant="primary" onClick={(e) => { e.stopPropagation(); analytics.track("vacancy_apply"); nav("/jobs"); }}>Откликнуться</Button>
                   <Button size="sm" variant="secondary">Сохранить</Button>
                 </div>
               </Card>

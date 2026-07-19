@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { useApp } from "@/lib/theme";
 import { useTelegramUser } from "@/components/TelegramProvider";
 import { useAiChat } from "@/hooks/useAiChat";
+import { analytics } from "@/services/Analytics";
 
 interface Msg {
   id: string;
@@ -63,6 +64,7 @@ export default function AiAssistant() {
     if (!text.trim() && !image) return;
     setMessages((m) => [...m, { id: makeId(), role: "user", content: image ? "📷 Документ" : text, createdAt: new Date() }]);
     if (!image) setInput("");
+    analytics.track("ai_assistant_used");
     const reply = await sendMessage(text, image);
     if (reply) setMessages((m) => [...m, { id: makeId(), role: "assistant", content: reply, createdAt: new Date() }]);
   }, [sendMessage]);

@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { FadeUp } from "@/components/animations";
 import { supabase } from "@/integrations/supabase/client";
 import { useTelegramUser } from "@/components/TelegramProvider";
+import { analytics } from "@/services/Analytics";
 
 type Status = "idle" | "processing" | "success" | "error";
 
@@ -28,6 +29,7 @@ export default function PhotoTranslator() {
     setStatus("processing");
     setOriginal("");
     setTranslated("");
+    analytics.track("photo_translate_start");
     try {
       const reader = new FileReader();
       reader.onload = async () => {
@@ -70,6 +72,7 @@ export default function PhotoTranslator() {
             })
             .catch(() => {});
           setStatus("success");
+          analytics.track("photo_translate_success");
         } else {
           setStatus("error");
         }
