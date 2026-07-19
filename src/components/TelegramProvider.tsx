@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, ReactNode } from "react";
+import { createContext, useContext, useEffect, ReactNode, useState } from "react";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useApp } from "@/lib/theme";
+import { isInTelegram } from "@/utils/telegram-utils";
 
 interface TelegramContextType {
   telegramId: number | null;
@@ -8,6 +9,8 @@ interface TelegramContextType {
   username: string | null;
   languageCode: string | null;
   isInTelegram: boolean;
+  isAuthed: boolean;
+  authLoading: boolean;
 }
 
 const TelegramContext = createContext<TelegramContextType>({
@@ -16,6 +19,8 @@ const TelegramContext = createContext<TelegramContextType>({
   username: null,
   languageCode: null,
   isInTelegram: false,
+  isAuthed: false,
+  authLoading: true,
 });
 
 export function useTelegramUser() {
@@ -25,35 +30,61 @@ export function useTelegramUser() {
 export function TelegramProvider({ children }: { children: ReactNode }) {
   const { user, initData } = useTelegram();
   const { lang } = useApp();
-  const isInTelegram = !!user;
+  const inTelegram = isInTelegram();
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    // App already opened — run sync in background, never block UI
-    if (!user) return;
-    const timer = setTimeout(() => {
-      import("@/integrations/supabase/client")
-        .then(async ({ supabase }) => {
-          try {
-            await supabase.from("telegram_users").upsert(
-              {
-                telegram_id: user.id,
-                username: user.username ?? null,
-                first_name: [user.first_name, user.last_name].filter(Boolean).join(" ") || null,
-                language: user.language_code?.slice(0, 2) || lang,
-                language_code: user.language_code ?? null,
-                last_activity: new Date().toISOString(),
-              },
-              { onConflict: "telegram_id" }
-            );
-          } catch (err) {
-            // Never break the Mini App on Supabase error
-            console.warn("Telegram user sync failed (non-blocking):", err);
-          }
-        })
-        .catch((err) => console.warn("Supabase import failed (non-blocking):", err));
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [user, initData, lang]);
+    if (!inTelegram) {
+      setAuthLoading(false);
+      return;
+    }
+
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (!tgUser) {
+      setAuthLoading(false);
+      return;
+    }
+
+    // Auto-auth via Supabase
+    import("@/integrations/supabase/client").then(async ({ supabase }) => {
+      try {
+        const { data: existing } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("telegram_id", tgUser.id)
+          .maybeSingle();
+
+        const photoUrl = (window.Telegram as any)?.WebApp?.initDataUnsafe?.user?.photo_url ?? null;
+
+        if (existing) {
+          await supabase.from("profiles").update({
+            first_name: tgUser.first_name ?? null,
+            last_name: tgUser.last_name ?? null,
+            username: tgUser.username ?? null,
+            avatar_url: photoUrl,
+            language: tgUser.language_code ?? "ru",
+          }).eq("telegram_id", tgUser.id);
+          setIsAuthed(true);
+        } else {
+          const { error } = await supabase.from("profiles").insert({
+            telegram_id: tgUser.id,
+            first_name: tgUser.first_name ?? null,
+            last_name: tgUser.last_name ?? null,
+            username: tgUser.username ?? null,
+            avatar_url: photoUrl,
+            language: tgUser.language_code ?? "ru",
+            subscription: "free",
+          });
+          if (!error) setIsAuthed(true);
+        }
+      } catch (err) {
+        console.warn("Telegram auth error:", err);
+      } finally {
+        setAuthLoading(false);
+      }
+    });
+  }, [inTelegram, lang]);
 
   return (
     <TelegramContext.Provider
@@ -62,7 +93,9 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         firstName: user?.first_name ?? null,
         username: user?.username ?? null,
         languageCode: user?.language_code ?? null,
-        isInTelegram,
+        isInTelegram: inTelegram,
+        isAuthed,
+        authLoading,
       }}
     >
       {children}
