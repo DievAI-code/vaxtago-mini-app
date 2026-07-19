@@ -1,4 +1,4 @@
-from . import start, jobs, employer, ai, translate, documents, profile, settings, notifications, main_menu, address
+from . import start, jobs, employer, ai, translate, documents, profile, settings, notifications, main_menu, address, bot_menu
 
 __all__ = [
     "start",
@@ -12,4 +12,5 @@ __all__ = [
     "notifications",
     "main_menu",
     "address",
+    "bot_menu",
 ]

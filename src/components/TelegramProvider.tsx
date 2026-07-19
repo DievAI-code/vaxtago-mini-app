@@ -2,15 +2,18 @@ import { createContext, useContext, useEffect, ReactNode, useState } from "react
 import { useTelegram } from "@/hooks/useTelegram";
 import { useApp } from "@/lib/theme";
 import { isInTelegram } from "@/utils/telegram-utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TelegramContextType {
   telegramId: number | null;
   firstName: string | null;
   username: string | null;
   languageCode: string | null;
+  photoUrl: string | null;
   isInTelegram: boolean;
   isAuthed: boolean;
   authLoading: boolean;
+  profile: any | null;
 }
 
 const TelegramContext = createContext<TelegramContextType>({
@@ -18,9 +21,11 @@ const TelegramContext = createContext<TelegramContextType>({
   firstName: null,
   username: null,
   languageCode: null,
+  photoUrl: null,
   isInTelegram: false,
   isAuthed: false,
   authLoading: true,
+  profile: null,
 });
 
 export function useTelegramUser() {
@@ -28,11 +33,12 @@ export function useTelegramUser() {
 }
 
 export function TelegramProvider({ children }: { children: ReactNode }) {
-  const { user, initData } = useTelegram();
+  const { user } = useTelegram();
   const { lang } = useApp();
   const inTelegram = isInTelegram();
   const [isAuthed, setIsAuthed] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [profile, setProfile] = useState<any | null>(null);
 
   useEffect(() => {
     if (!inTelegram) {
@@ -40,62 +46,40 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (!tgUser) {
+    const tg = window.Telegram?.WebApp;
+    if (!tg?.initData) {
       setAuthLoading(false);
       return;
     }
 
-    // Auto-auth via Supabase
-    import("@/integrations/supabase/client").then(async ({ supabase }) => {
-      try {
-        const { data: existing } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("telegram_id", tgUser.id)
-          .maybeSingle();
-
-        const photoUrl = (window.Telegram as any)?.WebApp?.initDataUnsafe?.user?.photo_url ?? null;
-
-        if (existing) {
-          await supabase.from("profiles").update({
-            first_name: tgUser.first_name ?? null,
-            last_name: tgUser.last_name ?? null,
-            username: tgUser.username ?? null,
-            avatar_url: photoUrl,
-            language: tgUser.language_code ?? "ru",
-          }).eq("telegram_id", tgUser.id);
+    // Secure server-side validation via Supabase Edge Function
+    supabase.functions.invoke("auth-telegram", {
+      body: { initData: tg.initData },
+    })
+      .then(({ data, error }) => {
+        if (data?.success && data.user) {
+          setProfile(data.user);
           setIsAuthed(true);
         } else {
-          const { error } = await supabase.from("profiles").insert({
-            telegram_id: tgUser.id,
-            first_name: tgUser.first_name ?? null,
-            last_name: tgUser.last_name ?? null,
-            username: tgUser.username ?? null,
-            avatar_url: photoUrl,
-            language: tgUser.language_code ?? "ru",
-            subscription: "free",
-          });
-          if (!error) setIsAuthed(true);
+          console.warn("Telegram auth failed:", error || data?.error);
         }
-      } catch (err) {
-        console.warn("Telegram auth error:", err);
-      } finally {
-        setAuthLoading(false);
-      }
-    });
+      })
+      .catch((err) => console.warn("Auth request error:", err))
+      .finally(() => setAuthLoading(false));
   }, [inTelegram, lang]);
 
   return (
     <TelegramContext.Provider
       value={{
-        telegramId: user?.id ?? null,
-        firstName: user?.first_name ?? null,
-        username: user?.username ?? null,
-        languageCode: user?.language_code ?? null,
+        telegramId: profile?.telegram_id ?? user?.id ?? null,
+        firstName: profile?.first_name ?? user?.first_name ?? null,
+        username: profile?.username ?? user?.username ?? null,
+        languageCode: profile?.language_code ?? user?.language_code ?? null,
+        photoUrl: profile?.photo_url ?? user?.photo_url ?? null,
         isInTelegram: inTelegram,
         isAuthed,
         authLoading,
+        profile,
       }}
     >
       {children}

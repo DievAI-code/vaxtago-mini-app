@@ -57,6 +57,8 @@ const AppContent = () => {
     return () => { clearTimeout(t); window.visualViewport?.removeEventListener("resize", setViewport); };
   }, []);
 
+  // Inside Telegram: skip AuthScreen entirely, go straight to app when authed
+  // Outside Telegram: show AuthScreen (which shows the "open in Telegram" page)
   const showAuth = !inTg || (inTg && !isAuthed && !authLoading);
 
   return (
@@ -64,7 +66,7 @@ const AppContent = () => {
       {loading ? (
         <SplashScreen />
       ) : showAuth ? (
-        <AuthScreen onAuth={() => { /* Handled by TelegramProvider */ }} />
+        <AuthScreen onAuth={() => {}} />
       ) : (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="app-container">
           <BrowserRouter>

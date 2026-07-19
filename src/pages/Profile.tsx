@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, Crown, Settings, Shield, History, ChevronRight, Phone, IdCard } from "lucide-react";
+import { User, Crown, Settings, Shield, History, ChevronRight, Phone, IdCard, Calendar } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Card } from "@/components/ui/card";
@@ -11,7 +11,11 @@ import { FadeUp, stagger, fadeUp } from "@/components/animations";
 
 export default function Profile() {
   const { t } = useTranslation();
-  const { firstName, username, telegramId, isInTelegram } = useTelegramUser();
+  const { firstName, username, telegramId, photoUrl, profile, isInTelegram } = useTelegramUser();
+
+  const registeredDate = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString("ru-RU")
+    : "—";
 
   const menuItems = [
     { icon: <Settings className="w-5 h-5" />, label: "Настройки", path: "/settings" },
@@ -26,15 +30,24 @@ export default function Profile() {
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         <FadeUp>
           <Card variant="gradient" className="mb-6 text-center">
-            <div className="w-20 h-20 mx-auto rounded-3xl vg-gradient flex items-center justify-center mb-3">
-              <VIdentity className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 mx-auto rounded-3xl vg-gradient flex items-center justify-center mb-3 overflow-hidden">
+              {photoUrl ? (
+                <img src={photoUrl} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <VIdentity className="w-10 h-10 text-white" />
+              )}
             </div>
             <h2 className="text-xl font-bold">{firstName || "Пользователь"}</h2>
             <p className="text-sm text-white/70">@{username || "vaxtago_user"}</p>
             <div className="flex items-center justify-center gap-2 mt-2">
-              <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-[#7C3AED]">ID: {telegramId || "123456"}</span>
+              <span className="px-3 py-1 rounded-full bg-white/10 text-xs text-[#7C3AED]">ID: {telegramId || "—"}</span>
               <span className="px-3 py-1 rounded-full bg-[#F59E0B]/20 text-xs text-[#F59E0B]">FREE</span>
             </div>
+            {profile?.created_at && (
+              <p className="text-xs text-white/50 mt-2 flex items-center justify-center gap-1">
+                <Calendar size={12} /> Регистрация: {registeredDate}
+              </p>
+            )}
           </Card>
         </FadeUp>
 

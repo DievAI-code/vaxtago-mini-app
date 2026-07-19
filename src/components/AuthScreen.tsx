@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Send } from "lucide-react";
+import { Send, MessageCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/lib/theme";
 import { VaxtaGoLogo } from "./VaxtaGoLogo";
@@ -13,46 +13,16 @@ export function AuthScreen({ onAuth }: { onAuth: (profile: any) => void }) {
   const { isInTelegram: inTg, authLoading } = useTelegramUser();
   const [loading, setLoading] = useState(false);
 
-  const handleTelegramLogin = async () => {
+  const handleOpenTelegram = () => {
     setLoading(true);
-    if (inTg) {
-      // Already in Telegram, auth happens automatically via TelegramProvider
-      // Wait for auth to complete
-      const checkAuth = setInterval(() => {
-        if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-          clearInterval(checkAuth);
-          onAuth({ id: window.Telegram.WebApp.initDataUnsafe.user.id });
-        }
-      }, 500);
-      setTimeout(() => clearInterval(checkAuth), 10000);
-    } else {
-      // Not in Telegram, open Telegram
-      openTelegram();
-      setLoading(false);
-    }
+    openTelegram();
+    // Keep button in loading state briefly for UX
+    setTimeout(() => setLoading(false), 1500);
   };
 
-  if (inTg && authLoading) {
-    return (
-      <div className="min-h-screen bg-[#080B14] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Авторизация через Telegram...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (inTg) {
-    // In Telegram but not authed yet - show loading
-    return (
-      <div className="min-h-screen bg-[#080B14] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Авторизация через Telegram...</p>
-        </div>
-      </div>
-    );
+    // Inside Telegram: auth is handled by TelegramProvider, never show this screen
+    return null;
   }
 
   return (
@@ -65,37 +35,44 @@ export function AuthScreen({ onAuth }: { onAuth: (profile: any) => void }) {
           className="w-full max-w-md"
         >
           <div className="glass-card p-8 text-center">
-            <div className="w-20 h-20 mx-auto rounded-3xl vg-gradient flex items-center justify-center mb-6">
-              <VaxtaGoLogo size={48} animated />
-            </div>
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 120, damping: 14 }}
+              className="w-24 h-24 mx-auto rounded-3xl vg-gradient flex items-center justify-center mb-6 shadow-2xl"
+            >
+              <VaxtaGoLogo size={56} animated />
+            </motion.div>
             <h1 className="text-3xl font-black vg-gradient-text">VaxtaGo</h1>
-            <p className="text-sm text-slate-400 mt-2">Ваш безопасный путь к работе</p>
+            <p className="text-sm text-slate-400 mt-2">AI помощник для мигрантов</p>
 
-            <p className="text-sm text-amber-400 mt-4">
-              Откройте VaxtaGo внутри Telegram.
-            </p>
+            <div className="mt-6 p-4 rounded-2xl bg-white/5 border border-white/10">
+              <p className="text-slate-300 text-sm leading-relaxed">
+                Для использования VaxtaGo необходимо открыть приложение через Telegram.
+              </p>
+            </div>
 
             <div className="mt-8">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleTelegramLogin}
+                onClick={handleOpenTelegram}
                 disabled={loading}
                 className="w-full py-4 rounded-2xl vg-gradient text-white font-semibold text-lg flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all"
               >
-                <Send size={20} />
-                {loading ? "Открываем..." : "Открыть в Telegram"}
+                <MessageCircle size={22} />
+                {loading ? "Открываем..." : "Открыть Telegram"}
               </motion.button>
             </div>
 
             <p className="text-xs text-slate-500 mt-6">
-              Авторизация через Telegram. Без SMS и паролей.
+              Безопасная авторизация через Telegram. Без SMS и паролей.
             </p>
           </div>
         </motion.div>
       </div>
       <div className="p-4 text-center">
-        <p className="text-xs text-slate-500">Founder: Диев Дмитрий Сергеевич</p>
+        <p className="text-xs text-slate-500">© 2026 VaxtaGo • Made by Dmitry Diev</p>
       </div>
     </div>
   );

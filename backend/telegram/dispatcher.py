@@ -1,7 +1,7 @@
 from aiogram import Dispatcher
 from middlewares.auth import AuthMiddleware
 from middlewares.password import PasswordMiddleware
-from handlers import start, jobs, employer, ai, translate, documents, profile, settings, notifications, main_menu, address
+from handlers import start, jobs, employer, ai, translate, documents, profile, settings, notifications, main_menu, address, bot_menu
 
 def create_dispatcher() -> Dispatcher:
     dp = Dispatcher()
@@ -18,4 +18,5 @@ def create_dispatcher() -> Dispatcher:
     dp.include_router(notifications.router)
     dp.include_router(main_menu.router)
     dp.include_router(address.router)
+    dp.include_router(bot_menu.router)
     return dp

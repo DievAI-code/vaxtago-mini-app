@@ -56,3 +56,18 @@ def saved_vacancy_inline_keyboard(vacancy_id: int, lang: str = "ru") -> InlineKe
     builder.button(text=t("btn_open", lang), callback_data=f"vac:open:{vacancy_id}")
     builder.adjust(1)
     return builder.as_markup()
+
+
+def bot_main_inline_keyboard(lang: str = "ru", mini_app_url: str = "") -> InlineKeyboardMarkup:
+    """Main menu shown after /start with Mini App launch button."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔍 Найти работу", callback_data="bot:jobs")
+    builder.button(text="🤖 AI Помощник", callback_data="bot:ai")
+    builder.button(text="📄 Перевод документов", callback_data="bot:translate")
+    builder.button(text="🛡 Проверить работодателя", callback_data="bot:employer")
+    builder.button(text="⭐ Избранное", callback_data="bot:favorites")
+    builder.button(text="👤 Профиль", callback_data="bot:profile")
+    if mini_app_url:
+        builder.button(text="🚀 Открыть VaxtaGo", web_app={"url": mini_app_url})
+    builder.adjust(2)
+    return builder.as_markup()
