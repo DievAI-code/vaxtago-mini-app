@@ -37,7 +37,7 @@ async def bot_menu_callback(callback: CallbackQuery, state: FSMContext, tg_user:
         text = (
             f"{t('profile', lang)}\n"
             f"🆔 Telegram: {tg_user.get('telegram_id')}\n"
-            f"👤 Имя: {tg_user.get('first_name') or '-'}\n"
+            f"👤 Имя: {tg_user.get('full_name') or '-'}\n"
             f"📞 Телефон: {tg_user.get('phone') or 'не указан'}\n"
             f"🌐 Язык: {tg_user.get('language')}\n"
             f"🔗 Linked: {'да' if tg_user.get('linked_user_id') else 'нет'}"
