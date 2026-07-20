@@ -1,7 +1,6 @@
 /// <reference path="../deno-env.d.ts" />
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { validateInitData } from "../_shared/telegram-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,28 +17,47 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: false, error: "Invalid JSON" }), { status: 400, headers: corsHeaders });
   }
 
-  const initData = body.initData || req.headers.get("x-telegram-init-data");
-  if (!initData) {
-    return new Response(JSON.stringify({ success: false, error: "initData required" }), { status: 400, headers: corsHeaders });
-  }
-
-  const parsed = validateInitData(initData);
-  if (!parsed) {
-    return new Response(JSON.stringify({ success: false, error: "Invalid initData" }), { status: 401, headers: corsHeaders });
-  }
-
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   );
 
   const now = new Date().toISOString();
-  const phone = body.phone_number || null;
+
+  // Phone update flow
+  if (body.update_phone) {
+    const { data: existing } = await supabase
+      .from("users")
+      .select("*")
+      .eq("telegram_id", body.telegram_id)
+      .maybeSingle();
+
+    if (existing) {
+      const { data: updated, error } = await supabase
+        .from("users")
+        .update({ phone_number: body.phone_number })
+        .eq("telegram_id", body.telegram_id)
+        .select()
+        .single();
+      
+      if (!error) {
+        return new Response(JSON.stringify({ success: true, user: updated }), { headers: corsHeaders, status: 200 });
+      }
+    }
+    return new Response(JSON.stringify({ success: false, error: "User not found" }), { headers: corsHeaders, status: 404 });
+  }
+
+  // Login flow
+  const { telegram_id, first_name, last_name, username, photo_url, device, browser } = body;
+
+  if (!telegram_id) {
+    return new Response(JSON.stringify({ success: false, error: "telegram_id required" }), { status: 400, headers: corsHeaders });
+  }
 
   const { data: existing } = await supabase
     .from("users")
     .select("*")
-    .eq("telegram_id", parsed.telegramId)
+    .eq("telegram_id", telegram_id)
     .maybeSingle();
 
   let profile = existing;
@@ -47,11 +65,12 @@ serve(async (req) => {
     const { data: inserted, error } = await supabase
       .from("users")
       .insert({
-        telegram_id: parsed.telegramId,
-        username: parsed.username ?? null,
-        first_name: parsed.firstName ?? null,
-        last_name: parsed.lastName ?? null,
-        language_code: parsed.languageCode ?? "ru",
+        telegram_id,
+        username: username ?? null,
+        first_name: first_name ?? null,
+        last_name: last_name ?? null,
+        photo_url: photo_url ?? null,
+        language_code: "ru",
         created_at: now,
       })
       .select()
@@ -61,17 +80,17 @@ serve(async (req) => {
     const { data: updated, error } = await supabase
       .from("users")
       .update({
-        username: parsed.username ?? existing.username,
-        first_name: parsed.firstName ?? existing.first_name,
-        last_name: parsed.lastName ?? existing.last_name,
-        language_code: parsed.languageCode ?? existing.language_code,
+        username: username ?? existing.username,
+        first_name: first_name ?? existing.first_name,
+        last_name: last_name ?? existing.last_name,
+        photo_url: photo_url ?? existing.photo_url,
       })
-      .eq("telegram_id", parsed.telegramId)
+      .eq("telegram_id", telegram_id)
       .select()
       .single();
     if (!error) profile = updated;
   }
 
-  const token = btoa(`${parsed.telegramId}:${now}`);
+  const token = btoa(`${telegram_id}:${now}`);
   return new Response(JSON.stringify({ success: true, user: profile, token }), { headers: corsHeaders, status: 200 });
 });

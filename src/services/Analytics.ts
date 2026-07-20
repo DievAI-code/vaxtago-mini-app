@@ -3,16 +3,35 @@ import { useTelegramUser } from "@/components/TelegramProvider";
 
 export type AppEventName =
   | "app_open"
+  | "login_start"
+  | "login_success"
+  | "home_open"
+  | "logout"
   | "telegram_auth_start"
   | "telegram_auth_success"
   | "telegram_login_success"
   | "phone_verified"
-  | "home_open"
   | "vacancy_open"
   | "vacancy_apply"
   | "photo_translate_start"
   | "photo_translate_success"
   | "ai_assistant_used";
+
+function getDeviceInfo() {
+  const ua = navigator.userAgent;
+  let device = "desktop";
+  if (/Android/i.test(ua)) device = "android";
+  else if (/iPhone|iPad|iPod/i.test(ua)) device = "ios";
+  else if (/Windows Phone/i.test(ua)) device = "windows_phone";
+
+  let browser = "unknown";
+  if (/Chrome/i.test(ua)) browser = "chrome";
+  else if (/Firefox/i.test(ua)) browser = "firefox";
+  else if (/Safari/i.test(ua)) browser = "safari";
+  else if (/Edge/i.test(ua)) browser = "edge";
+
+  return { device, browser };
+}
 
 class AnalyticsService {
   private getContext() {
@@ -23,22 +42,19 @@ class AnalyticsService {
     };
   }
 
-  async track(eventName: AppEventName, page?: string) {
+  async track(eventName: AppEventName, extra?: Record<string, any>) {
     try {
       const { telegram_id, user_id } = this.getContext();
-      // Legacy app_events (still used by admin page)
-      await supabase.from("app_events").insert({
-        event_name: eventName,
-        page: page || window.location.pathname,
-        telegram_id: telegram_id || null,
-        user_id: user_id || null,
-        created_at: new Date().toISOString(),
-      }).catch(() => {});
-      // New analytics_events
+      const { device, browser } = getDeviceInfo();
+      
       await supabase.from("analytics_events").insert({
         event_name: eventName,
         user_id: user_id || null,
+        telegram_id: telegram_id || null,
+        device,
+        browser,
         created_at: new Date().toISOString(),
+        ...extra,
       }).catch(() => {});
     } catch (error) {
       console.warn("Analytics track failed:", error);
@@ -48,7 +64,7 @@ class AnalyticsService {
   async getStats() {
     try {
       const { data, error } = await supabase
-        .from("app_events")
+        .from("analytics_events")
         .select("event_name, created_at, telegram_id, user_id");
 
       if (error) throw error;

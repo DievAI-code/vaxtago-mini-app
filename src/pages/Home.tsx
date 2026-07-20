@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Briefcase, Bot, Camera, FileText, User } from "lucide-react";
+import { Briefcase, Bot, Camera, FileText, User, LogOut } from "lucide-react";
 import { VaxtaGoLogo } from "@/components/VaxtaGoLogo";
 import { Card } from "@/components/ui/card";
 import { VCareer, VDocument, VGlobal, VShield, VVision } from "@/components/icons/VaxtaGoIcons";
@@ -20,7 +20,7 @@ const MENU = [
 
 export default function Home() {
   const nav = useNavigate();
-  const { firstName } = useTelegramUser();
+  const { firstName, logout } = useTelegramUser();
 
   useEffect(() => {
     analytics.track("home_open");
@@ -39,7 +39,16 @@ export default function Home() {
               <h1 className="text-xl font-bold vg-gradient-text">VaxtaGo</h1>
             </div>
           </div>
-          <VaxtaGoLogo size={36} />
+          <div className="flex items-center gap-2">
+            <VaxtaGoLogo size={36} />
+            <button
+              onClick={logout}
+              className="p-2 rounded-xl text-slate-400 hover:bg-white/5 transition"
+              aria-label="Logout"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
         </div>
       </div>
 
