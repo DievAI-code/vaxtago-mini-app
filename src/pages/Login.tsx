@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { VaxtaGoLogo } from "@/components/VaxtaGoLogo";
 import { useTelegramUser } from "@/components/TelegramProvider";
 import { BOT_USERNAME } from "@/utils/telegram-utils";
@@ -16,6 +16,7 @@ declare global {
 export default function Login() {
   const { loginWithTelegram } = useTelegramUser();
   const widgetContainer = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     analytics.track("app_open");
