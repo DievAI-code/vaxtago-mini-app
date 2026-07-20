@@ -15,7 +15,3 @@ export interface TelegramLoginUser {
 export function isInTelegram(): boolean {
   return Boolean(window.Telegram?.WebApp?.initData);
 }
-
-export function openTelegram(): void {
-  console.warn("openTelegram called but using Telegram Login Widget / Mini App");
-}

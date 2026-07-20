@@ -73,7 +73,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Mini App auto-login
+    // Mini App auto-login via initData
     const tg = window.Telegram?.WebApp;
     if (tg?.initData) {
       analytics.track("login_start");

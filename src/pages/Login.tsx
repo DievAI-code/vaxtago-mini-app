@@ -78,6 +78,9 @@ export default function Login() {
             </motion.div>
             <h1 className="text-3xl font-black vg-gradient-text">VaxtaGo</h1>
             <p className="text-slate-300 text-sm mt-3 leading-relaxed">
+              Добро пожаловать в VaxtaGo
+            </p>
+            <p className="text-slate-400 text-xs mt-1">
               Поиск работы, AI-помощник и безопасное трудоустройство
             </p>
 
