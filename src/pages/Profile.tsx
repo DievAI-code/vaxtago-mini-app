@@ -11,7 +11,7 @@ import { FadeUp, stagger, fadeUp } from "@/components/animations";
 
 export default function Profile() {
   const { t } = useTranslation();
-  const { firstName, username, telegramId, photoUrl, profile, phone, isInTelegram } = useTelegramUser();
+  const { firstName, username, telegramId, photoUrl, profile } = useTelegramUser();
 
   const registeredDate = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString("ru-RU")
@@ -53,7 +53,7 @@ export default function Profile() {
 
         <FadeUp>
           <div className="space-y-2 mb-6">
-            <Card variant="default" className="flex items-center gap-3 py-3"><Phone className="w-5 h-5 text-[#7C3AED]" /><span className="flex-1 text-sm">Телефон</span><span className="text-sm text-slate-400">{phone || "+998 __ ___ __ __"}</span></Card>
+            <Card variant="default" className="flex items-center gap-3 py-3"><Phone className="w-5 h-5 text-[#7C3AED]" /><span className="flex-1 text-sm">Телефон</span><span className="text-sm text-slate-400">Подтвержден в Telegram</span></Card>
             <Card variant="default" className="flex items-center gap-3 py-3"><IdCard className="w-5 h-5 text-[#7C3AED]" /><span className="flex-1 text-sm">Статус подписки</span><span className="text-sm text-[#F59E0B]">FREE</span></Card>
           </div>
         </FadeUp>
