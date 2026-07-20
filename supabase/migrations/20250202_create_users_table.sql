@@ -6,6 +6,7 @@ create table if not exists public.users (
   first_name text,
   last_name text,
   photo_url text,
+  phone_number text,
   language_code text default 'ru',
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()

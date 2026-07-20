@@ -12,8 +12,22 @@ export type AppEventName =
   | "vacancy_apply"
   | "photo_translate"
   | "document_translate"
-  | "ai_request"
-  | "logout";
+  | "ai_request";
+
+function getDeviceInfo() {
+  const ua = navigator.userAgent;
+  let device = "desktop";
+  if (/Mobi|Android|iPhone|iPad|iPod/i.test(ua)) device = "mobile";
+  else if (/Tablet/i.test(ua)) device = "tablet";
+
+  let browser = "unknown";
+  if (/Edg/i.test(ua)) browser = "Edge";
+  else if (/Chrome/i.test(ua)) browser = "Chrome";
+  else if (/Firefox/i.test(ua)) browser = "Firefox";
+  else if (/Safari/i.test(ua)) browser = "Safari";
+
+  return { device, browser };
+}
 
 class AnalyticsService {
   private getContext() {
@@ -27,10 +41,15 @@ class AnalyticsService {
 
   async track(eventName: AppEventName, extra?: Record<string, any>) {
     try {
-      const { user_id } = this.getContext();
+      const { user_id, telegram_id } = this.getContext();
+      const { device, browser } = getDeviceInfo();
       await supabase.from("analytics_events").insert({
         event_name: eventName,
         user_id: user_id || null,
+        telegram_id: telegram_id || null,
+        page: extra?.page || window.location.pathname,
+        device,
+        browser,
         created_at: new Date().toISOString(),
         ...extra,
       }).catch(() => {});

@@ -28,6 +28,13 @@ function verifyTelegramHash(data: Record<string, any>): boolean {
   return computedHash === hash;
 }
 
+function isAuthDateValid(authDate: number): boolean {
+  if (!authDate) return false;
+  const now = Math.floor(Date.now() / 1000);
+  // Allow 24 hours tolerance
+  return now - authDate <= 86400;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -87,6 +94,10 @@ serve(async (req) => {
 
   if (!verifyTelegramHash(body)) {
     return new Response(JSON.stringify({ success: false, error: "Invalid hash" }), { status: 401, headers: corsHeaders });
+  }
+
+  if (!isAuthDateValid(Number(auth_date))) {
+    return new Response(JSON.stringify({ success: false, error: "auth_date expired" }), { status: 401, headers: corsHeaders });
   }
 
   return finalizeUser(supabase, {

@@ -2,7 +2,11 @@
 create table if not exists public.analytics_events (
   id uuid primary key default gen_random_uuid(),
   user_id uuid,
+  telegram_id bigint,
   event_name text not null,
+  page text,
+  device text,
+  browser text,
   created_at timestamp with time zone default now()
 );
 
