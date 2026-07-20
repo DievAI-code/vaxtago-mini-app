@@ -14,10 +14,14 @@ export default function AdminAnalytics() {
   const nav = useNavigate();
   const [stats, setStats] = useState({
     totalUsers: 0,
+    newToday: 0,
     activeToday: 0,
-    appOpens: 0,
+    websiteLogins: 0,
+    telegramLogins: 0,
+    translations: 0,
     aiRequests: 0,
-    popularFunctions: [] as { name: string; count: number }[],
+    vacancyViews: 0,
+    vacancyApplies: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -34,16 +38,9 @@ export default function AdminAnalytics() {
   const cards = [
     { icon: <Users className="w-6 h-6" />, label: "Пользователи", value: stats.totalUsers, color: "text-[#2563EB]" },
     { icon: <Activity className="w-6 h-6" />, label: "Активные сегодня", value: stats.activeToday, color: "text-[#22C55E]" },
-    { icon: <Eye className="w-6 h-6" />, label: "Открытия приложения", value: stats.appOpens, color: "text-[#7C3AED]" },
+    { icon: <Eye className="w-6 h-6" />, label: "Входы через сайт", value: stats.websiteLogins, color: "text-[#7C3AED]" },
     { icon: <Bot className="w-6 h-6" />, label: "AI запросы", value: stats.aiRequests, color: "text-[#06B6D4]" },
   ];
-
-  const funcLabels: Record<string, string> = {
-    vacancy_open: "Открытие вакансий",
-    vacancy_apply: "Отклик на вакансию",
-    photo_translate_start: "Фото перевод",
-    ai_assistant_used: "AI помощник",
-  };
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[#080B14] text-white">
@@ -81,24 +78,28 @@ export default function AdminAnalytics() {
             </motion.div>
 
             <FadeUp>
-              <h3 className="text-lg font-bold mb-3 px-1 flex items-center gap-2">
-                <TrendingUp size={18} className="text-[#7C3AED]" />
-                Популярные функции
-              </h3>
-              {stats.popularFunctions.length === 0 ? (
-                <Card variant="default" className="text-center py-8">
-                  <p className="text-slate-400 text-sm">Нет данных</p>
+              <div className="space-y-2 mb-6">
+                <Card variant="default" className="flex items-center justify-between py-3">
+                  <span className="text-sm text-slate-400">Новых сегодня</span>
+                  <span className="text-lg font-bold text-[#22C55E]">{stats.newToday}</span>
                 </Card>
-              ) : (
-                <div className="space-y-2">
-                  {stats.popularFunctions.map((f, i) => (
-                    <Card key={i} variant="default" className="flex items-center justify-between py-3">
-                      <span className="font-medium text-sm">{funcLabels[f.name] || f.name}</span>
-                      <span className="text-sm text-[#7C3AED] font-bold">{f.count}</span>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                <Card variant="default" className="flex items-center justify-between py-3">
+                  <span className="text-sm text-slate-400">Входов через Telegram</span>
+                  <span className="text-lg font-bold text-[#7C3AED]">{stats.telegramLogins}</span>
+                </Card>
+                <Card variant="default" className="flex items-center justify-between py-3">
+                  <span className="text-sm text-slate-400">Переводов</span>
+                  <span className="text-lg font-bold text-[#06B6D4]">{stats.translations}</span>
+                </Card>
+                <Card variant="default" className="flex items-center justify-between py-3">
+                  <span className="text-sm text-slate-400">Просмотров вакансий</span>
+                  <span className="text-lg font-bold text-[#2563EB]">{stats.vacancyViews}</span>
+                </Card>
+                <Card variant="default" className="flex items-center justify-between py-3">
+                  <span className="text-sm text-slate-400">Откликов на вакансии</span>
+                  <span className="text-lg font-bold text-[#F59E0B]">{stats.vacancyApplies}</span>
+                </Card>
+              </div>
             </FadeUp>
 
             <FadeUp>

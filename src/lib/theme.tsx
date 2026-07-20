@@ -18,17 +18,6 @@ export function useApp() {
   return ctx;
 }
 
-export function useStrings() {
-  const { t } = useAppI18n();
-  return t;
-}
-
-// small hook to access i18n t inside components that used useStrings before
-import { useTranslation } from "react-i18next";
-function useAppI18n() {
-  return useTranslation();
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>((i18n.language as Lang) || "ru");
   const [theme, setTheme] = useState<Theme>(

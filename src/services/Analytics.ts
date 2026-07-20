@@ -2,20 +2,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTelegramUser } from "@/components/TelegramProvider";
 
 export type AppEventName =
-  | "app_open"
+  | "website_open"
+  | "telegram_open"
   | "login_start"
   | "login_success"
   | "home_open"
-  | "logout"
-  | "telegram_auth_start"
-  | "telegram_auth_success"
-  | "telegram_login_success"
-  | "phone_verified"
-  | "vacancy_open"
+  | "vacancy_view"
   | "vacancy_apply"
-  | "photo_translate_start"
-  | "photo_translate_success"
-  | "ai_assistant_used";
+  | "photo_translate"
+  | "document_translate"
+  | "ai_request"
+  | "logout";
 
 function getDeviceInfo() {
   const ua = navigator.userAgent;
@@ -35,24 +32,28 @@ function getDeviceInfo() {
 
 class AnalyticsService {
   private getContext() {
-    const { telegramId, profile } = useTelegramUser();
+    const { telegramId, profile, isInTelegram } = useTelegramUser();
     return {
       telegram_id: telegramId,
       user_id: profile?.id || null,
+      source: isInTelegram ? "telegram" : "website",
     };
   }
 
   async track(eventName: AppEventName, extra?: Record<string, any>) {
     try {
-      const { telegram_id, user_id } = this.getContext();
+      const { telegram_id, user_id, source } = this.getContext();
       const { device, browser } = getDeviceInfo();
-      
+      const page = typeof window !== "undefined" ? window.location.pathname : null;
+
       await supabase.from("analytics_events").insert({
         event_name: eventName,
         user_id: user_id || null,
         telegram_id: telegram_id || null,
+        page,
         device,
         browser,
+        country: null,
         created_at: new Date().toISOString(),
         ...extra,
       }).catch(() => {});
@@ -65,7 +66,7 @@ class AnalyticsService {
     try {
       const { data, error } = await supabase
         .from("analytics_events")
-        .select("event_name, created_at, telegram_id, user_id");
+        .select("event_name, created_at, telegram_id, user_id, page");
 
       if (error) throw error;
 
@@ -76,6 +77,13 @@ class AnalyticsService {
         events.map((e) => e.telegram_id || e.user_id).filter(Boolean)
       ).size;
 
+      const newToday = new Set(
+        events
+          .filter((e) => e.created_at?.slice(0, 10) === today && e.event_name === "login_success")
+          .map((e) => e.telegram_id || e.user_id)
+          .filter(Boolean)
+      ).size;
+
       const activeToday = new Set(
         events
           .filter((e) => e.created_at?.slice(0, 10) === today)
@@ -83,40 +91,46 @@ class AnalyticsService {
           .filter(Boolean)
       ).size;
 
-      const appOpens = events.filter((e) => e.event_name === "app_open").length;
-
-      const aiRequests = events.filter(
-        (e) =>
-          e.event_name === "ai_assistant_used" ||
-          e.event_name === "photo_translate_success"
+      const websiteLogins = events.filter(
+        (e) => e.event_name === "login_success" && e.page !== "/telegram"
       ).length;
 
-      const funcCounts: Record<string, number> = {};
-      events.forEach((e) => {
-        if (["vacancy_open", "vacancy_apply", "photo_translate_start", "ai_assistant_used"].includes(e.event_name)) {
-          funcCounts[e.event_name] = (funcCounts[e.event_name] || 0) + 1;
-        }
-      });
+      const telegramLogins = events.filter(
+        (e) => e.event_name === "login_success" && e.page === "/telegram"
+      ).length;
 
-      const popularFunctions = Object.entries(funcCounts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([name, count]) => ({ name, count }));
+      const translations = events.filter(
+        (e) => e.event_name === "photo_translate" || e.event_name === "document_translate"
+      ).length;
+
+      const aiRequests = events.filter((e) => e.event_name === "ai_request").length;
+
+      const vacancyViews = events.filter((e) => e.event_name === "vacancy_view").length;
+      const vacancyApplies = events.filter((e) => e.event_name === "vacancy_apply").length;
 
       return {
         totalUsers: uniqueUsers,
+        newToday,
         activeToday,
-        appOpens,
+        websiteLogins,
+        telegramLogins,
+        translations,
         aiRequests,
-        popularFunctions,
+        vacancyViews,
+        vacancyApplies,
       };
     } catch (error) {
       console.warn("Analytics getStats failed:", error);
       return {
         totalUsers: 0,
+        newToday: 0,
         activeToday: 0,
-        appOpens: 0,
+        websiteLogins: 0,
+        telegramLogins: 0,
+        translations: 0,
         aiRequests: 0,
-        popularFunctions: [],
+        vacancyViews: 0,
+        vacancyApplies: 0,
       };
     }
   }
