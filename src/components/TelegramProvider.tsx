@@ -89,9 +89,13 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
             analytics.track("login_success");
           } else {
             console.warn("Mini App auth failed:", error || data?.error);
+            analytics.track("login_error");
           }
         })
-        .catch((err) => console.warn("Auth error:", err))
+        .catch((err) => {
+          console.warn("Auth error:", err);
+          analytics.track("login_error");
+        })
         .finally(() => setAuthLoading(false));
     } else {
       setAuthLoading(false);
@@ -124,9 +128,13 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         if (!u.phone_number) setNeedsPhone(true);
       } else {
         console.warn("Telegram auth failed:", error || data?.error);
+        analytics.track("login_error");
+        throw new Error("Auth failed");
       }
     } catch (err) {
       console.warn("Auth request error:", err);
+      analytics.track("login_error");
+      throw err;
     }
   };
 

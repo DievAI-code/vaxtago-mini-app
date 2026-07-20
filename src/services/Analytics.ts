@@ -6,6 +6,7 @@ export type AppEventName =
   | "telegram_open"
   | "login_start"
   | "login_success"
+  | "login_error"
   | "home_open"
   | "vacancy_view"
   | "vacancy_apply"
@@ -13,22 +14,6 @@ export type AppEventName =
   | "document_translate"
   | "ai_request"
   | "logout";
-
-function getDeviceInfo() {
-  const ua = navigator.userAgent;
-  let device = "desktop";
-  if (/Android/i.test(ua)) device = "android";
-  else if (/iPhone|iPad|iPod/i.test(ua)) device = "ios";
-  else if (/Windows Phone/i.test(ua)) device = "windows_phone";
-
-  let browser = "unknown";
-  if (/Chrome/i.test(ua)) browser = "chrome";
-  else if (/Firefox/i.test(ua)) browser = "firefox";
-  else if (/Safari/i.test(ua)) browser = "safari";
-  else if (/Edge/i.test(ua)) browser = "edge";
-
-  return { device, browser };
-}
 
 class AnalyticsService {
   private getContext() {
@@ -42,18 +27,10 @@ class AnalyticsService {
 
   async track(eventName: AppEventName, extra?: Record<string, any>) {
     try {
-      const { telegram_id, user_id, source } = this.getContext();
-      const { device, browser } = getDeviceInfo();
-      const page = typeof window !== "undefined" ? window.location.pathname : null;
-
+      const { user_id } = this.getContext();
       await supabase.from("analytics_events").insert({
         event_name: eventName,
         user_id: user_id || null,
-        telegram_id: telegram_id || null,
-        page,
-        device,
-        browser,
-        country: null,
         created_at: new Date().toISOString(),
         ...extra,
       }).catch(() => {});
@@ -66,7 +43,7 @@ class AnalyticsService {
     try {
       const { data, error } = await supabase
         .from("analytics_events")
-        .select("event_name, created_at, telegram_id, user_id, page");
+        .select("event_name, created_at, user_id");
 
       if (error) throw error;
 
@@ -74,29 +51,25 @@ class AnalyticsService {
       const today = new Date().toISOString().slice(0, 10);
 
       const uniqueUsers = new Set(
-        events.map((e) => e.telegram_id || e.user_id).filter(Boolean)
+        events.map((e) => e.user_id).filter(Boolean)
       ).size;
 
       const newToday = new Set(
         events
           .filter((e) => e.created_at?.slice(0, 10) === today && e.event_name === "login_success")
-          .map((e) => e.telegram_id || e.user_id)
+          .map((e) => e.user_id)
           .filter(Boolean)
       ).size;
 
       const activeToday = new Set(
         events
           .filter((e) => e.created_at?.slice(0, 10) === today)
-          .map((e) => e.telegram_id || e.user_id)
+          .map((e) => e.user_id)
           .filter(Boolean)
       ).size;
 
       const websiteLogins = events.filter(
-        (e) => e.event_name === "login_success" && e.page !== "/telegram"
-      ).length;
-
-      const telegramLogins = events.filter(
-        (e) => e.event_name === "login_success" && e.page === "/telegram"
+        (e) => e.event_name === "login_success"
       ).length;
 
       const translations = events.filter(
@@ -113,7 +86,7 @@ class AnalyticsService {
         newToday,
         activeToday,
         websiteLogins,
-        telegramLogins,
+        telegramLogins: 0,
         translations,
         aiRequests,
         vacancyViews,

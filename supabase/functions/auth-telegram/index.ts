@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { validateInitData } from "../_shared/telegram-auth.ts";
+import { createHmac, createHash } from "https://deno.land/std@0.190.0/node/crypto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,23 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json; charset=utf-8",
 };
+
+const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
+
+function verifyTelegramHash(data: Record<string, any>): boolean {
+  const hash = data.hash;
+  if (!hash) return false;
+
+  const secretKey = createHash("sha256").update(BOT_TOKEN).digest();
+  const checkString = Object.keys(data)
+    .filter((key) => key !== "hash")
+    .sort()
+    .map((key) => `${key}=${data[key]}`)
+    .join("\n");
+
+  const computedHash = createHmac("sha256", secretKey).update(checkString).digest("hex");
+  return computedHash === hash;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -35,7 +53,7 @@ serve(async (req) => {
     if (existing) {
       const { data: updated, error } = await supabase
         .from("users")
-        .update({ phone_number: body.phone_number })
+        .update({ phone_number: body.phone_number, updated_at: now })
         .eq("telegram_id", body.telegram_id)
         .select()
         .single();
@@ -66,7 +84,11 @@ serve(async (req) => {
   if (!telegram_id || !hash) {
     return new Response(JSON.stringify({ success: false, error: "telegram_id and hash required" }), { status: 400, headers: corsHeaders });
   }
-  // Note: production should verify hash with bot token; here we trust the widget callback
+
+  if (!verifyTelegramHash(body)) {
+    return new Response(JSON.stringify({ success: false, error: "Invalid hash" }), { status: 401, headers: corsHeaders });
+  }
+
   return finalizeUser(supabase, {
     telegram_id,
     first_name,

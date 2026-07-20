@@ -17,12 +17,11 @@ export default function Login() {
   const { loginWithTelegram } = useTelegramUser();
   const widgetContainer = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    analytics.track("app_open");
     analytics.track("login_start");
 
-    // Load Telegram Login Widget script
     const script = document.createElement("script");
     script.src = "https://telegram.org/js/telegram-widget.js?22";
     script.async = true;
@@ -33,11 +32,18 @@ export default function Login() {
     script.setAttribute("data-userpic", "false");
     script.setAttribute("data-lang", "ru");
     script.setAttribute("data-onauth", "TelegramLoginWidget.dataOnauth(user)");
-    script.setAttribute("data-auth-url", `${window.location.origin}/auth/callback`);
 
     window.TelegramLoginWidget = {
-      dataOnauth: (user: any) => {
-        loginWithTelegram(user);
+      dataOnauth: async (user: any) => {
+        setLoading(true);
+        setError(null);
+        try {
+          await loginWithTelegram(user);
+        } catch (e) {
+          setError("Не удалось войти через Telegram. Попробуйте позже.");
+          analytics.track("login_error");
+          setLoading(false);
+        }
       },
     };
 
@@ -71,11 +77,22 @@ export default function Login() {
               <VaxtaGoLogo size={56} animated />
             </motion.div>
             <h1 className="text-3xl font-black vg-gradient-text">VaxtaGo</h1>
-            <p className="text-sm text-slate-400 mt-2">AI помощник для мигрантов</p>
+            <p className="text-slate-300 text-sm mt-3 leading-relaxed">
+              Поиск работы, AI-помощник и безопасное трудоустройство
+            </p>
+
             <div className="mt-8">
-              <p className="text-slate-300 text-sm mb-4">Войдите через Telegram</p>
-              <div ref={widgetContainer} className="flex justify-center" />
+              {error && (
+                <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+              <div ref={widgetContainer} className="flex justify-center min-h-[44px]" />
+              {loading && (
+                <p className="text-slate-400 text-sm mt-4">Авторизация...</p>
+              )}
             </div>
+
             <p className="text-xs text-slate-500 mt-6">
               Нажимая кнопку, вы соглашаетесь с условиями использования
             </p>
