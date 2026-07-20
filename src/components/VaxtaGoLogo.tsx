@@ -1,8 +1,9 @@
 import { SVGProps } from "react";
 import { motion } from "framer-motion";
 
-export function VaxtaGoLogo({ size = 32, className, animated = false }: { size?: number; className?: string; animated?: boolean }) {
+export function VaxtaGoLogo({ size = 32, className, animated = false, glow = false }: { size?: number; className?: string; animated?: boolean; glow?: boolean }) {
   const gradId = "vg-grad-" + size;
+  const filterId = "vg-glow-" + size;
   const paths = (
     <>
       <defs>
@@ -11,11 +12,21 @@ export function VaxtaGoLogo({ size = 32, className, animated = false }: { size?:
           <stop offset="0.5" stopColor="#7C3AED" />
           <stop offset="1" stopColor="#22C55E" />
         </linearGradient>
+        {glow && (
+          <filter id={filterId} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        )}
       </defs>
       {/* V shape */}
       <path
         d="M8 36 L20 12 L24 12 L24 20 L28 20 L28 12 L40 36 L34 36 L24 18 L14 36 Z"
         fill={`url(#${gradId})`}
+        filter={glow ? `url(#${filterId})` : undefined}
       />
       {/* Forward arrow accent */}
       <path
@@ -25,6 +36,7 @@ export function VaxtaGoLogo({ size = 32, className, animated = false }: { size?:
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
+        filter={glow ? `url(#${filterId})` : undefined}
       />
     </>
   );
@@ -44,6 +56,7 @@ export function VaxtaGoLogo({ size = 32, className, animated = false }: { size?:
         <motion.path
           d="M8 36 L20 12 L24 12 L24 20 L28 20 L28 12 L40 36 L34 36 L24 18 L14 36 Z"
           fill={`url(#${gradId})`}
+          filter={glow ? `url(#${filterId})` : undefined}
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
           transition={{ duration: 0.9, ease: "easeInOut" }}
@@ -55,6 +68,7 @@ export function VaxtaGoLogo({ size = 32, className, animated = false }: { size?:
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
+          filter={glow ? `url(#${filterId})` : undefined}
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
           transition={{ duration: 0.5, delay: 0.6 }}

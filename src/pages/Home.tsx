@@ -6,6 +6,7 @@ import { VaxtaGoLogo } from "@/components/VaxtaGoLogo";
 import { Card } from "@/components/ui/card";
 import { VCareer, VDocument, VGlobal, VShield, VVision } from "@/components/icons/VaxtaGoIcons";
 import { useTelegramUser } from "@/components/TelegramProvider";
+import { BottomNav } from "@/components/BottomNav";
 import { FadeUp, stagger, fadeUp } from "@/components/animations";
 import { analytics } from "@/services/Analytics";
 import { useEffect } from "react";
@@ -41,11 +42,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2">
             <VaxtaGoLogo size={36} />
-            <button
-              onClick={logout}
-              className="p-2 rounded-xl text-slate-400 hover:bg-white/5 transition"
-              aria-label="Logout"
-            >
+            <button onClick={logout} className="p-2 rounded-xl text-slate-400 hover:bg-white/5 transition" aria-label="Logout">
               <LogOut size={20} />
             </button>
           </div>
@@ -76,6 +73,8 @@ export default function Home() {
           ))}
         </motion.div>
       </div>
+
+      <BottomNav />
     </div>
   );
 }
