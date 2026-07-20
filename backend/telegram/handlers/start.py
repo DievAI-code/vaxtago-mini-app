@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.fsm.context import FSMContext
 from keyboards.main_menu import main_menu_keyboard, contact_keyboard, language_keyboard, bot_main_inline_keyboard
 from services.supabase_client import get_supabase
@@ -48,11 +48,19 @@ async def cmd_start(message: Message, state: FSMContext, tg_user: dict | None):
         res = supabase.table("telegram_users").insert(new_rec).execute()
         user = res.data[0] if res.data else new_rec
 
+    # Mini App launch button via WebAppInfo
+    web_app = WebAppInfo(url=MINI_APP_URL)
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[
+            InlineKeyboardButton(text="🚀 Открыть VaxtaGo", web_app=web_app)
+        ]]
+    )
+
     await message.answer(
         f"👋 Добро пожаловать в VaxtaGo, {message.from_user.first_name}!\n\n"
         "🤖 AI помощник для работы, документов и жизни в России.\n\n"
-        "Выберите действие:",
-        reply_markup=bot_main_inline_keyboard(lang, MINI_APP_URL),
+        "Нажмите кнопку ниже, чтобы открыть приложение:",
+        reply_markup=keyboard,
     )
 
 
@@ -61,9 +69,10 @@ async def cmd_help(message: Message, tg_user: dict | None):
     lang = tg_user.get("language", "ru") if tg_user else "ru"
     help_text = (
         "📋 Доступные команды:\n\n"
-        "/start - Главное меню\n"
-        "/menu - Открыть меню\n"
+        "/start - Открыть VaxtaGo\n"
         "/help - Помощь\n\n"
-        "Или используйте кнопки ниже 👇"
+        "Или нажмите кнопку 🚀 Открыть VaxtaGo"
     )
-    await message.answer(help_text, reply_markup=bot_main_inline_keyboard(lang, MINI_APP_URL))
+    web_app = WebAppInfo(url=MINI_APP_URL)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🚀 Открыть VaxtaGo", web_app=web_app)]])
+    await message.answer(help_text, reply_markup=keyboard)

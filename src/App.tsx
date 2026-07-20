@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect, Suspense, lazy } from "react";
 import { AppProvider } from "@/lib/theme";
 import { SplashScreen } from "@/components/SplashScreen";
+import { AuthScreen } from "@/components/AuthScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TelegramProvider, useTelegramUser } from "@/components/TelegramProvider";
 import { NavStackProvider } from "@/components/NavigationStack";
@@ -42,23 +43,27 @@ const PageFallback = () => (
 
 const AppContent = () => {
   const [loading, setLoading] = useState(true);
-  const { isAuthed, needsPhone, authLoading } = useTelegramUser();
+  const { isInTelegram: inTg, isAuthed, needsPhone, authLoading } = useTelegramUser();
 
   useEffect(() => {
     document.title = "VaxtaGo 2.0 — AI Super App";
     const bootSplash = document.getElementById("boot-splash");
     if (bootSplash) bootSplash.remove();
+    const tg = window.Telegram?.WebApp;
+    if (inTg && tg) {
+      try { tg.ready(); tg.expand(); document.body.classList.add("telegram-app"); } catch (e) { console.warn("TG init failed:", e); }
+    }
     const t = setTimeout(() => setLoading(false), 1200);
     return () => clearTimeout(t);
-  }, []);
+  }, [inTg]);
 
-  if (loading) {
-    return <SplashScreen />;
-  }
+  useEffect(() => {
+    if (isAuthed) analytics.track("app_open");
+  }, [isAuthed]);
 
-  if (authLoading) {
-    return <PageFallback />;
-  }
+  if (loading) return <SplashScreen />;
+
+  if (authLoading) return <PageFallback />;
 
   if (!isAuthed) {
     return (
@@ -83,12 +88,7 @@ const AppContent = () => {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="app-container"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="app-container">
       <BrowserRouter>
         <NavStackProvider>
           <Suspense fallback={<PageFallback />}>
@@ -119,22 +119,20 @@ const AppContent = () => {
   );
 };
 
-const App = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <TelegramProvider>
-          <TooltipProvider>
-            <ErrorBoundary>
-              <Toaster />
-              <Sonner />
-              <AppContent />
-            </ErrorBoundary>
-          </TooltipProvider>
-        </TelegramProvider>
-      </AppProvider>
-    </QueryClientProvider>
-  );
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AppProvider>
+      <TelegramProvider>
+        <TooltipProvider>
+          <ErrorBoundary>
+            <Toaster />
+            <Sonner />
+            <AppContent />
+          </ErrorBoundary>
+        </TooltipProvider>
+      </TelegramProvider>
+    </AppProvider>
+  </QueryClientProvider>
+);
 
 export default App;

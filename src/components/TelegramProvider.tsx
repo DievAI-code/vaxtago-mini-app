@@ -11,6 +11,7 @@ interface TelegramContextType {
   languageCode: string | null;
   photoUrl: string | null;
   phone: string | null;
+  isInTelegram: boolean;
   isAuthed: boolean;
   needsPhone: boolean;
   authLoading: boolean;
@@ -29,6 +30,7 @@ const TelegramContext = createContext<TelegramContextType>({
   languageCode: null,
   photoUrl: null,
   phone: null,
+  isInTelegram: false,
   isAuthed: false,
   needsPhone: false,
   authLoading: true,
@@ -43,28 +45,13 @@ export function useTelegramUser() {
   return useContext(TelegramContext);
 }
 
-function getDeviceInfo() {
-  const ua = navigator.userAgent;
-  let device = "desktop";
-  if (/Android/i.test(ua)) device = "android";
-  else if (/iPhone|iPad|iPod/i.test(ua)) device = "ios";
-  else if (/Windows Phone/i.test(ua)) device = "windows_phone";
-
-  let browser = "unknown";
-  if (/Chrome/i.test(ua)) browser = "chrome";
-  else if (/Firefox/i.test(ua)) browser = "firefox";
-  else if (/Safari/i.test(ua)) browser = "safari";
-  else if (/Edge/i.test(ua)) browser = "edge";
-
-  return { device, browser };
-}
-
 export function TelegramProvider({ children }: { children: ReactNode }) {
   const [isAuthed, setIsAuthed] = useState(false);
   const [needsPhone, setNeedsPhone] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [profile, setProfile] = useState<any | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
+  const inTelegram = Boolean(window.Telegram?.WebApp?.initData);
 
   useEffect(() => {
     const cachedToken = localStorage.getItem("vaxtago_token");
@@ -74,21 +61,46 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         const u = JSON.parse(cachedUser);
         setProfile(u);
         setIsAuthed(true);
-        setPhone(u.phone_number || u.phone || null);
+        setPhone(u.phone_number || null);
         setAuthLoading(false);
         analytics.track("login_success");
         return;
       } catch {}
     }
-    setAuthLoading(false);
-  }, []);
+
+    if (!inTelegram) {
+      setAuthLoading(false);
+      return;
+    }
+
+    // Mini App auto-login
+    const tg = window.Telegram?.WebApp;
+    if (tg?.initData) {
+      analytics.track("login_start");
+      supabase.functions.invoke("auth-telegram", { body: { initData: tg.initData } })
+        .then(({ data, error }) => {
+          if (data?.success && data.user) {
+            const u = data.user;
+            setProfile(u);
+            localStorage.setItem("vaxtago_token", data.token || "");
+            localStorage.setItem("vaxtago_user", JSON.stringify(u));
+            setPhone(u.phone_number || null);
+            setIsAuthed(true);
+            analytics.track("login_success");
+          } else {
+            console.warn("Mini App auth failed:", error || data?.error);
+          }
+        })
+        .catch((err) => console.warn("Auth error:", err))
+        .finally(() => setAuthLoading(false));
+    } else {
+      setAuthLoading(false);
+    }
+  }, [inTelegram]);
 
   const loginWithTelegram = async (user: TelegramLoginUser) => {
     try {
       analytics.track("login_start");
-      
-      const { device, browser } = getDeviceInfo();
-      
       const { data, error } = await supabase.functions.invoke("auth-telegram", {
         body: {
           telegram_id: user.id,
@@ -96,25 +108,20 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           last_name: user.last_name,
           username: user.username,
           photo_url: user.photo_url,
+          language_code: user.language_code,
           auth_date: user.auth_date,
           hash: user.hash,
-          device,
-          browser,
         },
       });
-
       if (data?.success && data.user) {
         const u = data.user;
         setProfile(u);
         localStorage.setItem("vaxtago_token", data.token || "");
         localStorage.setItem("vaxtago_user", JSON.stringify(u));
-        setPhone(u.phone_number || u.phone || null);
+        setPhone(u.phone_number || null);
         setIsAuthed(true);
         analytics.track("login_success");
-        
-        if (!u.phone_number && !u.phone) {
-          setNeedsPhone(true);
-        }
+        if (!u.phone_number) setNeedsPhone(true);
       } else {
         console.warn("Telegram auth failed:", error || data?.error);
       }
@@ -123,19 +130,11 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const requestPhone = () => {
-    // For web login, we can't use Telegram's requestContact
-    // Instead show a phone input form
-    setNeedsPhone(true);
-  };
+  const requestPhone = () => setNeedsPhone(true);
 
   const setPhoneAndSave = async (phoneNumber: string) => {
     const { data, error } = await supabase.functions.invoke("auth-telegram", {
-      body: {
-        telegram_id: profile?.telegram_id,
-        phone_number: phoneNumber,
-        update_phone: true,
-      },
+      body: { telegram_id: profile?.telegram_id, phone_number: phoneNumber, update_phone: true },
     });
     if (data?.success && data.user) {
       const u = data.user;
@@ -169,6 +168,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         languageCode: profile?.language_code ?? null,
         photoUrl: profile?.photo_url ?? null,
         phone,
+        isInTelegram: inTelegram,
         isAuthed,
         needsPhone,
         authLoading,
