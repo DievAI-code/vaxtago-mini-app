@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import "@/i18n";
 
 // Lazy loading pages
+const Index = lazy(() => import("./pages/Index"));
 const Home = lazy(() => import("./pages/Home"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const AiAssistant = lazy(() => import("./pages/AiAssistant"));
@@ -35,41 +36,44 @@ const LoadingScreen = () => (
   </div>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AppProvider>
-      <TooltipProvider>
-        <NavStackProvider>
-          <ErrorBoundary>
-            <Suspense fallback={<LoadingScreen />}>
-              <AnimatePresence mode="wait">
-                <motion.div 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="min-h-[100dvh] bg-[#06140F]"
-                >
-                  <Routes>
-                    <Route path="/welcome" element={<LanguageSelect />} />
-                    <Route path="/" element={<Navigate to="/home" replace />} />
-                    <Route path="/home" element={<Home />} />
-                    <Route path="/jobs" element={<Jobs />} />
-                    <Route path="/ai" element={<AiAssistant />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/scanner" element={<Scanner />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </motion.div>
-              </AnimatePresence>
-            </Suspense>
-          </ErrorBoundary>
-          <Toaster />
-          <Sonner position="top-center" richColors />
-        </NavStackProvider>
-      </TooltipProvider>
-    </AppProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  console.log("VAQTA APP INITIALIZED");
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppProvider>
+        <TooltipProvider>
+          <NavStackProvider>
+            <ErrorBoundary>
+              <Suspense fallback={<LoadingScreen />}>
+                <AnimatePresence mode="wait">
+                  <motion.div 
+                    initial={{ opacity: 1 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }}
+                    className="min-h-[100dvh] bg-[#06140F]"
+                  >
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/welcome" element={<LanguageSelect />} />
+                      <Route path="/home" element={<Home />} />
+                      <Route path="/jobs" element={<Jobs />} />
+                      <Route path="/ai" element={<AiAssistant />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/scanner" element={<Scanner />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </motion.div>
+                </AnimatePresence>
+              </Suspense>
+            </ErrorBoundary>
+            <Toaster />
+            <Sonner position="top-center" richColors />
+          </NavStackProvider>
+        </TooltipProvider>
+      </AppProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
