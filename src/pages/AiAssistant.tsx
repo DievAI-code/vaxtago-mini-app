@@ -2,24 +2,23 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Send, Sparkles, User, Bot, Paperclip, Camera, MoreVertical } from "lucide-react";
+import { Send, Sparkles, User, Bot, Paperclip, Camera, MoreVertical, X } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useTranslation } from "react-i18next";
 import { useAiChat } from "@/hooks/useAiChat";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
-
 export default function AiAssistant() {
   const { t } = useTranslation();
   const { sendMessage, loading: isTyping } = useAiChat();
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: t("welcome_ai") }
-  ]);
+  const [messages, setMessages] = useState<{role: "user" | "assistant", content: string}[]>([]);
   const [input, setInput] = useState("");
+  const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMessages([{ role: "assistant", content: t("welcome_ai") }]);
+  }, [t]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -28,14 +27,26 @@ export default function AiAssistant() {
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
-    const userMsg = input.trim();
-    setMessages(prev => [...prev, { role: "user", content: userMsg }]);
-    setInput("");
+    if ((!input.trim() && !attachedImage) || isTyping) return;
     
-    const reply = await sendMessage(userMsg);
+    const userMsg = input.trim();
+    setMessages(prev => [...prev, { role: "user", content: userMsg || "📷 Image uploaded" }]);
+    setInput("");
+    const img = attachedImage;
+    setAttachedImage(null);
+    
+    const reply = await sendMessage(userMsg, img || undefined);
     if (reply) {
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+    }
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setAttachedImage(ev.target?.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -48,7 +59,7 @@ export default function AiAssistant() {
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#D4AF37] rounded-full border-2 border-[#06140F]" />
           </div>
           <div>
-            <h1 className="font-black tracking-tight leading-none text-lg">VAQTA AI</h1>
+            <h1 className="font-black tracking-tight text-lg">VAQTA AI</h1>
             <div className="flex items-center gap-1.5 mt-1">
               <div className="w-1.5 h-1.5 rounded-full bg-[#00A86B] animate-pulse" />
               <span className="text-[9px] font-black text-[#5C7A6D] uppercase tracking-widest">Premium Intelligence</span>
@@ -73,7 +84,7 @@ export default function AiAssistant() {
             </div>
             <div className={`max-w-[85%] p-5 rounded-[2rem] text-sm leading-relaxed font-medium ${
               m.role === "user" 
-                ? "bg-[#00A86B] text-white rounded-tr-none shadow-xl shadow-[#00A86B]/5" 
+                ? "bg-[#00A86B] text-white rounded-tr-none" 
                 : "bg-[#0C1F1A] border border-[#1A3D2E] rounded-tl-none"
             }`}>
               <p className="whitespace-pre-wrap">{m.content}</p>
@@ -82,18 +93,11 @@ export default function AiAssistant() {
         ))}
         {isTyping && (
           <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-2xl vaqta-gradient flex items-center justify-center">
-              <Bot size={18} />
-            </div>
+            <div className="w-10 h-10 rounded-2xl vaqta-gradient flex items-center justify-center"><Bot size={18} /></div>
             <div className="bg-[#0C1F1A] border border-[#1A3D2E] p-4 rounded-[1.5rem] rounded-tl-none">
               <div className="flex gap-1.5">
                 {[0,1,2].map(dot => (
-                  <motion.div 
-                    key={dot}
-                    animate={{ opacity: [0.3, 1, 0.3] }} 
-                    transition={{ repeat: Infinity, duration: 1, delay: dot * 0.2 }}
-                    className="w-2 h-2 bg-[#00A86B] rounded-full" 
-                  />
+                  <motion.div key={dot} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: dot * 0.2 }} className="w-2 h-2 bg-[#00A86B] rounded-full" />
                 ))}
               </div>
             </div>
@@ -102,10 +106,16 @@ export default function AiAssistant() {
       </div>
 
       <div className="fixed bottom-24 left-0 w-full px-6 pb-4">
-        <div className="relative vaqta-glass overflow-hidden p-2 pr-4 flex items-end gap-3 shadow-2xl">
+        {attachedImage && (
+          <div className="mb-2 relative inline-block">
+             <img src={attachedImage} className="w-20 h-20 object-cover rounded-xl border border-[#00A86B]" alt="attachment" />
+             <button onClick={() => setAttachedImage(null)} className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"><X size={12}/></button>
+          </div>
+        )}
+        <div className="relative vaqta-glass overflow-hidden border-[#1A3D2E] focus-within:border-[#00A86B]/40 transition-all p-2 pr-4 flex items-end gap-3 shadow-2xl">
           <div className="flex gap-1 mb-2">
-            <button className="p-2.5 text-[#5C7A6D] hover:text-[#00A86B]"><Paperclip size={20}/></button>
-            <button className="p-2.5 text-[#5C7A6D] hover:text-[#00A86B]"><Camera size={20}/></button>
+            <button onClick={() => fileRef.current?.click()} className="p-2.5 text-[#5C7A6D] hover:text-[#00A86B]"><Paperclip size={20}/></button>
+            <input ref={fileRef} type="file" className="hidden" accept="image/*" onChange={onFileChange} />
           </div>
           <textarea
             value={input}
@@ -116,14 +126,13 @@ export default function AiAssistant() {
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || isTyping}
+            disabled={(!input.trim() && !attachedImage) || isTyping}
             className="mb-1.5 p-3 bg-[#00A86B] text-white rounded-2xl disabled:opacity-30 transition-all shadow-lg"
           >
             <Send size={20} />
           </button>
         </div>
       </div>
-
       <BottomNav />
     </div>
   );

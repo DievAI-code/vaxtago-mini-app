@@ -22,25 +22,12 @@ export interface Vacancy {
   created_at: string;
 }
 
-export interface UserProfile {
+export interface ScanHistory {
   id: string;
-  telegram_id: number | null;
-  first_name: string | null;
-  last_name: string | null;
-  username: string | null;
-  photo_url: string | null;
-  phone_number: string | null;
-  language_code: string;
-  subscription_status: string;
-}
-
-export interface AnalyticsEvent {
-  id: string;
-  event_name: string;
   user_id?: string;
-  telegram_id?: number;
-  page?: string;
-  device?: string;
-  browser?: string;
+  image_url: string;
+  original_text: string;
+  translated_text: string;
+  language: string;
   created_at: string;
 }
