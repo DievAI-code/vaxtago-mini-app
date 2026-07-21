@@ -1,77 +1,46 @@
-import { useNavStack } from "./NavigationStack";
-import { VaxtaGoLogo } from "./VaxtaGoLogo";
-import { ArrowLeft, MoreVertical } from "lucide-react";
-import { useApp } from "@/lib/theme";
-import { useTranslation } from "react-i18next";
-import { useState } from "react";
-import { SUPPORTED_LANGS, Lang } from "@/i18n";
-import { Globe, Moon, Sun } from "lucide-react";
+"use client";
 
-const LANGS: { code: Lang; label: string; flag: string }[] = [
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
-  { code: "uz", label: "O'zbekcha", flag: "🇺🇿" },
-  { code: "tg", label: "Тоҷикӣ", flag: "🇹🇯" },
-  { code: "ky", label: "Кыргызча", flag: "🇰🇬" },
-  { code: "en", label: "English", flag: "🇬🇧" },
-];
+import { useNavigate } from "react-router-dom";
+import { ChevronLeft, Menu, Bell } from "lucide-react";
+import { useLanguage } from "@/context/LanguageProvider";
+import { motion } from "framer-motion";
 
-export function Header({ title, showBack = true }: { title: string; showBack?: boolean }) {
-  const { pop, canGoBack } = useNavStack();
-  const { lang, setLang, theme, toggleTheme } = useApp();
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+interface HeaderProps {
+  title: string;
+  showBack?: boolean;
+  onMenuClick?: () => void;
+}
+
+export function Header({ title, showBack = false, onMenuClick }: HeaderProps) {
+  const nav = useNavigate();
+  const { t } = useLanguage();
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0F172A]/80 border-b border-slate-800">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {showBack && canGoBack && (
-            <button
-              onClick={pop}
-              className="p-2 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"
-              aria-label="Back"
-            >
-              <ArrowLeft size={20} />
-            </button>
-          )}
-          <div className="flex items-center gap-2">
-            <VaxtaGoLogo size={32} />
-            <span className="font-bold text-lg text-white">{title}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <button
-              onClick={() => setOpen(!open)}
-              className="p-2 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"
-              aria-label="Menu"
-            >
-              <MoreVertical size={20} />
-            </button>
-            {open && (
-              <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-slate-800 shadow-xl border border-slate-700 p-2">
-                {LANGS.map((l) => (
-                  <button
-                    key={l.code}
-                    onClick={() => { setLang(l.code); setOpen(false); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm hover:bg-slate-700 transition-colors ${lang === l.code ? "text-[#06B6D4] font-semibold" : "text-slate-300"}`}
-                  >
-                    <span>{l.flag}</span>
-                    <span>{l.label}</span>
-                  </button>
-                ))}
-                <button
-                  onClick={() => { toggleTheme(); setOpen(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-700 transition-colors"
-                >
-                  {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-                  <span>{theme === "light" ? "Темная" : "Светлая"}</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+    <header className="p-4 flex items-center justify-between sticky top-0 bg-[#06140F]/80 backdrop-blur-md z-50 safe-top border-b border-[#1A3D2E]">
+      <div className="flex items-center gap-3">
+        {showBack ? (
+          <button 
+            onClick={() => nav(-1)}
+            className="p-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-xl text-[#5C7A6D] active:scale-90 transition-transform"
+          >
+            <ChevronLeft size={20} />
+          </button>
+        ) : (
+          <button 
+            onClick={onMenuClick}
+            className="p-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-xl text-[#00A86B] active:scale-90 transition-transform"
+          >
+            <Menu size={20} />
+          </button>
+        )}
+        <h1 className="text-lg font-black tracking-tight text-white uppercase">{t(title)}</h1>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        <button className="p-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-xl text-[#5C7A6D] relative">
+          <Bell size={20} />
+          <span className="absolute top-2 right-2 w-2 h-2 bg-[#00A86B] rounded-full border border-[#06140F]" />
+        </button>
       </div>
     </header>
   );

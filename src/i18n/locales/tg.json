@@ -10,70 +10,66 @@
     "done": "Тайёр",
     "close": "Пӯшидан",
     "cancel": "Бекор кардан",
-    "more": "Муфассал"
+    "more": "Муфассал",
+    "clear": "Тоза кардан"
   },
   "nav": {
     "home": "Асосӣ",
     "scanner": "Сканер",
     "ai": "VAQTA AI",
     "jobs": "Корҳо",
-    "profile": "Профил"
+    "profile": "Профил",
+    "history": "Таърих",
+    "premium": "Premium",
+    "settings": "Танзимот",
+    "about": "Дар бораи лоиҳа",
+    "contacts": "Тамос",
+    "policy": "Сиёсат"
+  },
+  "profile": {
+    "user_section": "Корбар",
+    "user_name": "Ном",
+    "user_lang": "Забон",
+    "user_country": "Кишвар",
+    "user_status": "Ҳолати ҳисоб",
+    "ai_section": "Интеллекти сунъӣ",
+    "ai_history": "Таърихи муколамаҳо",
+    "ai_analysis": "Таҳлили охирин",
+    "ai_translation": "Тарҷумаи охирин",
+    "docs_section": "Ҳуҷҷатҳо",
+    "docs_last": "Ҳуҷҷатҳои охирин",
+    "docs_trans": "Тарҷумаҳои охирин",
+    "docs_photos": "Аксҳои охирин",
+    "settings_section": "Танзимот",
+    "settings_ui_lang": "Забони барнома",
+    "settings_ai_lang": "Забони AI",
+    "settings_ocr_lang": "Забони OCR",
+    "settings_trans_lang": "Забони тарҷума",
+    "settings_theme": "Намуди зоҳирӣ",
+    "premium_section": "VaxtaGo Premium",
+    "premium_status": "Ҳолати обуна",
+    "premium_benefits": "Имкониятҳо",
+    "info_section": "Маълумот",
+    "info_version": "Версияи барнома",
+    "info_policy": "Сиёсати махфият",
+    "info_contacts": "Тамос бо мо"
   },
   "home": {
     "hero_title": "Ёвари ҳуشمند\nбарои кор ва зиндагӣ",
     "hero_subtitle": "Акс фиристед. Мо мефаҳмонем.",
-    "btn_upload": "Боркунии акс",
-    "btn_chat": "Сӯҳбат бо AI",
     "quick_services": "Хизматрасониҳо",
-    "market_analysis": "Таҳлили бозор",
-    "market_desc": "Таҳлили AI нишон медиҳад, ки талабот дар соҳаи сохтмон ва логистика меафзояд. Вакансияҳои бехатартарин дар Маскав ва Дубай."
-  },
-  "scanner": {
-    "title": "AI Vision Сканер",
-    "desc": "Скан ва тарҷумаи ҳуҷҷатҳо",
-    "upload_area": "Барои интихоби акс ё аксбардорӣ пахш кунед",
-    "processing": "AI ҳуҷҷатро таҳлил мекунад...",
-    "detecting_lang": "Муайян кардани забон...",
-    "source_lang": "Забони аслӣ",
-    "target_lang": "Забони тарҷума",
-    "auto_detect": "Авто",
-    "result_ready": "Таҳлил тайёр аст",
-    "translation": "Тарҷума",
-    "explanation": "Шарҳи AI",
-    "risks": "Хаттарҳо ва диққат",
-    "doc_type": "Намуди ҳуҷҷат",
-    "important_points": "Нуқтаҳои муҳим",
-    "recommendations": "Тавсияҳо",
-    "new_scan": "Сканери нав"
+    "market_analysis": "Таҳлили бозор"
   },
   "chat": {
-    "welcome": "Салом! 👋\n\nМан ёвари VAQTA AI ҳастам. Ман муколамаи моро дар хотир дорам ва метавонам ҳуҷҷати шуморо тарҷума кунам ё фаҳмонам. Саволи худро нависед.",
-    "placeholder": "Савол нависед (масалан: 'тарҷума кун' ё 'хатарҳоро фаҳмон')...",
-    "typing": "VAQTA AI фикр мекунад...",
-    "premium_badge": "Premium Интеллект"
+    "welcome": "Салом! 👋\n\nМан ёвари VAQTA AI ҳастам. Саволи худро нависед.",
+    "placeholder": "Савол нависед...",
+    "typing": "AI фикр мекунад...",
+    "premium_badge": "Premium"
   },
-  "jobs": {
-    "title": "Smart AI Ҷустуҷӯ",
-    "subtitle": "Шумо менависед — AI филтрҳоро интихоб мекунад",
-    "placeholder": "Ба ман кор дар Маскав бо ҷои хоб лозим аст...",
-    "found_count": "Вакансияҳо ёфт шуданд",
-    "safe_label": "Санҷидашуда"
-  },
-  "profile": {
-    "title": "Профили ман",
-    "subscription": "Тарифи шумо",
-    "premium_status": "VaxtaGo Premium",
-    "free_status": "Тарифи оддӣ",
-    "history": "Таърих",
-    "security": "Бехатарӣ",
-    "settings": "Танзимот",
-    "logout": "Хуруҷ аз аккаунт"
-  },
-  "settings": {
-    "title": "Танзимот",
-    "language": "Забони барнома",
-    "theme": "Намуди зоҳирӣ",
-    "notifications": "Огоҳиномаҳо",
-    "about": "Дар бораи барнома"
+  "scanner": {
+    "title": "Сканер",
+    "desc": "Таҳлили ҳуҷҷатҳо",
+    "upload_area": "Боркунии акс ё аксбардорӣ",
+    "processing": "Таҳлил мешавад..."
   }
 }

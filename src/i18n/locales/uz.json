@@ -10,70 +10,66 @@
     "done": "Tayyor",
     "close": "Yopish",
     "cancel": "Bekor qilish",
-    "more": "Batafsil"
+    "more": "Batafsil",
+    "clear": "Tozalash"
   },
   "nav": {
     "home": "Asosiy",
     "scanner": "Skaner",
     "ai": "VAQTA AI",
     "jobs": "Ishlar",
-    "profile": "Profil"
+    "profile": "Profil",
+    "history": "Tarix",
+    "premium": "Premium",
+    "settings": "Sozlamalar",
+    "about": "Ilova haqida",
+    "contacts": "Kontaktlar",
+    "policy": "Siyosat"
+  },
+  "profile": {
+    "user_section": "Foydalanuvchi",
+    "user_name": "Ism",
+    "user_lang": "Til",
+    "user_country": "Davlat",
+    "user_status": "Hisob holati",
+    "ai_section": "Sun'iy intellekt",
+    "ai_history": "Muloqotlar tarixi",
+    "ai_analysis": "Oxirgi tahlil",
+    "ai_translation": "Oxirgi tarjima",
+    "docs_section": "Hujjatlar",
+    "docs_last": "Oxirgi hujjatlar",
+    "docs_trans": "Oxirgi tarjimalar",
+    "docs_photos": "Oxirgi suratlar",
+    "settings_section": "Sozlamalar",
+    "settings_ui_lang": "Ilova tili",
+    "settings_ai_lang": "AI tili",
+    "settings_ocr_lang": "OCR tili",
+    "settings_trans_lang": "Tarjima tili",
+    "settings_theme": "Ilova mavzusi",
+    "premium_section": "VaxtaGo Premium",
+    "premium_status": "Obuna holati",
+    "premium_benefits": "Imkoniyatlar",
+    "info_section": "Ma'lumot",
+    "info_version": "Ilova versiyasi",
+    "info_policy": "Maxfiylik siyosati",
+    "info_contacts": "Biz bilan bog'lanish"
   },
   "home": {
     "hero_title": "Ish va hayot uchun\naqlli yordamchi",
     "hero_subtitle": "Rasm yuboring. Biz tushuntiramiz.",
-    "btn_upload": "Rasm yuklash",
-    "btn_chat": "AI bilan gaplashish",
     "quick_services": "Xizmatlar",
-    "market_analysis": "Bozor tahlili",
-    "market_desc": "AI tahlili shuni ko'rsatadiki, hozirda qurilish va logistika sohasida talab ortib bormoqda. Eng xavfsiz vakansiyalar Moskva va Dubayda."
-  },
-  "scanner": {
-    "title": "AI Vision Skaner",
-    "desc": "Hujjatlarni skanerlash va tarjima qilish",
-    "upload_area": "Rasm tanlash yoki suratga olish uchun bosing",
-    "processing": "AI hujjatni tahlil qilmoqda...",
-    "detecting_lang": "Til aniqlanmoqda...",
-    "source_lang": "Asl tili",
-    "target_lang": "Tarjima tili",
-    "auto_detect": "Avto",
-    "result_ready": "Tahlil tayyor",
-    "translation": "Tarjima",
-    "explanation": "AI tushuntirishi",
-    "risks": "Xavf va diqqat",
-    "doc_type": "Hujjat turi",
-    "important_points": "Muhim bandlar",
-    "recommendations": "Tavsiyalar",
-    "new_scan": "Yangi skaner"
+    "market_analysis": "Bozor tahlili"
   },
   "chat": {
-    "welcome": "Assalomu alaykum 👋\n\nMen VAQTA AI yordamchisiman. Muloqotimizni eslab qolaman va hujjatingizni tarjima qilishim yoki tushuntirib berishim mumkin. Savolingizni yozing.",
-    "placeholder": "Savol yozing (masalan: 'tarjima qil' yoki 'xavflarni tushuntir')...",
-    "typing": "VAQTA AI o'ylamoqda...",
-    "premium_badge": "Premium Intellekt"
+    "welcome": "Assalomu alaykum 👋\n\nMen VAQTA AI yordamchisiman. Savolingizni yozing.",
+    "placeholder": "Savol yozing...",
+    "typing": "AI o'ylamoqda...",
+    "premium_badge": "Premium"
   },
-  "jobs": {
-    "title": "Smart AI Qidiruv",
-    "subtitle": "Siz yozasiz — AI filtrlarni tanlaydi",
-    "placeholder": "Menga Moskvada turar joyi bor ish kerak...",
-    "found_count": "Vakansiyalar topildi",
-    "safe_label": "Tekshirilgan"
-  },
-  "profile": {
-    "title": "Mening profilim",
-    "subscription": "Tarifingiz",
-    "premium_status": "VaxtaGo Premium",
-    "free_status": "Oddiy tarif",
-    "history": "Tarix",
-    "security": "Xavfsizlik",
-    "settings": "Sozlamalar",
-    "logout": "Hisobdan chiqish"
-  },
-  "settings": {
-    "title": "Sozlamalar",
-    "language": "Ilova tili",
-    "theme": "Mavzu",
-    "notifications": "Bildirishnomalar",
-    "about": "Ilova haqida"
+  "scanner": {
+    "title": "Skaner",
+    "desc": "Hujjatlar tahlili",
+    "upload_area": "Rasm yuklash yoki suratga olish",
+    "processing": "Tahlil qilinmoqda..."
   }
 }
