@@ -19,8 +19,8 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-6 z-50 pointer-events-none">
-      <nav className="mx-auto flex items-center justify-around px-4 py-3 bg-[#0C1F1A]/90 backdrop-blur-3xl border border-[#1A3D2E] rounded-[2.5rem] w-full max-w-lg pointer-events-auto shadow-2xl">
+    <div className="fixed bottom-0 left-0 right-0 p-6 z-[100] pointer-events-none">
+      <nav className="mx-auto flex items-center justify-around px-4 py-3 bg-[#0C1F1A]/95 backdrop-blur-3xl border border-[#1A3D2E] rounded-[2.5rem] w-full max-w-lg pointer-events-auto shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
         {ITEMS.map((item) => {
           const active = loc.pathname === item.path;
           const Icon = item.icon;
@@ -29,17 +29,17 @@ export function BottomNav() {
             <button
               key={item.path}
               onClick={() => nav(item.path)}
-              className="relative flex flex-col items-center gap-1.5 transition-all duration-300 min-w-[64px] outline-none"
+              className="relative flex flex-col items-center gap-1 transition-all duration-300 min-w-[60px] outline-none active:scale-90"
             >
               {active && (
                 <motion.div
                   layoutId="nav-glow"
-                  className="absolute -inset-2 bg-[#00A86B]/10 rounded-2xl blur-md"
+                  className="absolute -inset-2 bg-[#00A86B]/15 rounded-2xl blur-md"
                 />
               )}
               <motion.div
                 animate={{ 
-                  scale: active ? 1.15 : 1,
+                  scale: active ? 1.2 : 1,
                   color: active ? "#00A86B" : "#5C7A6D"
                 }}
                 className="relative"
@@ -53,7 +53,7 @@ export function BottomNav() {
           );
         })}
       </nav>
-      {/* Safe Area Spacer for iPhones */}
+      {/* Safe Area Spacer */}
       <div className="h-[env(safe-area-inset-bottom)]" />
     </div>
   );

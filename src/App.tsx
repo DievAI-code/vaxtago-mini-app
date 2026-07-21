@@ -2,12 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { AppProvider } from "@/lib/theme";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NavStackProvider } from "@/components/NavigationStack";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import "@/i18n";
 
 // Lazy loading pages
@@ -29,23 +29,26 @@ const queryClient = new QueryClient({
 });
 
 const LoadingScreen = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-[#06140F]">
-    <div className="w-10 h-10 rounded-full border-2 border-[#00A86B]/40 border-t-[#00A86B] animate-spin" />
+  <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[#06140F]">
+    <div className="w-12 h-12 rounded-full border-4 border-[#00A86B]/20 border-t-[#00A86B] animate-spin" />
+    <p className="mt-4 text-[#00A86B] font-bold animate-pulse">VAQTA AI</p>
   </div>
 );
 
 const App = () => (
-  <BrowserRouter>
-    <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <TooltipProvider>
-          <NavStackProvider>
-            <ErrorBoundary>
-              <Suspense fallback={<LoadingScreen />}>
+  <QueryClientProvider client={queryClient}>
+    <AppProvider>
+      <TooltipProvider>
+        <NavStackProvider>
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingScreen />}>
+              <AnimatePresence mode="wait">
                 <motion.div 
                   initial={{ opacity: 0 }} 
                   animate={{ opacity: 1 }} 
-                  transition={{ duration: 0.3 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="min-h-[100dvh] bg-[#06140F]"
                 >
                   <Routes>
                     <Route path="/welcome" element={<LanguageSelect />} />
@@ -58,13 +61,15 @@ const App = () => (
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </motion.div>
-              </Suspense>
-            </ErrorBoundary>
-          </NavStackProvider>
-        </TooltipProvider>
-      </AppProvider>
-    </QueryClientProvider>
-  </BrowserRouter>
+              </AnimatePresence>
+            </Suspense>
+          </ErrorBoundary>
+          <Toaster />
+          <Sonner position="top-center" richColors />
+        </NavStackProvider>
+      </TooltipProvider>
+    </AppProvider>
+  </QueryClientProvider>
 );
 
 export default App;
