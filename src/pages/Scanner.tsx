@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Camera, Upload, Loader2, Languages, AlertCircle, X, Sparkles, CheckCircle2, ShieldAlert } from "lucide-react";
+import { Camera, Upload, Loader2, Languages, AlertCircle, Sparkles, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { FadeUp } from "@/components/animations";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/theme";
+import { useTranslation } from "react-i18next";
 
 interface ScanResult {
   ocr_text: string;
@@ -17,6 +18,7 @@ interface ScanResult {
 
 export default function Scanner() {
   const { lang } = useApp();
+  const { t } = useTranslation();
   const [status, setStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
   const [image, setImage] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -39,14 +41,14 @@ export default function Scanner() {
         ocr_text: data.ocr_text || "",
         translation: data.translation || "",
         explanation: data.explanation || "",
-        risks: data.risks || ["Тщательно проверьте паспортные данные", "Срок действия договора может быть ограничен"]
+        risks: data.risks || [t("scanner_risks")]
       });
       setStatus("success");
     } catch (err) {
       console.error("Scan Error:", err);
       setStatus("error");
     }
-  }, [lang]);
+  }, [lang, t]);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,8 +66,8 @@ export default function Scanner() {
     <div className="flex flex-col min-h-screen bg-[#06140F] pb-32">
       <header className="p-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">AI Vision Scanner</h1>
-          <p className="text-[#5C7A6D] text-xs font-bold uppercase tracking-widest mt-1">Hujjatlarni aqlli tahlil qilish</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("scanner_title")}</h1>
+          <p className="text-[#5C7A6D] text-xs font-bold uppercase tracking-widest mt-1">{t("scanner_desc")}</p>
         </div>
         <div className="w-10 h-10 rounded-2xl bg-[#00A86B]/10 flex items-center justify-center text-[#00A86B]">
           <Sparkles size={20} />
@@ -85,8 +87,8 @@ export default function Scanner() {
                     <Camera size={44} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black">Rasm yoki hujjat</h3>
-                    <p className="text-sm text-[#5C7A6D] mt-2 px-4">Skanerlash, tarjima qilish va tushuntirish uchun yuklang</p>
+                    <h3 className="text-xl font-black">{t("btn_upload")}</h3>
+                    <p className="text-sm text-[#5C7A6D] mt-2 px-4">{t("scanner_upload_desc")}</p>
                   </div>
                   <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} accept="image/*" />
                 </div>
@@ -100,7 +102,7 @@ export default function Scanner() {
                 <Loader2 className="text-[#00A86B] animate-spin" size={64} />
                 <div className="absolute inset-0 bg-[#00A86B] blur-3xl opacity-20 animate-pulse" />
               </div>
-              <p className="text-sm font-black uppercase tracking-[0.3em] ai-shimmer mt-6 text-[#00D4A8]">AI Tahlil qilmoqda...</p>
+              <p className="text-sm font-black uppercase tracking-[0.3em] ai-shimmer mt-6 text-[#00D4A8]">{t("scanner_processing")}</p>
             </motion.div>
           )}
 
@@ -109,7 +111,7 @@ export default function Scanner() {
               <div className="vaqta-glass p-6 border-[#00A86B]/20 overflow-hidden">
                 <div className="flex items-center gap-2 text-[#00A86B] mb-4">
                   <Languages size={18} />
-                  <span className="text-xs font-black uppercase">Tarjima</span>
+                  <span className="text-xs font-black uppercase">{t("scanner_translation")}</span>
                 </div>
                 <p className="text-sm font-medium leading-relaxed">{result.translation}</p>
               </div>
@@ -117,13 +119,13 @@ export default function Scanner() {
               <div className="vaqta-glass p-6 border-[#D4AF37]/20">
                 <div className="flex items-center gap-2 text-[#D4AF37] mb-4">
                   <AlertCircle size={18} />
-                  <span className="text-xs font-black uppercase">AI Tushuntirishi</span>
+                  <span className="text-xs font-black uppercase">{t("scanner_explanation")}</span>
                 </div>
                 <p className="text-sm text-slate-300 leading-relaxed italic">{result.explanation}</p>
               </div>
 
               <div className="space-y-2">
-                 <h4 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">Xavf va diqqat:</h4>
+                 <h4 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">{t("scanner_risks")}</h4>
                  {result.risks.map((risk, i) => (
                    <div key={i} className="glass-card p-4 flex items-start gap-3 border-l-2 border-l-[#D4AF37]">
                      <ShieldAlert size={16} className="text-[#D4AF37] flex-shrink-0" />
@@ -136,7 +138,7 @@ export default function Scanner() {
                 onClick={() => setStatus("idle")}
                 className="w-full h-16 rounded-3xl vaqta-gradient text-white font-black text-lg shadow-xl"
               >
-                Yangi skaner
+                {t("scanner_new")}
               </button>
             </motion.div>
           )}
@@ -144,8 +146,8 @@ export default function Scanner() {
           {status === "error" && (
             <div className="text-center py-12">
               <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
-              <p className="text-white font-bold">Xatolik yuz berdi</p>
-              <button onClick={() => setStatus("idle")} className="mt-4 text-[#00A86B] underline font-bold">Qayta urinish</button>
+              <p className="text-white font-bold">{t("error_title")}</p>
+              <button onClick={() => setStatus("idle")} className="mt-4 text-[#00A86B] underline font-bold">{t("error_retry")}</button>
             </div>
           )}
         </AnimatePresence>

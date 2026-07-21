@@ -10,28 +10,42 @@ interface ChatMessage {
 export function useAiChat() {
   const [loading, setLoading] = useState(false);
   const { lang } = useApp();
-  const history = useRef<ChatMessage[]>([]);
+  // Память на 20 сообщений
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const historyRef = useRef<ChatMessage[]>([]);
 
   const sendMessage = useCallback(async (message: string, image?: string): Promise<string | null> => {
     setLoading(true);
     const userMsg: ChatMessage = { role: "user", content: message };
-    history.current.push(userMsg);
+    
+    // Обновляем локальную историю (макс 20 сообщений)
+    const newHistory = [...historyRef.current, userMsg].slice(-20);
+    historyRef.current = newHistory;
+    setMessages(newHistory);
 
     try {
-      // Передаем текущий язык приложения в AI
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: { 
           message,
           image,
           language_code: lang, 
-          history: history.current.slice(-10)
+          history: newHistory,
+          context: {
+            platform: "VAQTA Web",
+            last_action: image ? "vision_scan" : "chat"
+          }
         },
       });
 
       if (error) throw error;
 
-      const reply = data?.reply || data?.message || "AI Error";
-      history.current.push({ role: "assistant", content: reply });
+      const reply = data?.reply || data?.message || "AI Connection Error";
+      const assistantMsg: ChatMessage = { role: "assistant", content: reply };
+      
+      const updatedHistory = [...newHistory, assistantMsg].slice(-20);
+      historyRef.current = updatedHistory;
+      setMessages(updatedHistory);
+      
       return reply;
     } catch (err) {
       console.error("VAQTA AI Chat Error:", err);
@@ -41,5 +55,10 @@ export function useAiChat() {
     }
   }, [lang]);
 
-  return { sendMessage, loading, history: history.current };
+  const clearHistory = useCallback(() => {
+    historyRef.current = [];
+    setMessages([]);
+  }, []);
+
+  return { sendMessage, loading, messages, clearHistory };
 }

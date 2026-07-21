@@ -2,23 +2,18 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Send, Sparkles, User, Bot, Paperclip, Camera, MoreVertical, X } from "lucide-react";
+import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useTranslation } from "react-i18next";
 import { useAiChat } from "@/hooks/useAiChat";
 
 export default function AiAssistant() {
   const { t } = useTranslation();
-  const { sendMessage, loading: isTyping } = useAiChat();
-  const [messages, setMessages] = useState<{role: "user" | "assistant", content: string}[]>([]);
+  const { sendMessage, loading: isTyping, messages } = useAiChat();
   const [input, setInput] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setMessages([{ role: "assistant", content: t("welcome_ai") }]);
-  }, [t]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -30,15 +25,11 @@ export default function AiAssistant() {
     if ((!input.trim() && !attachedImage) || isTyping) return;
     
     const userMsg = input.trim();
-    setMessages(prev => [...prev, { role: "user", content: userMsg || "📷 Image uploaded" }]);
     setInput("");
     const img = attachedImage;
     setAttachedImage(null);
     
-    const reply = await sendMessage(userMsg, img || undefined);
-    if (reply) {
-      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
-    }
+    await sendMessage(userMsg, img || undefined);
   };
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,10 +47,9 @@ export default function AiAssistant() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl vaqta-gradient flex items-center justify-center vaqta-glow relative">
             <Sparkles size={20} className="text-white" />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#D4AF37] rounded-full border-2 border-[#06140F]" />
           </div>
           <div>
-            <h1 className="font-black tracking-tight text-lg">VAQTA AI</h1>
+            <h1 className="font-black tracking-tight text-lg">{t("nav_ai")}</h1>
             <div className="flex items-center gap-1.5 mt-1">
               <div className="w-1.5 h-1.5 rounded-full bg-[#00A86B] animate-pulse" />
               <span className="text-[9px] font-black text-[#5C7A6D] uppercase tracking-widest">Premium Intelligence</span>
@@ -70,6 +60,13 @@ export default function AiAssistant() {
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-40">
+        {messages.length === 0 && (
+          <div className="text-center py-10 opacity-50">
+            <Bot size={48} className="mx-auto mb-4 text-[#00A86B]" />
+            <p className="text-sm font-medium">{t("welcome_ai")}</p>
+          </div>
+        )}
+        
         {messages.map((m, i) => (
           <motion.div
             key={i}
@@ -91,6 +88,7 @@ export default function AiAssistant() {
             </div>
           </motion.div>
         ))}
+        
         {isTyping && (
           <div className="flex gap-4">
             <div className="w-10 h-10 rounded-2xl vaqta-gradient flex items-center justify-center"><Bot size={18} /></div>
@@ -121,7 +119,7 @@ export default function AiAssistant() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
-            placeholder="Savolingizni yozing..."
+            placeholder={t("chat_placeholder")}
             className="flex-1 bg-transparent py-3 text-sm text-white focus:outline-none resize-none max-h-32 min-h-[48px] no-scrollbar font-medium"
           />
           <button
