@@ -2,14 +2,14 @@
 
 import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Search, Sparkles, Heart, User } from "lucide-react";
+import { LayoutDashboard, Scan, Cpu, Briefcase, User } from "lucide-react";
 
 const ITEMS = [
-  { path: "/home", icon: Home, label: "Главная" },
-  { path: "/jobs", icon: Search, label: "Поиск" },
-  { path: "/ai", icon: Sparkles, label: "AI" },
-  { path: "/history", icon: Heart, label: "Избранное" },
-  { path: "/profile", icon: User, label: "Профиль" },
+  { path: "/home", icon: LayoutDashboard, label: "Asosiy" },
+  { path: "/scanner", icon: Scan, label: "Skaner" },
+  { path: "/ai", icon: Cpu, label: "VAQTA AI" },
+  { path: "/jobs", icon: Briefcase, label: "Ish" },
+  { path: "/profile", icon: User, label: "Profil" },
 ];
 
 export function BottomNav() {
@@ -17,7 +17,7 @@ export function BottomNav() {
   const nav = useNavigate();
 
   return (
-    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center justify-around px-2 py-2 bg-[#18181B]/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] w-[90%] max-w-md z-50">
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center justify-around p-2 bg-[#081C16]/80 backdrop-blur-3xl border border-[#00A86B]/20 rounded-full w-[94%] max-w-lg z-50 shadow-2xl">
       {ITEMS.map((item) => {
         const active = loc.pathname === item.path;
         const Icon = item.icon;
@@ -26,31 +26,27 @@ export function BottomNav() {
           <button
             key={item.path}
             onClick={() => nav(item.path)}
-            className="relative flex flex-col items-center gap-1 p-3 transition-colors"
-            aria-label={item.label}
+            className="relative flex flex-col items-center gap-1 py-3 px-4 transition-all duration-300"
           >
             {active && (
               <motion.div
-                layoutId="nav-pill"
-                className="absolute inset-0 bg-white/5 rounded-2xl"
+                layoutId="nav-glow"
+                className="absolute inset-0 bg-[#00A86B]/10 rounded-full border border-[#00A86B]/20"
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
               />
             )}
             <motion.div
               animate={{ 
-                scale: active ? 1.1 : 1,
-                color: active ? "#FAFAFA" : "#A1A1AA"
+                scale: active ? 1.2 : 1,
+                color: active ? "#00A86B" : "#A1A1AA"
               }}
               className="relative z-10"
             >
-              <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+              <Icon size={20} strokeWidth={active ? 2.5 : 2} />
             </motion.div>
-            {active && (
-              <motion.div 
-                layoutId="nav-dot"
-                className="w-1 h-1 rounded-full bg-[#2563EB] absolute -bottom-1"
-              />
-            )}
+            <span className={`text-[9px] font-bold uppercase tracking-widest ${active ? "text-[#00A86B]" : "text-[#A1A1AA]"}`}>
+              {item.label}
+            </span>
           </button>
         );
       })}
