@@ -15,17 +15,8 @@ const Home = lazy(() => import("./pages/Home"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const AiAssistant = lazy(() => import("./pages/AiAssistant"));
 const Profile = lazy(() => import("./pages/Profile"));
-const History = lazy(() => import("./pages/History"));
 const Scanner = lazy(() => import("./pages/Scanner"));
-const Translate = lazy(() => import("./pages/Translate"));
-const PhotoTranslator = lazy(() => import("./pages/PhotoTranslator"));
-const Documents = lazy(() => import("./pages/Documents"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Premium = lazy(() => import("./pages/Premium"));
-const About = lazy(() => import("./pages/About"));
-const Contacts = lazy(() => import("./pages/Contacts"));
-const Privacy = lazy(() => import("./pages/Privacy"));
-const Terms = lazy(() => import("./pages/Terms"));
+const LanguageSelect = lazy(() => import("./pages/LanguageSelect"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -40,9 +31,14 @@ const queryClient = new QueryClient({
 const LoadingScreen = memo(() => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-[#06140F]">
     <div className="w-10 h-10 rounded-full border-2 border-[#00A86B]/40 border-t-[#00A86B] animate-spin" />
-    <p className="mt-4 text-sm text-slate-500 font-medium">VAQTA AI yuklanmoqda...</p>
   </div>
 ));
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const isFirstRun = localStorage.getItem("vaxtago_first_run") !== "false";
+  if (isFirstRun) return <Navigate to="/welcome" replace />;
+  return <>{children}</>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -58,22 +54,13 @@ const App = () => (
                   transition={{ duration: 0.3 }}
                 >
                   <Routes>
+                    <Route path="/welcome" element={<LanguageSelect />} />
                     <Route path="/" element={<Navigate to="/home" replace />} />
-                    <Route path="/home" element={<Home />} />
-                    <Route path="/jobs" element={<Jobs />} />
-                    <Route path="/ai" element={<AiAssistant />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/history" element={<History />} />
-                    <Route path="/scanner" element={<Scanner />} />
-                    <Route path="/translate" element={<Translate />} />
-                    <Route path="/photo-translator" element={<PhotoTranslator />} />
-                    <Route path="/documents" element={<Documents />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/premium" element={<Premium />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/contacts" element={<Contacts />} />
-                    <Route path="/privacy" element={<Privacy />} />
-                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                    <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
+                    <Route path="/ai" element={<ProtectedRoute><AiAssistant /></ProtectedRoute>} />
+                    <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                    <Route path="/scanner" element={<ProtectedRoute><Scanner /></ProtectedRoute>} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </motion.div>

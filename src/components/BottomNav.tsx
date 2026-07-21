@@ -3,21 +3,23 @@
 import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LayoutGrid, Scan, Sparkles, Search, User } from "lucide-react";
-
-const ITEMS = [
-  { path: "/home", icon: LayoutGrid, label: "Bosh sahifa" },
-  { path: "/scanner", icon: Scan, label: "Skaner" },
-  { path: "/ai", icon: Sparkles, label: "VAQTA AI" },
-  { path: "/jobs", icon: Search, label: "Ish" },
-  { path: "/profile", icon: User, label: "Profil" },
-];
+import { useTranslation } from "react-i18next";
 
 export function BottomNav() {
   const loc = useLocation();
   const nav = useNavigate();
+  const { t } = useTranslation();
+
+  const ITEMS = [
+    { path: "/home", icon: LayoutGrid, label: t("nav_home") },
+    { path: "/scanner", icon: Scan, label: t("nav_scanner") },
+    { path: "/ai", icon: Sparkles, label: t("nav_ai") },
+    { path: "/jobs", icon: Search, label: t("nav_jobs") },
+    { path: "/profile", icon: User, label: t("nav_profile") },
+  ];
 
   return (
-    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center justify-around px-4 py-3 bg-[#0C1F1A]/90 backdrop-blur-3xl border border-[#1A3D2E] rounded-[2.5rem] w-[94%] max-w-lg z-50 shadow-2xl shadow-black/50">
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center justify-around px-4 py-3 bg-[#0C1F1A]/90 backdrop-blur-3xl border border-[#1A3D2E] rounded-[2.5rem] w-[94%] max-w-lg z-50 shadow-2xl">
       {ITEMS.map((item) => {
         const active = loc.pathname === item.path;
         const Icon = item.icon;

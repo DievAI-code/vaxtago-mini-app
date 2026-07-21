@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, User, Bot, Globe, Paperclip, Camera, Mic, MoreVertical } from "lucide-react";
+import { motion } from "framer-motion";
+import { Send, Sparkles, User, Bot, Paperclip, Camera, MoreVertical } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { useTranslation } from "react-i18next";
+import { useAiChat } from "@/hooks/useAiChat";
 
 interface Message {
   role: "user" | "assistant";
@@ -11,11 +13,12 @@ interface Message {
 }
 
 export default function AiAssistant() {
+  const { t } = useTranslation();
+  const { sendMessage, loading: isTyping } = useAiChat();
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Assalomu alaykum 👋\n\nMen VAQTA AI yordamchisiman. Savolingizni yozing yoki rasm yuboring." }
+    { role: "assistant", content: t("welcome_ai") }
   ]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,13 +32,11 @@ export default function AiAssistant() {
     const userMsg = input.trim();
     setMessages(prev => [...prev, { role: "user", content: userMsg }]);
     setInput("");
-    setIsTyping(true);
     
-    // Симуляция AI
-    setTimeout(() => {
-      setIsTyping(false);
-      setMessages(prev => [...prev, { role: "assistant", content: "Sizning so'rovingiz tahlil qilinmoqda. Men sizga xalqaro standartlarga javob beradigan eng yaxshi va xavfsiz vakansiyalarni hamda hujjatlarni rasmiylashtirish yo'llarini ko'rsataman." }]);
-    }, 2000);
+    const reply = await sendMessage(userMsg);
+    if (reply) {
+      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+    }
   };
 
   return (
@@ -101,26 +102,25 @@ export default function AiAssistant() {
       </div>
 
       <div className="fixed bottom-24 left-0 w-full px-6 pb-4">
-        <div className="relative vaqta-glass overflow-hidden border-[#1A3D2E] focus-within:border-[#00A86B]/40 transition-all p-2 pr-4 flex items-end gap-3 shadow-2xl">
+        <div className="relative vaqta-glass overflow-hidden p-2 pr-4 flex items-end gap-3 shadow-2xl">
           <div className="flex gap-1 mb-2">
-            <button className="p-2.5 text-[#5C7A6D] hover:text-[#00A86B] transition-colors"><Paperclip size={20}/></button>
-            <button className="p-2.5 text-[#5C7A6D] hover:text-[#00A86B] transition-colors"><Camera size={20}/></button>
+            <button className="p-2.5 text-[#5C7A6D] hover:text-[#00A86B]"><Paperclip size={20}/></button>
+            <button className="p-2.5 text-[#5C7A6D] hover:text-[#00A86B]"><Camera size={20}/></button>
           </div>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
             placeholder="Savolingizni yozing..."
-            className="flex-1 bg-transparent py-3 text-sm text-white placeholder-[#5C7A6D] focus:outline-none resize-none max-h-32 min-h-[48px] no-scrollbar font-medium"
+            className="flex-1 bg-transparent py-3 text-sm text-white focus:outline-none resize-none max-h-32 min-h-[48px] no-scrollbar font-medium"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isTyping}
-            className="mb-1.5 p-3 bg-[#00A86B] text-white rounded-2xl hover:scale-105 transition-all disabled:opacity-30 disabled:scale-100 shadow-lg shadow-[#00A86B]/20"
+            className="mb-1.5 p-3 bg-[#00A86B] text-white rounded-2xl disabled:opacity-30 transition-all shadow-lg"
           >
             <Send size={20} />
           </button>
-          <div className="absolute top-0 left-0 w-full h-full ai-shimmer opacity-5 pointer-events-none" />
         </div>
       </div>
 

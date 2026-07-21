@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import i18n, { setLanguage, SUPPORTED_LANGS, Lang } from "@/i18n";
+import i18n, { setLanguage, Lang } from "@/i18n";
 
 type Theme = "light" | "dark";
 
@@ -19,9 +19,9 @@ export function useApp() {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>((i18n.language as Lang) || "ru");
+  const [lang, setLangState] = useState<Lang>((i18n.language as Lang) || "uz");
   const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem("vaxtago_theme") as Theme) || "light",
+    () => (localStorage.getItem("vaxtago_theme") as Theme) || "dark",
   );
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useApp } from "@/lib/theme";
 
 interface ChatMessage {
   role: string;
@@ -8,6 +9,7 @@ interface ChatMessage {
 
 export function useAiChat() {
   const [loading, setLoading] = useState(false);
+  const { lang } = useApp();
   const sessionHistory = useRef<ChatMessage[]>([]);
 
   const sendMessage = useCallback(async (message: string): Promise<string | null> => {
@@ -18,6 +20,7 @@ export function useAiChat() {
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: { 
           message,
+          language_code: lang,
           session_history: sessionHistory.current.slice(-10)
         },
       });
@@ -32,11 +35,16 @@ export function useAiChat() {
       return null;
     } catch (err) {
       console.error("AI Chat Error:", err);
-      return "Kechirasiz, xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.";
+      const errorMsg = {
+        ru: "Извините, произошла ошибка. Попробуйте еще раз.",
+        uz: "Kechirasiz, xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+        tg: "Бубахшед, хатогӣ рух дод. Лутфан бори дигар кӯшиш кунед."
+      };
+      return errorMsg[lang] || errorMsg.uz;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lang]);
 
   return { sendMessage, loading };
 }
