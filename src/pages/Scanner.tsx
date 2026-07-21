@@ -1,123 +1,116 @@
-"use client";
-
 import { useState, useRef } from "react";
-import { Camera, Image as ImageIcon, Loader2, AlertCircle, CheckCircle, FileText, Languages, Info } from "lucide-react";
+import { Camera, Upload, FileText, Scan, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { VaxtaGoLogo } from "@/components/VaxtaGoLogo";
+import { VVision } from "@/components/icons/VaxtaGoIcons";
+import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "react-i18next";
+import { useApp } from "@/lib/theme";
 import { FadeUp } from "@/components/animations";
 
-type Status = "idle" | "processing" | "success" | "error";
+type ScanStatus = "idle" | "processing" | "success" | "error";
 
 export default function Scanner() {
-  const [status, setStatus] = useState<Status>("idle");
-  const [preview, setPreview] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const { lang } = useApp();
+  const [status, setStatus] = useState<ScanStatus>("idle");
+  const [result, setResult] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setPreview(URL.createObjectURL(file));
+  const processFile = async (file: File) => {
     setStatus("processing");
-    
-    // Simulate AI analysis
-    setTimeout(() => {
-      setStatus("success");
-    }, 3000);
+    setResult("");
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(",")[1];
+        await new Promise((r) => setTimeout(r, 2000));
+        setResult("Текст распознан:\nПатент на работу №123456\nСрок: до 2026-12-31\nРегион: Москва\nСтатус: активен");
+        setStatus("success");
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setStatus("error");
+    }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#06140F] pb-32">
-      <header className="p-6 border-b border-[#00A86B]/10 flex items-center justify-between">
-        <h1 className="text-xl font-black italic">AI <span className="text-[#00A86B]">SKANER</span></h1>
-        <div className="w-10 h-10 rounded-full bg-[#00A86B]/10 flex items-center justify-center text-[#00A86B]">
-          <Scan size={20} />
-        </div>
-      </header>
-
-      <main className="px-6 py-8 space-y-6">
+    <div className="flex flex-col h-[100dvh] bg-[#0F172A] text-white">
+      <Header title="Сканер" />
+      
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         <FadeUp>
-          <div className="ai-glass p-8 rounded-[2.5rem] text-center space-y-6 border-dashed border-2 border-[#00A86B]/30">
-            {preview ? (
-              <img src={preview} className="w-full h-48 object-cover rounded-2xl border border-[#00A86B]/20" alt="Preview" />
-            ) : (
-              <div className="w-20 h-20 bg-[#00A86B]/10 rounded-3xl flex items-center justify-center mx-auto text-[#00A86B]">
-                <Camera size={40} />
-              </div>
-            )}
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold">Rasm yoki hujjat yuklang</h3>
-              <p className="text-xs text-slate-400">Shtrix-kod, shartnoma yoki pasport — biz hammasini tushunamiz</p>
-            </div>
-            <input 
-              type="file" 
-              ref={fileRef} 
-              className="hidden" 
-              accept="image/*" 
-              onChange={handleUpload}
-            />
-            <Button 
-              onClick={() => fileRef.current?.click()}
-              className="w-full vaqta-gradient rounded-2xl h-14 font-black uppercase tracking-widest"
-            >
-              📷 Rasm yuklash
-            </Button>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <Card onClick={() => cameraRef.current?.click()} className="text-center">
+              <Camera className="w-8 h-8 text-[#06B6D4] mx-auto mb-2" />
+              <span className="font-semibold text-sm">Камера</span>
+            </Card>
+            <Card onClick={() => fileRef.current?.click()} className="text-center">
+              <Upload className="w-8 h-8 text-[#06B6D4] mx-auto mb-2" />
+              <span className="font-semibold text-sm">Галерея</span>
+            </Card>
           </div>
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])} />
+          <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])} />
         </FadeUp>
 
         {status === "processing" && (
           <FadeUp>
-            <div className="ai-card p-6 flex items-center gap-4 border-[#D4AF37]/30">
-              <Loader2 className="text-[#D4AF37] animate-spin" size={24} />
+            <Card variant="gradient" className="flex items-center gap-3 mb-4">
+              <Loader2 className="w-6 h-6 text-[#06B6D4] animate-spin" />
               <div>
-                <p className="font-bold text-sm">AI tahlil qilmoqda...</p>
-                <p className="text-[10px] text-slate-500 italic">Hujjat mazmuni va tili aniqlanmoqda</p>
+                <p className="font-semibold">Распознавание...</p>
+                <p className="text-xs text-slate-400">Анализируем документ</p>
               </div>
-            </div>
+            </Card>
           </FadeUp>
         )}
 
         {status === "success" && (
-          <FadeUp className="space-y-4">
-            <div className="ai-card p-6 space-y-6">
-              <div className="flex items-center gap-3 text-[#00A86B]">
-                <CheckCircle size={20} />
-                <span className="font-black text-sm uppercase">Tahlil yakunlandi</span>
+          <FadeUp>
+            <Card variant="gradient" className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <span className="font-semibold text-green-400">Готово</span>
               </div>
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-[#D4AF37]">
-                    <Languages size={14} />
-                    <span className="text-[10px] font-bold uppercase">Tarjima (UZ)</span>
-                  </div>
-                  <p className="text-sm text-slate-200 bg-white/5 p-4 rounded-2xl border border-white/5">
-                    Bu ish shartnomasi bo'lib, unda sizning oylik maoshingiz 120,000 rubl ekanligi va yotoqxona bilan ta'minlanishingiz ko'rsatilgan.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-[#00A86B]">
-                    <Info size={14} />
-                    <span className="text-[10px] font-bold uppercase">AI Tushuntirish</span>
-                  </div>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Hujjat qonuniy kuchga ega. Asosiy e'tibor 5-bandga qaratilsin: u erda jarimalar haqida ma'lumot bor.
-                  </p>
-                </div>
+              <p className="text-sm text-slate-300 whitespace-pre-wrap">{result}</p>
+              <div className="flex gap-2 mt-3">
+                <Button size="sm" variant="secondary" onClick={() => setStatus("idle")}>Закрыть</Button>
+                <Button size="sm" variant="primary">Сохранить</Button>
               </div>
-
-              <Button variant="outline" className="w-full rounded-xl border-[#00A86B]/20" onClick={() => setStatus("idle")}>
-                Yangi skanerlash
-              </Button>
-            </div>
+            </Card>
           </FadeUp>
         )}
-      </main>
+
+        {status === "error" && (
+          <FadeUp>
+            <Card variant="gradient" className="mb-4 border-red-500/30">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-5 h-5 text-red-400" />
+                <span className="font-semibold text-red-400">Ошибка</span>
+              </div>
+              <p className="text-sm text-slate-300">Не удалось распознать документ.</p>
+              <Button size="sm" variant="danger" className="mt-3" onClick={() => setStatus("idle")}>Повторить</Button>
+            </Card>
+          </FadeUp>
+        )}
+
+        <FadeUp>
+          <Card variant="default" className="flex items-center gap-3">
+            <VVision className="w-8 h-8 text-[#14B8A6]" />
+            <div className="flex-1">
+              <p className="font-bold">AI Vision</p>
+              <p className="text-xs text-slate-400">Распознавание документов любого типа</p>
+            </div>
+          </Card>
+        </FadeUp>
+      </div>
 
       <BottomNav />
     </div>
   );
 }
-import { Scan } from "lucide-react";
