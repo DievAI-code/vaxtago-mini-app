@@ -10,7 +10,7 @@ import { NavStackProvider } from "@/components/NavigationStack";
 import { motion } from "framer-motion";
 import "@/i18n";
 
-// Lazy loading pages to prevent white screen and heavy initial bundle
+// Lazy loading pages
 const Home = lazy(() => import("./pages/Home"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const AiAssistant = lazy(() => import("./pages/AiAssistant"));
@@ -38,9 +38,9 @@ const queryClient = new QueryClient({
 });
 
 const LoadingScreen = memo(() => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-[#09090B]">
-    <div className="w-10 h-10 rounded-full border-2 border-[#2563EB]/40 border-t-[#2563EB] animate-spin" />
-    <p className="mt-4 text-sm text-slate-500 font-medium">Загрузка VaxtaGo...</p>
+  <div className="min-h-screen flex flex-col items-center justify-center bg-[#06140F]">
+    <div className="w-10 h-10 rounded-full border-2 border-[#00A86B]/40 border-t-[#00A86B] animate-spin" />
+    <p className="mt-4 text-sm text-slate-500 font-medium">VAQTA AI yuklanmoqda...</p>
   </div>
 ));
 
@@ -49,8 +49,8 @@ const App = () => (
     <AppProvider>
       <TooltipProvider>
         <ErrorBoundary>
-          <NavStackProvider>
-            <BrowserRouter>
+          <BrowserRouter>
+            <NavStackProvider>
               <Suspense fallback={<LoadingScreen />}>
                 <motion.div 
                   initial={{ opacity: 0 }} 
@@ -78,8 +78,8 @@ const App = () => (
                   </Routes>
                 </motion.div>
               </Suspense>
-            </BrowserRouter>
-          </NavStackProvider>
+            </NavStackProvider>
+          </BrowserRouter>
           <Toaster />
           <Sonner position="top-center" expand={false} richColors />
         </ErrorBoundary>
