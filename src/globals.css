@@ -10,7 +10,7 @@
     --card-foreground: 0 0% 100%;
     --primary: 158 100% 33%;
     --primary-foreground: 0 0% 100%;
-    --accent: 45 65% 52%;
+    --accent: 160 100% 42%;
     --border: 160 20% 15%;
     --radius: 1.5rem;
   }
@@ -18,13 +18,13 @@
 
 @layer base {
   body {
-    @apply bg-[#06140F] text-white antialiased;
+    @apply bg-[#06140F] text-white antialiased selection:bg-[#00A86B]/30;
     font-family: 'Inter', sans-serif;
   }
 }
 
 .vaqta-glass {
-  @apply bg-[#0C1F1A]/80 backdrop-blur-2xl border border-[#1A3D2E] rounded-[2.5rem];
+  @apply bg-[#0C1F1A]/60 backdrop-blur-2xl border border-[#1A3D2E] rounded-[2.5rem];
 }
 
 .vaqta-gradient {
@@ -39,11 +39,11 @@
 }
 
 .vaqta-glow {
-  box-shadow: 0 0 20px rgba(0, 168, 107, 0.2);
+  box-shadow: 0 0 40px rgba(0, 168, 107, 0.15);
 }
 
 .ai-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(0, 168, 107, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 168, 0.1), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
@@ -54,3 +54,7 @@
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+.glass-card {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem];
+}
