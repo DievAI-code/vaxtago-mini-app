@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import { 
   Camera, Loader2, Languages, AlertCircle, Sparkles, 
   ShieldAlert, Copy, Share2, Save, FileSearch, 
-  CheckCircle2, Info, RefreshCw, SearchCode
+  CheckCircle2, Info, RefreshCw, SearchCode, MapPin
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { FadeUp } from "@/components/animations";
@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
+import { GoogleMapsButton } from "@/components/GoogleMapsButton";
 
 type ScanStep = 'idle' | 'uploading' | 'ocr' | 'detecting' | 'translating' | 'analyzing' | 'done';
 
@@ -22,6 +23,8 @@ interface ScanResult {
   risks: string[];
   doc_type: string;
   detected_lang: string;
+  address?: string;
+  confidence?: string;
 }
 
 export default function Scanner() {
@@ -37,7 +40,6 @@ export default function Scanner() {
 
     try {
       setStep('ocr');
-      // Вызываем единую функцию обработки
       const { data, error } = await supabase.functions.invoke("vision-assistant", {
         body: { 
           image: base64,
@@ -63,7 +65,9 @@ export default function Scanner() {
         explanation: data.explanation || "",
         risks: data.risks || [],
         doc_type: data.document_type || "Документ",
-        detected_lang: data.source_lang || "Авто"
+        detected_lang: data.source_lang || "Авто",
+        address: data.address || undefined,
+        confidence: data.confidence || "High"
       });
       
       setStep('done');
@@ -172,6 +176,23 @@ export default function Scanner() {
                   <h3 className="text-lg font-black text-white">{t('scanner.result_ready')}</h3>
                 </div>
               </div>
+
+              {/* Google Maps Detected Address Block */}
+              {result.address && (
+                <div className="vaqta-glass p-6 border-[#00A86B]/30 flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="p-3 bg-[#00A86B]/10 text-[#00A86B] rounded-xl flex-shrink-0">
+                      <MapPin size={20} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-[#5C7A6D] uppercase tracking-widest">{t("maps.found_address")}</p>
+                      <h4 className="text-base font-bold text-white leading-tight mt-1">{result.address}</h4>
+                      <p className="text-[9px] font-bold text-[#D4AF37] uppercase tracking-wider mt-1">{t("maps.confidence")}: {result.confidence}</p>
+                    </div>
+                  </div>
+                  <GoogleMapsButton address={result.address} />
+                </div>
+              )}
 
               {/* Translation */}
               <div className="vaqta-glass p-6 border-[#00A86B]/20">

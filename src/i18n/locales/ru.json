@@ -58,5 +58,13 @@
     "save": "Сохранить",
     "share": "Поделиться"
   },
-  "settings_lang": "Язык"
+  "settings_lang": "Язык",
+  "maps": {
+    "open": "Google Maps",
+    "route": "Маршрут",
+    "copy": "Копировать адрес",
+    "found_address": "Найден адрес",
+    "confidence": "Уверенность",
+    "job_location": "Место работы"
+  }
 }

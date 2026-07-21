@@ -58,5 +58,13 @@
     "save": "Saqlash",
     "share": "Ulashish"
   },
-  "settings_lang": "Til"
+  "settings_lang": "Til",
+  "maps": {
+    "open": "Google Maps",
+    "route": "Yo'nalish",
+    "copy": "Manzilni nusxalash",
+    "found_address": "Manzil topildi",
+    "confidence": "Ishonch",
+    "job_location": "Ish joyi"
+  }
 }

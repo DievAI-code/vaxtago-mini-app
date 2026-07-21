@@ -2,10 +2,25 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser } from "lucide-react";
+import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser, MapPin } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
+import { GoogleMapsButton } from "@/components/GoogleMapsButton";
+
+// Простая функция извлечения адреса или мест
+function parsePotentialAddress(text: string): { address: string; organization?: string; city?: string } | null {
+  const addressRegex = /(?:ул\.|улица|пр-кт|проспект|город|г\.|ш\.|шоссе)\s+([А-Яа-яA-Za-z0-9\s.,-]+)/i;
+  const match = text.match(addressRegex);
+  if (match) {
+    return {
+      address: match[0],
+      city: text.includes("Москва") ? "Москва" : undefined,
+      organization: text.includes("МВД") ? "МВД" : undefined
+    };
+  }
+  return null;
+}
 
 export default function AiAssistant() {
   const { t } = useLanguage();
@@ -70,27 +85,45 @@ export default function AiAssistant() {
           </div>
         )}
         
-        {messages.map((m, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`flex gap-4 ${m.role === "user" ? "flex-row-reverse" : ""}`}
-          >
-            <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg ${
-              m.role === "user" ? "bg-[#1A3D2E]" : "vaqta-gradient"
-            }`}>
-              {m.role === "user" ? <User size={18} /> : <Bot size={18} />}
-            </div>
-            <div className={`max-w-[85%] p-5 rounded-[2rem] text-sm leading-relaxed font-medium shadow-xl ${
-              m.role === "user" 
-                ? "bg-[#00A86B] text-white rounded-tr-none" 
-                : "bg-[#0C1F1A] border border-[#1A3D2E] rounded-tl-none text-slate-100"
-            }`}>
-              <p className="whitespace-pre-wrap">{m.content}</p>
-            </div>
-          </motion.div>
-        ))}
+        {messages.map((m, i) => {
+          const mapData = m.role === "assistant" ? parsePotentialAddress(m.content) : null;
+          
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex gap-4 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+            >
+              <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg ${
+                m.role === "user" ? "bg-[#1A3D2E]" : "vaqta-gradient"
+              }`}>
+                {m.role === "user" ? <User size={18} /> : <Bot size={18} />}
+              </div>
+              <div className={`max-w-[85%] p-5 rounded-[2rem] text-sm leading-relaxed font-medium shadow-xl flex flex-col gap-3 ${
+                m.role === "user" 
+                  ? "bg-[#00A86B] text-white rounded-tr-none" 
+                  : "bg-[#0C1F1A] border border-[#1A3D2E] rounded-tl-none text-slate-100"
+              }`}>
+                <p className="whitespace-pre-wrap">{m.content}</p>
+
+                {mapData && (
+                  <div className="mt-3 p-4 bg-[#06140F]/60 border border-[#1A3D2E] rounded-2xl space-y-2">
+                    <div className="flex items-start gap-2">
+                      <MapPin size={16} className="text-[#00A86B] flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-black uppercase text-[#5C7A6D]">{t("maps.found_address")}</p>
+                        <p className="text-sm font-bold text-white">{mapData.address}</p>
+                        {mapData.organization && <p className="text-xs text-[#00A86B] font-bold mt-1">{mapData.organization}</p>}
+                      </div>
+                    </div>
+                    <GoogleMapsButton address={mapData.address} />
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
         
         {isTyping && (
           <div className="flex gap-4">

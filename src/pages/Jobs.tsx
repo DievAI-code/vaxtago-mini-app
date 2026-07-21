@@ -7,8 +7,11 @@ import { FadeUp } from "@/components/animations";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Vacancy } from "@/types/database";
+import { useLanguage } from "@/context/LanguageProvider";
+import { GoogleMapsButton } from "@/components/GoogleMapsButton";
 
 export default function Jobs() {
+  const { t } = useLanguage();
   const [query, setInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<Vacancy[]>([]);
@@ -18,7 +21,6 @@ export default function Jobs() {
     setIsSearching(true);
     
     try {
-      // Имитация AI-разбора намерения (в идеале через Edge Function)
       const { data } = await supabase
         .from("vacancies")
         .select("*, employers(*)")
@@ -86,9 +88,15 @@ export default function Jobs() {
                   </div>
                 </div>
                 
-                <div className="flex gap-4 text-xs text-[#5C7A6D] mb-6 relative z-10">
+                <div className="flex gap-4 text-xs text-[#5C7A6D] mb-4 relative z-10">
                   <div className="flex items-center gap-1.5 font-bold"><MapPin size={14}/> {v.city}</div>
                   <div className="flex items-center gap-1.5 text-[#00A86B] font-black"><DollarSign size={14}/> {v.salary_from} ₽</div>
+                </div>
+
+                <div className="mb-4">
+                  <p className="text-[10px] font-black text-[#5C7A6D] uppercase tracking-widest">{t("maps.job_location")}</p>
+                  <p className="text-xs font-bold text-white mt-1">{v.city}, Россия</p>
+                  <GoogleMapsButton address={`${v.city}, Россия`} />
                 </div>
 
                 <button onClick={() => window.open(v.url, '_blank')} className="w-full h-12 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#00A86B] hover:text-white transition-colors">Batafsil</button>
