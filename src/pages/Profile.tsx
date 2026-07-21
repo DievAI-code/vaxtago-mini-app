@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 import { 
-  User, Sparkles, FileText, Settings, Crown, Info, 
-  ChevronRight, LogOut, Clock, Globe, Shield, Zap,
-  Languages, Database, Moon, Phone
+  User, Sparkles, Settings, Crown, Globe,
+  ChevronRight, LogOut, Clock, Zap,
+  Languages, Database, Moon, Phone, MapPin
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
@@ -12,51 +12,53 @@ import { useLanguage } from "@/context/LanguageProvider";
 import { useApp } from "@/lib/theme";
 import { useNavigate } from "react-router-dom";
 import { FadeUp } from "@/components/animations";
+import { useState, useEffect } from "react";
+
+interface PlacesHistory {
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  date: string;
+}
 
 export default function Profile() {
   const { t, language } = useLanguage();
-  const { theme, toggleTheme } = useApp();
-  const navigate = useNavigate();
+  const { navigate } = useNavigate() as any; // safe fallback or standard call
+  const nav = useNavigate();
+  const [historyPlaces, setHistoryPlaces] = useState<PlacesHistory[]>([]);
   
   const userPhone = localStorage.getItem("vaxtago_user_phone") || "+7 (900) 000-00-00";
 
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("vaqta_places_history");
+      if (cached) {
+        setHistoryPlaces(JSON.parse(cached));
+      }
+    } catch {}
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("vaxtago_auth");
-    navigate("/login", { replace: true });
+    nav("/login", { replace: true });
   };
 
   const SECTIONS = [
     {
       id: "user",
-      title: t("profile.user_info"),
+      title: t("profile.user_info") || "Корбар",
       items: [
-        { icon: User, label: t("profile.user_name"), value: "VAQTA User", color: "text-blue-400" },
-        { icon: Phone, label: t("profile.user_phone"), value: userPhone, color: "text-emerald-400" },
-        { icon: Globe, label: t("profile.user_lang"), value: language.toUpperCase(), color: "text-[#00A86B]" },
+        { icon: User, label: t("profile.user_name") || "VAQTA User", value: "VAQTA User", color: "text-blue-400" },
+        { icon: Phone, label: t("profile.user_phone") || "Номер", value: userPhone, color: "text-emerald-400" },
+        { icon: Globe, label: t("profile.user_lang") || "Язык", value: language.toUpperCase(), color: "text-[#00A86B]" },
       ]
     },
     {
       id: "ai",
-      title: t("profile.ai_activity"),
+      title: t("profile.ai_activity") || "Интеллект",
       items: [
-        { icon: Zap, label: t("profile.ai_requests"), value: "124", color: "text-orange-400" },
-        { icon: Clock, label: t("profile.ai_history"), color: "text-purple-400" },
-      ]
-    },
-    {
-      id: "scanner",
-      title: t("profile.scanner_activity"),
-      items: [
-        { icon: Database, label: t("profile.docs_count"), value: "12", color: "text-cyan-400" },
-        { icon: Languages, label: t("profile.trans_count"), value: "48", color: "text-indigo-400" },
-      ]
-    },
-    {
-      id: "settings",
-      title: t("profile.settings"),
-      items: [
-        { icon: Settings, label: t("profile.settings"), value: "System" },
-        { icon: Moon, label: t("profile.premium_status"), value: "Premium v3", onClick: () => navigate("/premium") },
+        { icon: Zap, label: t("profile.ai_requests") || "AI запросы", value: "124", color: "text-orange-400" },
       ]
     }
   ];
@@ -109,6 +111,31 @@ export default function Profile() {
             </div>
           </section>
         ))}
+
+        {historyPlaces.length > 0 && (
+          <section className="space-y-4">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D4AF37] ml-2">История мест</h3>
+            <div className="space-y-2">
+              {historyPlaces.map((place, idx) => (
+                <motion.div 
+                  key={idx}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`, "_blank")}
+                  className="vaqta-glass p-5 flex items-center gap-4 border-[#1A3D2E]/40 group cursor-pointer"
+                >
+                  <div className="p-3 rounded-2xl bg-white/5 text-[#D4AF37] group-hover:scale-110 transition-transform">
+                    <MapPin size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{place.name}</p>
+                    <p className="text-[10px] text-[#5C7A6D] truncate mt-0.5">{place.address}</p>
+                  </div>
+                  <ChevronRight size={18} className="text-[#1A3D2E] group-hover:text-[#00A86B] transition-colors" />
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <FadeUp>
           <button 

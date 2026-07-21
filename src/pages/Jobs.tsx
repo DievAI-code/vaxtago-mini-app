@@ -1,20 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Search, ShieldCheck, MapPin, DollarSign, Sparkles, Filter, Briefcase } from "lucide-react";
+import { Search, ShieldCheck, MapPin, DollarSign, Sparkles, Filter, Briefcase, Map } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { FadeUp } from "@/components/animations";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Vacancy } from "@/types/database";
 import { useLanguage } from "@/context/LanguageProvider";
-import { GoogleMapsButton } from "@/components/GoogleMapsButton";
+import { geocodingService } from "@/services/geocodingService";
+import { MapView } from "@/components/MapView";
 
 export default function Jobs() {
   const { t } = useLanguage();
   const [query, setInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<Vacancy[]>([]);
+  const [selectedMaps, setSelectedMaps] = useState<Record<string, { lat: number; lng: number; address: string }>>({});
+  const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -32,6 +35,33 @@ export default function Jobs() {
       console.error(err);
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleShowMap = async (id: string, city: string) => {
+    if (selectedMaps[id]) {
+      // Toggle off map if already loaded
+      setSelectedMaps(prev => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+      return;
+    }
+
+    setLoadingMap(prev => ({ ...prev, [id]: true }));
+    const coords = await geocodingService.searchAddress(city + ", Россия");
+    setLoadingMap(prev => ({ ...prev, [id]: false }));
+
+    if (coords) {
+      setSelectedMaps(prev => ({
+        ...prev,
+        [id]: {
+          lat: coords.latitude,
+          lng: coords.longitude,
+          address: coords.display_name
+        }
+      }));
     }
   };
 
@@ -96,7 +126,20 @@ export default function Jobs() {
                 <div className="mb-4">
                   <p className="text-[10px] font-black text-[#5C7A6D] uppercase tracking-widest">{t("maps.job_location")}</p>
                   <p className="text-xs font-bold text-white mt-1">{v.city}, Россия</p>
-                  <GoogleMapsButton address={`${v.city}, Россия`} />
+                  
+                  {selectedMaps[v.id] && (
+                    <div className="mt-3">
+                      <MapView latitude={selectedMaps[v.id].lat} longitude={selectedMaps[v.id].lng} address={selectedMaps[v.id].address} />
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handleShowMap(v.id, v.city)}
+                    className="w-full mt-3 h-12 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-white flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
+                  >
+                    <Map size={14} className="text-[#00A86B]" />
+                    <span>{loadingMap[v.id] ? t("common.loading") : selectedMaps[v.id] ? "Скрыть карту" : t("maps.open")}</span>
+                  </button>
                 </div>
 
                 <button onClick={() => window.open(v.url, '_blank')} className="w-full h-12 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#00A86B] hover:text-white transition-colors">Batafsil</button>

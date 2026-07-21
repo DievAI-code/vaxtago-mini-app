@@ -11,7 +11,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
-import { GoogleMapsButton } from "@/components/GoogleMapsButton";
+import { MapView } from "@/components/MapView";
+import { geocodingService } from "@/services/geocodingService";
 
 type ScanStep = 'idle' | 'uploading' | 'ocr' | 'detecting' | 'translating' | 'analyzing' | 'done';
 
@@ -24,6 +25,8 @@ interface ScanResult {
   detected_lang: string;
   address?: string;
   confidence?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export default function Scanner() {
@@ -58,6 +61,19 @@ export default function Scanner() {
       }
 
       setStep('analyzing');
+      
+      const potentialAddr = data.address || null;
+      let lat: number | undefined;
+      let lng: number | undefined;
+
+      if (potentialAddr) {
+        const coords = await geocodingService.searchAddress(potentialAddr);
+        if (coords) {
+          lat = coords.latitude;
+          lng = coords.longitude;
+        }
+      }
+
       setResult({
         ocr_text: data.ocr_text || "",
         translation: data.translation || "",
@@ -65,8 +81,10 @@ export default function Scanner() {
         risks: data.risks || [],
         doc_type: data.document_type || "Документ",
         detected_lang: data.source_lang || "Авто",
-        address: data.address || undefined,
-        confidence: data.confidence || "High"
+        address: potentialAddr || undefined,
+        confidence: data.confidence || "High",
+        lat,
+        lng
       });
       
       setStep('done');
@@ -176,7 +194,7 @@ export default function Scanner() {
                 </div>
               </div>
 
-              {/* Google Maps Detected Address Block */}
+              {/* Google Maps / OpenStreetMap Detected Address Block */}
               {result.address && (
                 <div className="vaqta-glass p-6 border-[#00A86B]/30 flex flex-col gap-3">
                   <div className="flex items-start gap-3">
@@ -189,7 +207,11 @@ export default function Scanner() {
                       <p className="text-[9px] font-bold text-[#D4AF37] uppercase tracking-wider mt-1">{t("maps.confidence")}: {result.confidence}</p>
                     </div>
                   </div>
-                  <GoogleMapsButton address={result.address} />
+                  {result.lat && result.lng ? (
+                    <MapView latitude={result.lat} longitude={result.lng} address={result.address} />
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Координаты не найдены. Но вы всё равно можете попробовать скопировать адрес.</p>
+                  )}
                 </div>
               )}
 

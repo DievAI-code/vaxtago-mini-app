@@ -1,23 +1,28 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser, MapPin } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser, MapPin, Compass, Navigation } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
-import { GoogleMapsButton } from "@/components/GoogleMapsButton";
+import { geocodingService } from "@/services/geocodingService";
+import { MapView } from "@/components/MapView";
 
-// Простая функция извлечения адреса или мест
-function parsePotentialAddress(text: string): { address: string; organization?: string; city?: string } | null {
-  const addressRegex = /(?:ул\.|улица|пр-кт|проспект|город|г\.|ш\.|шоссе)\s+([А-Яа-яA-Za-z0-9\s.,-]+)/i;
-  const match = text.match(addressRegex);
-  if (match) {
-    return {
-      address: match[0],
-      city: text.includes("Москва") ? "Москва" : undefined,
-      organization: text.includes("МВД") ? "МВД" : undefined
-    };
+interface LocationCardData {
+  address: string;
+  name?: string;
+  lat: number;
+  lng: number;
+}
+
+function extractLocationQuery(text: string): string | null {
+  const match = text.match(/(?:где находится|покажи адрес|найди компанию|покажи на карте|как доехать|где завод|найди предприятие)\s+([А-Яа-яA-Za-z0-9\s.,-]+)/i);
+  if (match) return match[1].trim();
+
+  // Fallback pattern matching for organization names / structures
+  if (text.includes("МВД") || text.includes("МЦ") || text.includes("Сахарово") || text.includes("завод") || text.includes("аэропорт")) {
+    return text.trim();
   }
   return null;
 }
@@ -27,6 +32,8 @@ export default function AiAssistant() {
   const { sendMessage, loading: isTyping, messages, clearHistory } = useAiChat();
   const [input, setInput] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [locations, setLocations] = useState<Record<number, LocationCardData>>({});
+  const [loadingGeocode, setLoadingGeocode] = useState<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -34,7 +41,7 @@ export default function AiAssistant() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages, isTyping, locations]);
 
   const handleSend = async () => {
     if ((!input.trim() && !attachedImage) || isTyping) return;
@@ -44,7 +51,60 @@ export default function AiAssistant() {
     const img = attachedImage;
     setAttachedImage(null);
     
+    const msgIndex = messages.length + 1;
     await sendMessage(userMsg, img || undefined);
+
+    // After response is generated, check if location geocoding is needed
+    const query = extractLocationQuery(userMsg);
+    if (query) {
+      setLoadingGeocode(prev => ({ ...prev, [msgIndex]: true }));
+      const result = await geocodingService.searchAddress(query);
+      setLoadingGeocode(prev => ({ ...prev, [msgIndex]: false }));
+      if (result) {
+        setLocations(prev => ({
+          ...prev,
+          [msgIndex]: {
+            address: result.display_name,
+            name: result.name || query,
+            lat: result.latitude,
+            lng: result.longitude
+          }
+        }));
+        
+        // Save to locations history in localstorage
+        try {
+          const cached = localStorage.getItem("vaqta_places_history");
+          const historyList = cached ? JSON.parse(cached) : [];
+          const updated = [{
+            name: result.name || query,
+            address: result.display_name,
+            lat: result.latitude,
+            lng: result.longitude,
+            date: new Date().toISOString()
+          }, ...historyList].slice(0, 10);
+          localStorage.setItem("vaqta_places_history", JSON.stringify(updated));
+        } catch (e) {
+          console.error("Failed to save history", e);
+        }
+      }
+    }
+  };
+
+  const handleManualMapLoad = async (idx: number, content: string) => {
+    setLoadingGeocode(prev => ({ ...prev, [idx]: true }));
+    const result = await geocodingService.searchAddress(content);
+    setLoadingGeocode(prev => ({ ...prev, [idx]: false }));
+    if (result) {
+      setLocations(prev => ({
+        ...prev,
+        [idx]: {
+          address: result.display_name,
+          name: result.name || content,
+          lat: result.latitude,
+          lng: result.longitude
+        }
+      }));
+    }
   };
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,7 +132,7 @@ export default function AiAssistant() {
           </div>
         </div>
         <div className="flex gap-1">
-           <button onClick={clearHistory} className="p-2 text-[#5C7A6D] hover:text-red-400 transition-colors"><Eraser size={20}/></button>
+           <button onClick={() => { clearHistory(); setLocations({}); }} className="p-2 text-[#5C7A6D] hover:text-red-400 transition-colors"><Eraser size={20}/></button>
            <button className="p-2 text-[#5C7A6D]"><MoreVertical size={20}/></button>
         </div>
       </header>
@@ -86,8 +146,9 @@ export default function AiAssistant() {
         )}
         
         {messages.map((m, i) => {
-          const mapData = m.role === "assistant" ? parsePotentialAddress(m.content) : null;
-          
+          const hasLocation = locations[i];
+          const isLoading = loadingGeocode[i];
+
           return (
             <motion.div
               key={i}
@@ -107,17 +168,43 @@ export default function AiAssistant() {
               }`}>
                 <p className="whitespace-pre-wrap">{m.content}</p>
 
-                {mapData && (
-                  <div className="mt-3 p-4 bg-[#06140F]/60 border border-[#1A3D2E] rounded-2xl space-y-2">
-                    <div className="flex items-start gap-2">
-                      <MapPin size={16} className="text-[#00A86B] flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-black uppercase text-[#5C7A6D]">{t("maps.found_address")}</p>
-                        <p className="text-sm font-bold text-white">{mapData.address}</p>
-                        {mapData.organization && <p className="text-xs text-[#00A86B] font-bold mt-1">{mapData.organization}</p>}
+                {m.role === "assistant" && !hasLocation && (
+                  <button 
+                    onClick={() => handleManualMapLoad(i, m.content)}
+                    className="flex items-center gap-2 self-start px-4 py-2 mt-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-[#00A86B] hover:bg-white/10 transition-colors"
+                  >
+                    <Compass size={14} />
+                    <span>{t("maps.open")}</span>
+                  </button>
+                )}
+
+                {isLoading && (
+                  <div className="flex items-center gap-2 text-xs text-[#5C7A6D] italic mt-2">
+                    <span className="w-2 h-2 rounded-full bg-[#00A86B] animate-ping" />
+                    <span>Поиск местоположения...</span>
+                  </div>
+                )}
+
+                {hasLocation && (
+                  <div className="mt-3 space-y-4">
+                    <div className="p-4 bg-[#06140F]/60 border border-[#1A3D2E] rounded-3xl space-y-2">
+                      <div className="flex items-start gap-2">
+                        <MapPin size={16} className="text-[#00A86B] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-[#5C7A6D]">{t("maps.found_address")}</p>
+                          <p className="text-xs font-bold text-white leading-snug">{hasLocation.address}</p>
+                          {hasLocation.name && <p className="text-xs text-[#D4AF37] font-bold mt-1">🏢 {hasLocation.name}</p>}
+                        </div>
                       </div>
                     </div>
-                    <GoogleMapsButton address={mapData.address} />
+                    <MapView latitude={hasLocation.lat} longitude={hasLocation.lng} address={hasLocation.address} />
+                    <button
+                      onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${hasLocation.lat},${hasLocation.lng}`, "_blank")}
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-white flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
+                    >
+                      <Navigation size={14} className="text-[#D4AF37]" />
+                      <span>{t("maps.route")}</span>
+                    </button>
                   </div>
                 )}
               </div>
