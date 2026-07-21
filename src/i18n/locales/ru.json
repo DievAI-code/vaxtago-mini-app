@@ -1,17 +1,5 @@
 {
-  "common": {
-    "loading": "Загрузка...",
-    "error": "Ошибка",
-    "retry": "Повторить",
-    "save": "Сохранить",
-    "copy": "Копировать",
-    "share": "Поделиться",
-    "back": "Назад",
-    "done": "Готово",
-    "continue": "Продолжить"
-  },
   "auth": {
-    "title": "VAQTA AI",
     "subtitle": "AI-помощник для работы, документов и переводов",
     "phone_label": "Номер телефона",
     "phone_placeholder": "+7 (___) ___ __ __",
@@ -25,28 +13,50 @@
     "jobs": "Работа",
     "profile": "Профиль"
   },
-  "profile": {
-    "user_info": "Профиль",
-    "user_name": "Имя",
-    "user_phone": "Телефон",
-    "user_lang": "Язык",
-    "ai_activity": "AI активность",
-    "ai_requests": "Запросов",
-    "ai_history": "История чатов",
-    "scanner_activity": "Сканер",
-    "docs_count": "Документов",
-    "trans_count": "Переводов",
-    "premium_status": "Premium Статус",
-    "settings": "Настройки",
-    "about": "О приложении",
-    "logout": "Выйти"
+  "home": {
+    "hero_title": "Умный AI помощник\nдля вашей жизни",
+    "hero_subtitle": "Премиальный интеллект",
+    "btn_upload": "Загрузить документ",
+    "btn_chat": "Спросить AI",
+    "quick_services": "Быстрые сервисы",
+    "all_services": "Все",
+    "search_job": "Поиск работы",
+    "scanner_desc": "Перевод документов",
+    "market_analysis": "Анализ рынка",
+    "market_desc": "Прогноз востребованности профессий в реальном времени на основе AI аналитики."
   },
-  "admin": {
-    "title": "Админ-панель",
-    "stats_users": "Пользователи",
-    "stats_new": "Новые (24ч)",
-    "stats_ai": "AI запросы",
-    "stats_scans": "Сканирования",
-    "stats_trans": "Переводы"
-  }
+  "jobs": {
+    "placeholder": "Какая работа вам нужна?",
+    "found_count": "Популярные вакансии"
+  },
+  "scanner": {
+    "title": "Умный сканер",
+    "desc": "Распознавание и перевод",
+    "upload_area": "Нажмите, чтобы загрузить фото",
+    "step_upload": "Загрузка...",
+    "step_ocr": "Распознавание...",
+    "step_lang": "Определение языка...",
+    "step_translate": "Перевод...",
+    "step_analyze": "Анализ AI...",
+    "result_ready": "Результат готов",
+    "translation": "Перевод",
+    "explanation": "Объяснение",
+    "risks": "Анализ рисков",
+    "new_scan": "Новый скан"
+  },
+  "chat": {
+    "welcome": "Здравствуйте! Чем я могу вам помочь сегодня? Я понимаю документы, фото и переводы.",
+    "placeholder": "Напишите ваш вопрос...",
+    "premium_badge": "Premium AI"
+  },
+  "common": {
+    "continue": "Продолжить",
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "done": "Готово",
+    "more": "Подробнее",
+    "save": "Сохранить",
+    "share": "Поделиться"
+  },
+  "settings_lang": "Язык"
 }

@@ -1,75 +1,62 @@
 {
-  "common": {
-    "loading": "Yuklanmoqda...",
-    "error": "Xatolik",
-    "retry": "Qayta urinish",
-    "save": "Saqlash",
-    "copy": "Nusxa olish",
-    "share": "Ulashish",
-    "back": "Orqaga",
-    "done": "Tayyor",
-    "close": "Yopish",
-    "cancel": "Bekor qilish",
-    "more": "Batafsil",
-    "clear": "Tozalash"
+  "auth": {
+    "subtitle": "Ish, hujjatlar va tarjimalar uchun AI yordamchi",
+    "phone_label": "Telefon raqami",
+    "phone_placeholder": "+998 (__) ___ __ __",
+    "privacy_note": "Davom etish orqali siz foydalanish shartlari va maxfiylik siyosatini qabul qilasiz",
+    "select_lang": "Tilni tanlang"
   },
   "nav": {
     "home": "Asosiy",
+    "ai": "AI Yordamchi",
     "scanner": "Skaner",
-    "ai": "VAQTA AI",
     "jobs": "Ishlar",
-    "profile": "Profil",
-    "history": "Tarix",
-    "premium": "Premium",
-    "settings": "Sozlamalar",
-    "about": "Ilova haqida",
-    "contacts": "Kontaktlar",
-    "policy": "Siyosat"
-  },
-  "profile": {
-    "user_section": "Foydalanuvchi",
-    "user_name": "Ism",
-    "user_lang": "Til",
-    "user_country": "Davlat",
-    "user_status": "Hisob holati",
-    "ai_section": "Sun'iy intellekt",
-    "ai_history": "Muloqotlar tarixi",
-    "ai_analysis": "Oxirgi tahlil",
-    "ai_translation": "Oxirgi tarjima",
-    "docs_section": "Hujjatlar",
-    "docs_last": "Oxirgi hujjatlar",
-    "docs_trans": "Oxirgi tarjimalar",
-    "docs_photos": "Oxirgi suratlar",
-    "settings_section": "Sozlamalar",
-    "settings_ui_lang": "Ilova tili",
-    "settings_ai_lang": "AI tili",
-    "settings_ocr_lang": "OCR tili",
-    "settings_trans_lang": "Tarjima tili",
-    "settings_theme": "Ilova mavzusi",
-    "premium_section": "VaxtaGo Premium",
-    "premium_status": "Obuna holati",
-    "premium_benefits": "Imkoniyatlar",
-    "info_section": "Ma'lumot",
-    "info_version": "Ilova versiyasi",
-    "info_policy": "Maxfiylik siyosati",
-    "info_contacts": "Biz bilan bog'lanish"
+    "profile": "Profil"
   },
   "home": {
-    "hero_title": "Ish va hayot uchun\naqlli yordamchi",
-    "hero_subtitle": "Rasm yuboring. Biz tushuntiramiz.",
-    "quick_services": "Xizmatlar",
-    "market_analysis": "Bozor tahlili"
+    "hero_title": "Aqlli AI yordamchi\nhayotingiz uchun",
+    "hero_subtitle": "Premium intellekt",
+    "btn_upload": "Hujjat yuklash",
+    "btn_chat": "AI dan so'rash",
+    "quick_services": "Tezkor xizmatlar",
+    "all_services": "Barchasi",
+    "search_job": "Ish qidirish",
+    "scanner_desc": "Hujjatlar tarjimasi",
+    "market_analysis": "Bozor tahlili",
+    "market_desc": "AI tahlillari asosida real vaqt rejimida kasblarga bo'lgan talab prognozi."
   },
-  "chat": {
-    "welcome": "Assalomu alaykum 👋\n\nMen VAQTA AI yordamchisiman. Savolingizni yozing.",
-    "placeholder": "Savol yozing...",
-    "typing": "AI o'ylamoqda...",
-    "premium_badge": "Premium"
+  "jobs": {
+    "placeholder": "Sizga qanday ish kerak?",
+    "found_count": "Mashhur vakansiyalar"
   },
   "scanner": {
-    "title": "Skaner",
-    "desc": "Hujjatlar tahlili",
-    "upload_area": "Rasm yuklash yoki suratga olish",
-    "processing": "Tahlil qilinmoqda..."
-  }
+    "title": "Aqlli skaner",
+    "desc": "Aniqlash va tarjima",
+    "upload_area": "Rasm yuklash uchun bosing",
+    "step_upload": "Yuklanmoqda...",
+    "step_ocr": "Aniqlanmoqda...",
+    "step_lang": "Til aniqlanmoqda...",
+    "step_translate": "Tarjima qilinmoqda...",
+    "step_analyze": "AI tahlili...",
+    "result_ready": "Natija tayyor",
+    "translation": "Tarjima",
+    "explanation": "Tushuntirish",
+    "risks": "Xavf tahlili",
+    "new_scan": "Yangi skaner"
+  },
+  "chat": {
+    "welcome": "Assalomu alaykum! Bugun sizga qanday yordam bera olaman? Men hujjatlar, rasmlar va tarjimalarni tushunaman.",
+    "placeholder": "Savolingizni yozing...",
+    "premium_badge": "Premium AI"
+  },
+  "common": {
+    "continue": "Davom etish",
+    "loading": "Yuklanmoqda...",
+    "error": "Xatolik",
+    "done": "Tayyor",
+    "more": "Batafsil",
+    "save": "Saqlash",
+    "share": "Ulashish"
+  },
+  "settings_lang": "Til"
 }

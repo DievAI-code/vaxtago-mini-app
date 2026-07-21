@@ -19,7 +19,7 @@ const AiAssistant = lazy(() => import("./pages/AiAssistant"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Scanner = lazy(() => import("./pages/Scanner"));
 const Login = lazy(() => import("./pages/Login"));
-const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
+const FounderDashboard = lazy(() => import("./pages/FounderDashboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -64,7 +64,7 @@ const App = () => {
                         <Route path="/ai" element={<PrivateRoute><AiAssistant /></PrivateRoute>} />
                         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
                         <Route path="/scanner" element={<PrivateRoute><Scanner /></PrivateRoute>} />
-                        <Route path="/admin" element={<AdminAnalytics />} />
+                        <Route path="/founder" element={<FounderDashboard />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </motion.div>
