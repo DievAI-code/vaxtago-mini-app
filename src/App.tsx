@@ -3,134 +3,87 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useState, useEffect, Suspense, lazy } from "react";
+import { Suspense, lazy, memo } from "react";
 import { AppProvider } from "@/lib/theme";
-import { SplashScreen } from "@/components/SplashScreen";
-import { AuthScreen } from "@/components/AuthScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { TelegramProvider, useTelegramUser } from "@/components/TelegramProvider";
 import { NavStackProvider } from "@/components/NavigationStack";
-import { motion, AnimatePresence } from "framer-motion";
-import { analytics } from "@/services/Analytics";
+import { motion } from "framer-motion";
 import "@/i18n";
 
-const Login = lazy(() => import("./pages/Login"));
+// Lazy loading pages to prevent white screen and heavy initial bundle
 const Home = lazy(() => import("./pages/Home"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+const Jobs = lazy(() => import("./pages/Jobs"));
+const AiAssistant = lazy(() => import("./pages/AiAssistant"));
+const Profile = lazy(() => import("./pages/Profile"));
+const History = lazy(() => import("./pages/History"));
+const Scanner = lazy(() => import("./pages/Scanner"));
+const Translate = lazy(() => import("./pages/Translate"));
+const PhotoTranslator = lazy(() => import("./pages/PhotoTranslator"));
+const Documents = lazy(() => import("./pages/Documents"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Premium = lazy(() => import("./pages/Premium"));
 const About = lazy(() => import("./pages/About"));
 const Contacts = lazy(() => import("./pages/Contacts"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
-const Scanner = lazy(() => import("./pages/Scanner"));
-const Jobs = lazy(() => import("./pages/Jobs"));
-const AiAssistant = lazy(() => import("./pages/AiAssistant"));
-const Documents = lazy(() => import("./pages/Documents"));
-const Translate = lazy(() => import("./pages/Translate"));
-const Profile = lazy(() => import("./pages/Profile"));
-const History = lazy(() => import("./pages/History"));
-const Premium = lazy(() => import("./pages/Premium"));
-const Settings = lazy(() => import("./pages/Settings"));
-const PhotoTranslator = lazy(() => import("./pages/PhotoTranslator"));
-const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
 
-const PageFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-[#080B14]">
-    <div className="w-8 h-8 rounded-full border-2 border-[#7C3AED]/40 border-t-[#7C3AED] animate-spin" />
+const LoadingScreen = memo(() => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-[#09090B]">
+    <div className="w-10 h-10 rounded-full border-2 border-[#2563EB]/40 border-t-[#2563EB] animate-spin" />
+    <p className="mt-4 text-sm text-slate-500 font-medium">Загрузка VaxtaGo...</p>
   </div>
-);
-
-const AppContent = () => {
-  const [loading, setLoading] = useState(true);
-  const { isInTelegram: inTg, isAuthed, needsPhone, authLoading } = useTelegramUser();
-
-  useEffect(() => {
-    document.title = "VaxtaGo 2.0 — AI Super App";
-    const bootSplash = document.getElementById("boot-splash");
-    if (bootSplash) bootSplash.remove();
-    const tg = window.Telegram?.WebApp;
-    if (inTg && tg) {
-      try { tg.ready(); tg.expand(); document.body.classList.add("telegram-app"); } catch (e) { console.warn("TG init failed:", e); }
-    }
-    const t = setTimeout(() => setLoading(false), 1200);
-    return () => clearTimeout(t);
-  }, [inTg]);
-
-  useEffect(() => {
-    if (isAuthed) analytics.track("app_open");
-  }, [isAuthed]);
-
-  if (loading) return <SplashScreen />;
-
-  if (authLoading) return <PageFallback />;
-
-  if (!isAuthed) {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
-
-  if (needsPhone) {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/phone" element={<AuthScreen mode="phone" />} />
-          <Route path="*" element={<Navigate to="/phone" replace />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="app-container">
-      <BrowserRouter>
-        <NavStackProvider>
-          <Suspense fallback={<PageFallback />}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/home" replace />} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/ai" element={<AiAssistant />} />
-              <Route path="/jobs" element={<Jobs />} />
-              <Route path="/documents" element={<Documents />} />
-              <Route path="/translate" element={<Translate />} />
-              <Route path="/photo-translator" element={<PhotoTranslator />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/premium" element={<Premium />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contacts" element={<Contacts />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/scanner" element={<Scanner />} />
-              <Route path="/admin/analytics" element={<AdminAnalytics />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </NavStackProvider>
-      </BrowserRouter>
-    </motion.div>
-  );
-};
+));
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AppProvider>
-      <TelegramProvider>
-        <TooltipProvider>
-          <ErrorBoundary>
-            <Toaster />
-            <Sonner />
-            <AppContent />
-          </ErrorBoundary>
-        </TooltipProvider>
-      </TelegramProvider>
+      <TooltipProvider>
+        <ErrorBoundary>
+          <NavStackProvider>
+            <BrowserRouter>
+              <Suspense fallback={<LoadingScreen />}>
+                <motion.div 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  transition={{ duration: 0.3 }}
+                >
+                  <Routes>
+                    <Route path="/" element={<Navigate to="/home" replace />} />
+                    <Route path="/home" element={<Home />} />
+                    <Route path="/jobs" element={<Jobs />} />
+                    <Route path="/ai" element={<AiAssistant />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/history" element={<History />} />
+                    <Route path="/scanner" element={<Scanner />} />
+                    <Route path="/translate" element={<Translate />} />
+                    <Route path="/photo-translator" element={<PhotoTranslator />} />
+                    <Route path="/documents" element={<Documents />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/premium" element={<Premium />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contacts" element={<Contacts />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </motion.div>
+              </Suspense>
+            </BrowserRouter>
+          </NavStackProvider>
+          <Toaster />
+          <Sonner position="top-center" expand={false} richColors />
+        </ErrorBoundary>
+      </TooltipProvider>
     </AppProvider>
   </QueryClientProvider>
 );

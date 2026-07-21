@@ -25,16 +25,13 @@ export default defineConfig(() => ({
             if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) {
               return "vendor";
             }
-            if (id.includes("@twa-dev") || id.includes("telegram")) {
-              return "telegram";
-            }
-            if (id.includes("@radix-ui") || id.includes("framer-motion")) {
-              return "ui";
+            if (id.includes("lucide-react") || id.includes("framer-motion")) {
+              return "ui-core";
             }
             if (id.includes("@supabase") || id.includes("@tanstack")) {
-              return "ai";
+              return "backend-core";
             }
-            return "vendor";
+            return "libs";
           }
         },
       },

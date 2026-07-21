@@ -1,4 +1,4 @@
-import { Component, ReactNode } from "react";
+import React, { Component, ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
@@ -6,44 +6,38 @@ interface Props {
 
 interface State {
   hasError: boolean;
-  message?: string;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
+  public state: State = {
+    hasError: false
+  };
+
+  public static getDerivedStateFromError(): State {
+    return { hasError: true };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, message: error.message };
+  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
   }
 
-  componentDidCatch(error: Error, errorInfo: unknown) {
-    console.error("App Error Boundary caught:", error, errorInfo);
-  }
-
-  render() {
+  public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-cyan-400 px-4">
-          <div className="max-w-sm w-full text-center p-8 rounded-3xl bg-white shadow-xl">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center text-white text-2xl font-bold">
-              V
-            </div>
-            <h1 className="text-xl font-bold text-slate-800 mb-2">
-              VaxtaGo временно недоступен
-            </h1>
-            <p className="text-sm text-slate-500 mb-6">
-              {this.state.message || "Произошла непредвиденная ошибка."}
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold hover:scale-105 transition-all"
-            >
-              Повторить
-            </button>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-[#09090B] p-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mb-6">
+            <span className="text-2xl text-red-500">⚠️</span>
           </div>
+          <h1 className="text-xl font-bold text-white mb-2">Произошла ошибка</h1>
+          <p className="text-slate-400 text-sm max-w-xs mb-6">
+            Что-то пошло не так. Попробуйте перезагрузить приложение.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-[#2563EB] text-white rounded-xl font-bold hover:bg-[#1d4ed8] transition-colors"
+          >
+            Обновить страницу
+          </button>
         </div>
       );
     }
