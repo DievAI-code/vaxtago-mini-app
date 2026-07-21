@@ -19,13 +19,20 @@ export function useApp() {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>((i18n.language as Lang) || "uz");
+  const [lang, setLangState] = useState<Lang>(() => {
+    const saved = localStorage.getItem("vaxtago_language") as Lang;
+    return saved || (i18n.language as Lang) || "uz";
+  });
+  
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem("vaxtago_theme") as Theme) || "dark",
   );
 
   useEffect(() => {
     document.documentElement.lang = lang;
+    if (i18n.language !== lang) {
+      i18n.changeLanguage(lang);
+    }
   }, [lang]);
 
   useEffect(() => {
@@ -33,7 +40,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
-  const setLang = (l: Lang) => {
+  const handleSetLang = (l: Lang) => {
     setLanguage(l);
     setLangState(l);
   };
@@ -42,7 +49,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         lang,
-        setLang,
+        setLang: handleSetLang,
         theme,
         toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
       }}

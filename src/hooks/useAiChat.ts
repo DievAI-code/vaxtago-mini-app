@@ -18,11 +18,12 @@ export function useAiChat() {
     history.current.push(userMsg);
 
     try {
+      // Передаем текущий язык приложения в AI
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: { 
           message,
           image,
-          language_code: lang,
+          language_code: lang, 
           history: history.current.slice(-10)
         },
       });

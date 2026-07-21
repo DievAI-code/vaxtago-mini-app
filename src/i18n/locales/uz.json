@@ -18,8 +18,17 @@
   "scanner_risks": "Diqqat qiling:",
   "jobs_title": "AI Ish qidirish",
   "jobs_placeholder": "Menga Moskvada haydovchi ish kerak...",
+  "jobs_found": "Topildi",
   "lang_select_title": "Tilni tanlang",
   "settings_lang": "Til",
   "profile_subscription": "Premium obuna",
-  "logout": "Chiqish"
+  "profile_name": "Foydalanuvchi",
+  "logout": "Chiqish",
+  "send_message": "Xabar yuborish",
+  "search_job": "Ish qidirish",
+  "market_analysis": "Bozor tahlili",
+  "market_desc": "AI tahlili shuni ko'rsatadiki, hozirda qurilish va logistika sohasida talab ortib bormoqda.",
+  "quick_services": "Xizmatlar",
+  "all_services": "Hammasi",
+  "categories": "Kategoriyalar"
 }

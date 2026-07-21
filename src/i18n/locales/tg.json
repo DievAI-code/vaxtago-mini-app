@@ -18,8 +18,17 @@
   "scanner_risks": "Диққат диҳед:",
   "jobs_title": "AI Ҷустуҷӯи кор",
   "jobs_placeholder": "Ба ман кори ронандагӣ дар Маскав лозим аст...",
+  "jobs_found": "Ёфт шуд",
   "lang_select_title": "Забонро интихоб кунед",
   "settings_lang": "Забон",
   "profile_subscription": "Обунаи Premium",
-  "logout": "Баромадан"
+  "profile_name": "Истифодабаранда",
+  "logout": "Баромадан",
+  "send_message": "Фиристодан",
+  "search_job": "Ҷустуҷӯи кор",
+  "market_analysis": "Таҳлили бозор",
+  "market_desc": "Таҳлили AI нишон медиҳад, ки талабот дар соҳаи сохтмон ва логистика меафзояд.",
+  "quick_services": "Хизматрасониҳо",
+  "all_services": "Ҳама",
+  "categories": "Категорияҳо"
 }

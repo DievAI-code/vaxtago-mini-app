@@ -18,8 +18,17 @@
   "scanner_risks": "Обратите внимание:",
   "jobs_title": "AI Поиск работы",
   "jobs_placeholder": "Мне нужна работа водителем в Москве...",
+  "jobs_found": "Найдено",
   "lang_select_title": "Выберите язык",
   "settings_lang": "Язык",
   "profile_subscription": "Premium подписка",
-  "logout": "Выйти"
+  "profile_name": "Пользователь",
+  "logout": "Выйти",
+  "send_message": "Отправить",
+  "search_job": "Найти работу",
+  "market_analysis": "Анализ рынка",
+  "market_desc": "Анализ AI показывает рост спроса в сфере строительства и логистики.",
+  "quick_services": "Услуги",
+  "all_services": "Все",
+  "categories": "Категории"
 }
