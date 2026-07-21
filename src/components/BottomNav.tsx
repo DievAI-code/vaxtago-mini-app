@@ -11,11 +11,11 @@ export function BottomNav() {
   const { t } = useLanguage();
 
   const ITEMS = [
-    { path: "/home", icon: LayoutGrid, label: "nav.home" },
-    { path: "/scanner", icon: Scan, label: "nav.scanner" },
-    { path: "/ai", icon: Sparkles, label: "nav.ai" },
-    { path: "/jobs", icon: Search, label: "nav.jobs" },
-    { path: "/profile", icon: User, label: "nav.profile" },
+    { path: "/home", icon: LayoutGrid, label: t("nav.home") },
+    { path: "/ai", icon: Sparkles, label: t("nav.ai") },
+    { path: "/scanner", icon: Scan, label: t("nav.scanner") },
+    { path: "/jobs", icon: Search, label: t("nav.jobs") },
+    { path: "/profile", icon: User, label: t("nav.profile") },
   ];
 
   return (
@@ -29,7 +29,7 @@ export function BottomNav() {
             <button
               key={item.path}
               onClick={() => nav(item.path)}
-              className="relative flex flex-col items-center gap-1 transition-all duration-300 min-w-[55px] outline-none active:scale-90 group"
+              className="relative flex flex-col items-center gap-1 transition-all duration-300 min-w-[64px] outline-none active:scale-90 group"
             >
               {active && (
                 <motion.div
@@ -46,8 +46,8 @@ export function BottomNav() {
               >
                 <Icon size={20} strokeWidth={active ? 3 : 2} />
               </motion.div>
-              <span className={`text-[8px] font-black uppercase tracking-[0.1em] transition-colors relative z-10 ${active ? 'text-[#00A86B]' : 'text-[#5C7A6D]'}`}>
-                {t(item.label)}
+              <span className={`text-[9px] font-black uppercase tracking-tight transition-colors relative z-10 ${active ? 'text-[#00A86B]' : 'text-[#5C7A6D]'}`}>
+                {item.label}
               </span>
             </button>
           );

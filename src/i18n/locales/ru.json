@@ -8,68 +8,45 @@
     "share": "Поделиться",
     "back": "Назад",
     "done": "Готово",
-    "close": "Закрыть",
-    "cancel": "Отмена",
-    "more": "Подробнее",
-    "clear": "Очистить"
+    "continue": "Продолжить"
+  },
+  "auth": {
+    "title": "VAQTA AI",
+    "subtitle": "AI-помощник для работы, документов и переводов",
+    "phone_label": "Номер телефона",
+    "phone_placeholder": "+7 (___) ___ __ __",
+    "privacy_note": "Продолжая, вы принимаете условия использования и политику конфиденциальности",
+    "select_lang": "Выберите язык"
   },
   "nav": {
     "home": "Главная",
+    "ai": "AI Помощник",
     "scanner": "Сканер",
-    "ai": "VAQTA AI",
     "jobs": "Работа",
-    "profile": "Профиль",
-    "history": "История",
-    "premium": "Premium",
-    "settings": "Настройки",
-    "about": "О проекте",
-    "contacts": "Контакты",
-    "policy": "Политика"
+    "profile": "Профиль"
   },
   "profile": {
-    "user_section": "Пользователь",
+    "user_info": "Профиль",
     "user_name": "Имя",
+    "user_phone": "Телефон",
     "user_lang": "Язык",
-    "user_country": "Страна",
-    "user_status": "Статус аккаунта",
-    "ai_section": "Искусственный интеллект",
-    "ai_history": "История диалогов",
-    "ai_analysis": "Последний анализ",
-    "ai_translation": "Последний перевод",
-    "docs_section": "Документы",
-    "docs_last": "Последние документы",
-    "docs_trans": "Последние переводы",
-    "docs_photos": "Последние фото",
-    "settings_section": "Настройки",
-    "settings_ui_lang": "Язык интерфейса",
-    "settings_ai_lang": "Язык AI",
-    "settings_ocr_lang": "Язык OCR",
-    "settings_trans_lang": "Язык перевода",
-    "settings_theme": "Тема оформления",
-    "premium_section": "VaxtaGo Premium",
-    "premium_status": "Статус подписки",
-    "premium_benefits": "Преимущества",
-    "info_section": "Информация",
-    "info_version": "Версия приложения",
-    "info_policy": "Политика конфиденциальности",
-    "info_contacts": "Связаться с нами"
+    "ai_activity": "AI активность",
+    "ai_requests": "Запросов",
+    "ai_history": "История чатов",
+    "scanner_activity": "Сканер",
+    "docs_count": "Документов",
+    "trans_count": "Переводов",
+    "premium_status": "Premium Статус",
+    "settings": "Настройки",
+    "about": "О приложении",
+    "logout": "Выйти"
   },
-  "home": {
-    "hero_title": "Умный помощник\nдля работы и жизни",
-    "hero_subtitle": "Отправьте фото. Мы объясним.",
-    "quick_services": "Сервисы",
-    "market_analysis": "Анализ рынка"
-  },
-  "chat": {
-    "welcome": "Здравствуйте! 👋\n\nЯ помощник VAQTA AI. Напишите вопрос.",
-    "placeholder": "Напишите вопрос...",
-    "typing": "AI думает...",
-    "premium_badge": "Premium"
-  },
-  "scanner": {
-    "title": "Сканер",
-    "desc": "Анализ документов",
-    "upload_area": "Загрузить фото или сделать снимок",
-    "processing": "Анализируем..."
+  "admin": {
+    "title": "Админ-панель",
+    "stats_users": "Пользователи",
+    "stats_new": "Новые (24ч)",
+    "stats_ai": "AI запросы",
+    "stats_scans": "Сканирования",
+    "stats_trans": "Переводы"
   }
 }
