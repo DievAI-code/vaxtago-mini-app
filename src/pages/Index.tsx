@@ -1,144 +1,115 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { Mic, Camera, Keyboard, Briefcase, FileText, Globe, Shield, MapPin, Wallet, Star } from "lucide-react";
-import { VaxtaGoLogo } from "@/components/VaxtaGoLogo";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { VCareer, VDocument, VGlobal, VShield, VVision } from "@/components/icons/VaxtaGoIcons";
-import { useTelegramUser } from "@/components/TelegramProvider";
-import { useApp } from "@/lib/theme";
+import { Scan, Sparkles, ShieldCheck, Briefcase, ChevronRight, Globe, Zap } from "lucide-react";
+import { VaqtaLogo } from "@/components/VaqtaLogo";
+import { BottomNav } from "@/components/BottomNav";
 import { FadeUp, stagger, fadeUp } from "@/components/animations";
-import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
-import { analytics } from "@/services/Analytics";
-
-interface Vacancy {
-  id: string;
-  title: string;
-  company: string;
-  city: string;
-  salary: string;
-  rating: number;
-  verified: boolean;
-}
 
 export default function Index() {
   const nav = useNavigate();
-  const { t } = useTranslation();
-  const { firstName } = useTelegramUser();
-  const { lang } = useApp();
-  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
 
-  useEffect(() => {
-    loadVacancies();
-    analytics.track("app_open");
-  }, []);
-
-  async function loadVacancies() {
-    try {
-      const { data } = await supabase.from("vacancies").select("*, employers(name, rating, verified)").limit(3);
-      setVacancies((data || []).map((v: any) => ({
-        id: v.id,
-        title: v.title,
-        company: v.employers?.name || "Компания",
-        city: v.city,
-        salary: `${v.salary_from}–${v.salary_to} ₽`,
-        rating: v.employers?.rating || 4.5,
-        verified: v.employers?.verified || false,
-      })));
-    } catch {}
-  }
-
-  const QUICK = [
-    { icon: <VCareer className="w-6 h-6" />, label: "Найти работу", path: "/jobs" },
-    { icon: <VDocument className="w-6 h-6" />, label: "Проверить документ", path: "/documents" },
-    { icon: <VGlobal className="w-6 h-6" />, label: "Перевести текст", path: "/translate" },
-    { icon: <VVision className="w-6 h-6" />, label: "Фото переводчик", path: "/photo-translator" },
-    { icon: <VShield className="w-6 h-6" />, label: "Проверить работодателя", path: "/employer" },
+  const ACTIONS = [
+    { 
+      title: "AI Skaner", 
+      desc: "Hujjatlarni tarjima qilish", 
+      icon: <Scan className="text-[#00A86B]" />, 
+      path: "/scanner",
+      color: "from-[#00A86B]/20"
+    },
+    { 
+      title: "AI Job Check", 
+      desc: "Vakansiya xavfini tekshirish", 
+      icon: <ShieldCheck className="text-[#D4AF37]" />, 
+      path: "/jobs",
+      color: "from-[#D4AF37]/20"
+    }
   ];
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#080B14] text-white">
-      <div className="flex-shrink-0 p-4 pt-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl vg-gradient flex items-center justify-center">
-              <span className="text-white font-bold text-lg">{firstName?.[0]?.toUpperCase() || "V"}</span>
-            </div>
-            <div>
-              <p className="text-sm text-slate-400">Добро пожаловать в</p>
-              <h1 className="text-xl font-bold vg-gradient-text">VaxtaGo</h1>
-            </div>
-          </div>
-          <VaxtaGoLogo size={36} />
+    <div className="flex flex-col min-h-screen bg-[#06140F] pb-32">
+      <header className="p-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <VaqtaLogo size={36} animated />
+          <h1 className="text-2xl font-black tracking-tighter">VAQTA <span className="vaqta-gold-text">AI</span></h1>
         </div>
-      </div>
+        <div className="flex items-center gap-2 bg-[#0C1F1A] border border-[#1A3D2E] px-3 py-1.5 rounded-full">
+          <Globe size={14} className="text-[#00A86B]" />
+          <span className="text-xs font-bold uppercase">UZB</span>
+        </div>
+      </header>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
+      <main className="px-6 space-y-8">
+        {/* Main Hero AI */}
         <FadeUp>
-          <Card variant="gradient" className="mb-6" onClick={() => { analytics.track("ai_assistant_used"); nav("/ai"); }}>
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-3xl">🤖</div>
-              <div className="flex-1">
-                <h3 className="font-bold text-lg">Vaxta AI</h3>
-                <p className="text-white/70 text-sm">Чем могу помочь?</p>
+          <div 
+            onClick={() => nav("/ai")}
+            className="vaqta-glass p-8 relative overflow-hidden group cursor-pointer border-[#00A86B]/30 vaqta-glow"
+          >
+            <div className="relative z-10 space-y-4">
+              <div className="inline-flex items-center gap-2 bg-[#00A86B]/20 text-[#00A86B] px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                <Sparkles size={12} /> Next-Gen Assistant
+              </div>
+              <h2 className="text-3xl font-bold leading-tight">
+                Chet elda ish topishga <br/> <span className="text-[#00A86B]">AI yordam beradi</span>
+              </h2>
+              <p className="text-sm text-[#5C7A6D] max-w-[240px]">
+                Hujjatlarni skanerlang, vakansiyalarni tekshiring va savollaringizga javob oling.
+              </p>
+              <div className="flex items-center gap-2 text-white font-bold group-hover:translate-x-2 transition-transform">
+                VAQTA AI bilan gaplashish <ChevronRight size={18} className="text-[#D4AF37]" />
               </div>
             </div>
-            <div className="flex gap-2 mt-4">
-              <Button size="sm" variant="secondary" icon={<Mic size={16} />} onClick={(e) => { e.stopPropagation(); }}>Голос</Button>
-              <Button size="sm" variant="secondary" icon={<Camera size={16} />} onClick={(e) => { e.stopPropagation(); nav("/scanner"); }}>Фото</Button>
-              <Button size="sm" variant="primary" icon={<Keyboard size={16} />} onClick={(e) => { e.stopPropagation(); nav("/ai"); }}>Написать</Button>
+            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:rotate-12 transition-transform duration-700">
+              <Sparkles size={200} color="#00A86B" />
             </div>
-          </Card>
+            <div className="absolute top-0 left-0 w-full h-full ai-shimmer opacity-30" />
+          </div>
         </FadeUp>
 
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="grid grid-cols-2 gap-3 mb-6">
-          {QUICK.map((action, i) => (
-            <motion.div key={i} variants={fadeUp}>
-              <Card onClick={() => nav(action.path)} className="h-full">
-                <div className="w-12 h-12 rounded-2xl vg-gradient flex items-center justify-center text-white mb-3">{action.icon}</div>
-                <span className="font-semibold text-sm">{action.label}</span>
-              </Card>
+        <section className="grid grid-cols-2 gap-4">
+          {ACTIONS.map((action) => (
+            <motion.div
+              key={action.title}
+              whileHover={{ y: -5 }}
+              onClick={() => nav(action.path)}
+              className={`vaqta-glass p-5 bg-gradient-to-br ${action.color} to-transparent cursor-pointer border-[#1A3D2E]`}
+            >
+              <div className="w-12 h-12 rounded-2xl bg-[#06140F] border border-[#1A3D2E] flex items-center justify-center mb-4 shadow-xl">
+                {action.icon}
+              </div>
+              <h3 className="font-bold text-sm">{action.title}</h3>
+              <p className="text-[10px] text-[#5C7A6D] mt-1">{action.desc}</p>
             </motion.div>
           ))}
-        </motion.div>
+        </section>
 
-        <FadeUp>
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-lg font-bold">Вакансии</h3>
-            <button onClick={() => nav("/jobs")} className="text-sm text-[#7C3AED]">Все →</button>
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#5C7A6D]">AI Analitika</h3>
           </div>
-          <div className="space-y-3">
-            {vacancies.length === 0 ? (
-              <Card variant="default" className="text-center py-8">
-                <p className="text-slate-400 text-sm">Загрузка вакансий...</p>
-              </Card>
-            ) : vacancies.map((v) => (
-              <Card key={v.id} variant="default" className="hover:bg-white/10" onClick={() => analytics.track("vacancy_open")}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold truncate">{v.title}</h4>
-                    <p className="text-sm text-slate-400 flex items-center gap-1 mt-1">
-                      {v.company}
-                      {v.verified && <span className="text-[#22C55E]">✓</span>}
-                    </p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
-                      <span className="flex items-center gap-1"><MapPin size={12} /> {v.city}</span>
-                      <span className="flex items-center gap-1 text-[#22C55E]"><Wallet size={12} /> {v.salary}</span>
-                      <span className="flex items-center gap-1 text-amber-400"><Star size={12} /> {v.rating}</span>
-                    </div>
-                  </div>
+          <div className="vaqta-glass p-6 border-dashed border-[#1A3D2E]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#D4AF37]/10 flex items-center justify-center">
+                  <Zap size={20} className="text-[#D4AF37]" />
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <Button size="sm" variant="primary" onClick={(e) => { e.stopPropagation(); analytics.track("vacancy_apply"); nav("/jobs"); }}>Откликнуться</Button>
-                  <Button size="sm" variant="secondary">Сохранить</Button>
+                <div>
+                  <p className="text-xs font-bold text-[#5C7A6D]">Haftalik xulosa</p>
+                  <p className="text-sm font-bold">Rossiya & BAA bozori</p>
                 </div>
-              </Card>
-            ))}
+              </div>
+              <span className="text-[#00A86B] text-xs font-black">+12%</span>
+            </div>
+            <p className="text-xs text-[#5C7A6D] leading-relaxed">
+              AI tahlili shuni ko'rsatadiki, hozirda qurilish va logistika sohasida talab ortib bormoqda.
+            </p>
           </div>
-        </FadeUp>
-      </div>
+        </section>
+      </main>
+
+      <BottomNav />
     </div>
   );
 }

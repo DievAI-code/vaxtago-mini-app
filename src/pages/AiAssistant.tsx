@@ -2,156 +2,90 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Send, 
-  Sparkles, 
-  Trash2, 
-  Copy, 
-  CornerDownLeft,
-  User,
-  Bot
-} from "lucide-react";
-import { Header } from "@/components/Header";
+import { Send, Sparkles, User, Bot, Languages, Globe } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { TypingDots } from "@/components/animations";
-import { useAiChat } from "@/hooks/useAiChat";
-
-interface Msg {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: Date;
-}
 
 export default function AiAssistant() {
-  const { sendMessage, loading } = useAiChat();
-  const [messages, setMessages] = useState<Msg[]>([
-    { id: "1", role: "assistant", content: "Привет! Я VaxtaGo AI. Чем я могу помочь вам сегодня?", createdAt: new Date() }
+  const [messages, setMessages] = useState([
+    { role: "assistant", content: "Salom! Men VAQTA AI yordamchingizman. Sizga chet elda ish topish, hujjatlar yoki tarjima bilan qanday yordam bera olaman?", lang: "uz" }
   ]);
   const [input, setInput] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef(null);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, loading]);
-
-  const handleSend = async () => {
-    if (!input.trim() || loading) return;
-    
-    const userMsg: Msg = { 
-      id: Date.now().toString(), 
-      role: "user", 
-      content: input.trim(), 
-      createdAt: new Date() 
-    };
-    
-    setMessages(prev => [...prev, userMsg]);
+  const handleSend = () => {
+    if (!input.trim()) return;
+    setMessages(prev => [...prev, { role: "user", content: input }]);
     setInput("");
     
-    const reply = await sendMessage(userMsg.content);
-    if (reply) {
-      setMessages(prev => [...prev, { 
-        id: (Date.now() + 1).toString(), 
-        role: "assistant", 
-        content: reply, 
-        createdAt: new Date() 
-      }]);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    // Simulate AI
+    setTimeout(() => {
+      setMessages(prev => [...prev, { role: "assistant", content: "Sizning so'rovingiz tahlil qilinmoqda. Men sizga eng yaxshi vakansiyalarni topishda yordam beraman.", lang: "uz" }]);
+    }, 1500);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#09090B] text-[#FAFAFA]">
-      <header className="p-6 border-b border-white/5 flex items-center justify-between sticky top-0 bg-[#09090B]/80 backdrop-blur-md z-40">
+    <div className="flex flex-col h-screen bg-[#06140F] text-white">
+      <header className="p-6 border-b border-[#1A3D2E] bg-[#06140F]/80 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl vg-gradient flex items-center justify-center">
-            <Sparkles size={18} className="text-white" />
+          <div className="w-10 h-10 rounded-2xl vaqta-gradient flex items-center justify-center vaqta-glow">
+            <Sparkles size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="font-bold tracking-tight">VaxtaGo AI</h1>
-            <p className="text-[10px] text-[#22C55E] uppercase font-bold tracking-widest">Онлайн</p>
+            <h1 className="font-black tracking-tight">VAQTA AI</h1>
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#00A86B] animate-pulse" />
+              <span className="text-[10px] font-bold text-[#5C7A6D] uppercase tracking-widest">Active</span>
+            </div>
           </div>
         </div>
-        <button 
-          onClick={() => setMessages([messages[0]])}
-          className="p-2 text-slate-500 hover:text-white transition-colors"
-        >
-          <Trash2 size={20} />
-        </button>
+        <div className="flex items-center gap-1 text-[10px] font-bold text-[#5C7A6D]">
+          <Globe size={12} />
+          <span>UZ • RU • EN • TJ • KG</span>
+        </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
-        <AnimatePresence initial={false}>
-          {messages.map((m) => (
-            <motion.div
-              key={m.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex gap-4 ${m.role === "user" ? "flex-row-reverse" : ""}`}
-            >
-              <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
-                m.role === "user" ? "bg-slate-700" : "vg-gradient"
-              }`}>
-                {m.role === "user" ? <User size={16} /> : <Bot size={16} />}
-              </div>
-              <div className={`max-w-[85%] space-y-2 ${m.role === "user" ? "text-right" : ""}`}>
-                <div className={`inline-block p-4 rounded-[1.5rem] text-sm leading-relaxed ${
-                  m.role === "user" 
-                    ? "bg-[#2563EB] text-white rounded-tr-none" 
-                    : "bg-[#18181B] border border-[#27272A] rounded-tl-none"
-                }`}>
-                  {m.content}
-                </div>
-                <div className="flex items-center gap-2 text-[10px] text-slate-500 px-2">
-                  <span>{m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  <button className="hover:text-white transition-colors"><Copy size={12} /></button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        {loading && (
-          <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-full vg-gradient flex items-center justify-center">
-              <Bot size={16} />
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+        {messages.map((m, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
+              m.role === "user" ? "bg-[#1A3D2E]" : "vaqta-gradient"
+            }`}>
+              {m.role === "user" ? <User size={14} /> : <Bot size={14} />}
             </div>
-            <div className="bg-[#18181B] border border-[#27272A] p-4 rounded-[1.5rem] rounded-tl-none">
-              <TypingDots />
+            <div className={`max-w-[80%] p-4 rounded-[1.8rem] text-sm leading-relaxed ${
+              m.role === "user" 
+                ? "bg-[#00A86B] text-white rounded-tr-none" 
+                : "bg-[#0C1F1A] border border-[#1A3D2E] rounded-tl-none"
+            }`}>
+              {m.content}
             </div>
-          </div>
-        )}
+          </motion.div>
+        ))}
       </div>
 
       <div className="p-6 pb-32">
-        <div className="relative group max-w-2xl mx-auto">
+        <div className="relative vaqta-glass overflow-hidden border-[#1A3D2E] focus-within:border-[#00A86B]/50 transition-colors">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Напишите сообщение..."
-            rows={1}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-[1.5rem] py-4 pl-5 pr-14 text-white placeholder-slate-500 focus:outline-none focus:border-[#2563EB] transition-all resize-none overflow-hidden"
-            style={{ height: input ? 'auto' : '56px' }}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
+            placeholder="Savolingizni yozing..."
+            className="w-full bg-transparent py-4 pl-5 pr-14 text-sm text-white placeholder-[#5C7A6D] focus:outline-none resize-none h-14 no-scrollbar"
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || loading}
-            className="absolute right-2 bottom-2 p-3 bg-white text-black rounded-2xl hover:bg-slate-200 disabled:opacity-50 transition-all"
+            className="absolute right-2 top-2 p-2.5 bg-[#00A86B] text-white rounded-2xl hover:scale-105 transition-transform"
           >
             <Send size={18} />
           </button>
+          <div className="absolute top-0 left-0 w-full h-full ai-shimmer opacity-10 pointer-events-none" />
         </div>
-        <p className="text-center text-[10px] text-slate-600 mt-3 flex items-center justify-center gap-1">
-          <CornerDownLeft size={10} /> Enter для отправки, Shift + Enter для новой строки
-        </p>
       </div>
 
       <BottomNav />

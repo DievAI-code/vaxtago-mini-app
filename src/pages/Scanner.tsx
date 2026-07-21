@@ -1,115 +1,108 @@
-import { useState, useRef } from "react";
-import { Camera, Upload, FileText, Scan, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import { Header } from "@/components/Header";
-import { BottomNav } from "@/components/BottomNav";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { VaxtaGoLogo } from "@/components/VaxtaGoLogo";
-import { VVision } from "@/components/icons/VaxtaGoIcons";
-import { supabase } from "@/integrations/supabase/client";
-import { useTranslation } from "react-i18next";
-import { useApp } from "@/lib/theme";
-import { FadeUp } from "@/components/animations";
+"use client";
 
-type ScanStatus = "idle" | "processing" | "success" | "error";
+import { useState, useRef } from "react";
+import { Camera, Upload, Loader2, CheckCircle, FileText, Languages, AlertCircle, X } from "lucide-react";
+import { BottomNav } from "@/components/BottomNav";
+import { FadeUp } from "@/components/animations";
+import { Button } from "@/components/ui/button";
 
 export default function Scanner() {
-  const { t } = useTranslation();
-  const { lang } = useApp();
-  const [status, setStatus] = useState<ScanStatus>("idle");
-  const [result, setResult] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
+  const [status, setStatus] = useState("idle");
+  const [image, setImage] = useState(null);
+  const [result, setResult] = useState(null);
+  const fileRef = useRef(null);
 
-  const processFile = async (file: File) => {
+  const handleUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImage(URL.createObjectURL(file));
+    processImage();
+  };
+
+  const processImage = async () => {
     setStatus("processing");
-    setResult("");
-    try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(",")[1];
-        await new Promise((r) => setTimeout(r, 2000));
-        setResult("Текст распознан:\nПатент на работу №123456\nСрок: до 2026-12-31\nРегион: Москва\nСтатус: активен");
-        setStatus("success");
-      };
-      reader.readAsDataURL(file);
-    } catch {
-      setStatus("error");
-    }
+    // Имитация AI обработки
+    setTimeout(() => {
+      setResult({
+        ocr: "Трудовой договор №452 от 12.02.2025. Работодатель: ООО 'Вектор'. Оклад: 85,000 руб.",
+        translation: "12.02.2025 yildagi 452-sonli mehnat shartnomasi. Ish beruvchi: 'Vektor' MCHJ. Ish haqi: 85,000 rubl.",
+        explanation: "Bu standart mehnat shartnomasi. Ish haqi miqdori va muddatlariga e'tibor bering. Hech qanday shubhali holat topilmadi."
+      });
+      setStatus("success");
+    }, 3000);
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#0F172A] text-white">
-      <Header title="Сканер" />
-      
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
-        <FadeUp>
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <Card onClick={() => cameraRef.current?.click()} className="text-center">
-              <Camera className="w-8 h-8 text-[#06B6D4] mx-auto mb-2" />
-              <span className="font-semibold text-sm">Камера</span>
-            </Card>
-            <Card onClick={() => fileRef.current?.click()} className="text-center">
-              <Upload className="w-8 h-8 text-[#06B6D4] mx-auto mb-2" />
-              <span className="font-semibold text-sm">Галерея</span>
-            </Card>
-          </div>
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])} />
-          <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])} />
-        </FadeUp>
+    <div className="flex flex-col min-h-screen bg-[#06140F] pb-32">
+      <header className="p-6">
+        <h1 className="text-2xl font-bold tracking-tight">AI Skaner</h1>
+        <p className="text-[#5C7A6D] text-sm">Hujjatlarni AI orqali tahlil qilish</p>
+      </header>
+
+      <main className="px-6 space-y-6">
+        {status === "idle" && (
+          <FadeUp>
+            <div 
+              onClick={() => fileRef.current?.click()}
+              className="vaqta-glass p-12 border-dashed border-[#00A86B]/30 flex flex-col items-center justify-center text-center gap-4 cursor-pointer hover:bg-[#00A86B]/5 transition-colors"
+            >
+              <div className="w-20 h-20 rounded-full bg-[#00A86B]/10 flex items-center justify-center text-[#00A86B]">
+                <Camera size={40} />
+              </div>
+              <div>
+                <p className="text-lg font-bold">Rasm yuklash</p>
+                <p className="text-sm text-[#5C7A6D]">Foto, skrinshot yoki PDF</p>
+              </div>
+              <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} accept="image/*" />
+            </div>
+          </FadeUp>
+        )}
 
         {status === "processing" && (
-          <FadeUp>
-            <Card variant="gradient" className="flex items-center gap-3 mb-4">
-              <Loader2 className="w-6 h-6 text-[#06B6D4] animate-spin" />
-              <div>
-                <p className="font-semibold">Распознавание...</p>
-                <p className="text-xs text-slate-400">Анализируем документ</p>
+          <div className="space-y-6">
+            <div className="vaqta-glass overflow-hidden h-48 relative">
+              {image && <img src={image} className="w-full h-full object-cover blur-sm" />}
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+                <Loader2 className="text-[#00A86B] animate-spin mb-2" size={32} />
+                <p className="text-xs font-black uppercase tracking-widest ai-shimmer">AI tahlil qilmoqda...</p>
               </div>
-            </Card>
-          </FadeUp>
-        )}
-
-        {status === "success" && (
-          <FadeUp>
-            <Card variant="gradient" className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                <span className="font-semibold text-green-400">Готово</span>
-              </div>
-              <p className="text-sm text-slate-300 whitespace-pre-wrap">{result}</p>
-              <div className="flex gap-2 mt-3">
-                <Button size="sm" variant="secondary" onClick={() => setStatus("idle")}>Закрыть</Button>
-                <Button size="sm" variant="primary">Сохранить</Button>
-              </div>
-            </Card>
-          </FadeUp>
-        )}
-
-        {status === "error" && (
-          <FadeUp>
-            <Card variant="gradient" className="mb-4 border-red-500/30">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-5 h-5 text-red-400" />
-                <span className="font-semibold text-red-400">Ошибка</span>
-              </div>
-              <p className="text-sm text-slate-300">Не удалось распознать документ.</p>
-              <Button size="sm" variant="danger" className="mt-3" onClick={() => setStatus("idle")}>Повторить</Button>
-            </Card>
-          </FadeUp>
-        )}
-
-        <FadeUp>
-          <Card variant="default" className="flex items-center gap-3">
-            <VVision className="w-8 h-8 text-[#14B8A6]" />
-            <div className="flex-1">
-              <p className="font-bold">AI Vision</p>
-              <p className="text-xs text-slate-400">Распознавание документов любого типа</p>
             </div>
-          </Card>
-        </FadeUp>
-      </div>
+          </div>
+        )}
 
+        {status === "success" && result && (
+          <div className="space-y-4">
+            <div className="relative vaqta-glass overflow-hidden h-40">
+              <img src={image} className="w-full h-full object-cover" />
+              <button onClick={() => setStatus("idle")} className="absolute top-2 right-2 p-2 bg-black/50 rounded-full"><X size={16}/></button>
+            </div>
+
+            <FadeUp>
+              <div className="space-y-4">
+                <div className="vaqta-glass p-6 border-[#00A86B]/20">
+                  <div className="flex items-center gap-2 text-[#00A86B] mb-3">
+                    <Languages size={18} />
+                    <span className="text-xs font-black uppercase tracking-wider">O'zbekcha tarjima</span>
+                  </div>
+                  <p className="text-sm font-medium leading-relaxed">{result.translation}</p>
+                </div>
+
+                <div className="vaqta-glass p-6 border-[#D4AF37]/20">
+                  <div className="flex items-center gap-2 text-[#D4AF37] mb-3">
+                    <AlertCircle size={18} />
+                    <span className="text-xs font-black uppercase tracking-wider">AI tushuntirishi</span>
+                  </div>
+                  <p className="text-sm text-[#5C7A6D] leading-relaxed italic">"{result.explanation}"</p>
+                </div>
+              </div>
+            </FadeUp>
+
+            <Button className="w-full h-14 rounded-3xl vaqta-gradient text-white font-bold" onClick={() => setStatus("idle")}>
+              Yangi skaner
+            </Button>
+          </div>
+        )}
+      </main>
       <BottomNav />
     </div>
   );
