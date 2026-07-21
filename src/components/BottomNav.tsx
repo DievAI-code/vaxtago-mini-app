@@ -9,7 +9,7 @@ const ITEMS = [
   { path: "/scanner", icon: Scan, label: "Skaner" },
   { path: "/ai", icon: Sparkles, label: "VAQTA AI" },
   { path: "/jobs", icon: Briefcase, label: "Ish" },
-  { path: "/profile", icon: Profil, label: "Profil" },
+  { path: "/profile", icon: User, label: "Profil" },
 ];
 
 export function BottomNav() {
