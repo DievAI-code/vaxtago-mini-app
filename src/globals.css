@@ -17,10 +17,23 @@
 }
 
 @layer base {
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     @apply bg-[#06140F] text-white antialiased selection:bg-[#00A86B]/30;
     font-family: 'Inter', sans-serif;
+    /* Fix for mobile 100vh */
+    height: 100dvh; 
   }
+}
+
+/* Глобальный контейнер для скролла страниц */
+.page-container {
+  @apply flex flex-col h-full overflow-y-auto no-scrollbar;
+  padding-bottom: 120px; /* Отступ под BottomNav */
 }
 
 .vaqta-glass {
@@ -38,9 +51,7 @@
   -webkit-text-fill-color: transparent;
 }
 
-.vaqta-glow {
-  box-shadow: 0 0 40px rgba(0, 168, 107, 0.15);
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
 .ai-shimmer {
   background: linear-gradient(90deg, transparent, rgba(0, 212, 168, 0.1), transparent);
@@ -51,10 +62,4 @@
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
-}
-
-.no-scrollbar::-webkit-scrollbar { display: none; }
-
-.glass-card {
-  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem];
 }
