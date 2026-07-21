@@ -49,8 +49,8 @@ const App = () => (
     <AppProvider>
       <TooltipProvider>
         <ErrorBoundary>
-          <NavStackProvider>
-            <BrowserRouter>
+          <BrowserRouter>
+            <NavStackProvider>
               <Suspense fallback={<LoadingScreen />}>
                 <motion.div 
                   initial={{ opacity: 0 }} 
@@ -78,8 +78,8 @@ const App = () => (
                   </Routes>
                 </motion.div>
               </Suspense>
-            </BrowserRouter>
-          </NavStackProvider>
+            </NavStackProvider>
+          </BrowserRouter>
           <Toaster />
           <Sonner position="top-center" expand={false} richColors />
         </ErrorBoundary>
