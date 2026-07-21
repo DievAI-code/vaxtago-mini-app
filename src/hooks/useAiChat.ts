@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useApp } from "@/lib/theme";
+import { useLanguage } from "@/context/LanguageProvider";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -9,8 +9,7 @@ interface ChatMessage {
 
 export function useAiChat() {
   const [loading, setLoading] = useState(false);
-  const { lang } = useApp();
-  // Память на 20 сообщений
+  const { language } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const historyRef = useRef<ChatMessage[]>([]);
 
@@ -18,7 +17,7 @@ export function useAiChat() {
     setLoading(true);
     const userMsg: ChatMessage = { role: "user", content: message };
     
-    // Обновляем локальную историю (макс 20 сообщений)
+    // Поддержка памяти на 20 сообщений
     const newHistory = [...historyRef.current, userMsg].slice(-20);
     historyRef.current = newHistory;
     setMessages(newHistory);
@@ -28,18 +27,20 @@ export function useAiChat() {
         body: { 
           message,
           image,
-          language_code: lang, 
+          language_code: language, 
           history: newHistory,
+          // Передаем контекст для умных команд 'переведи/объясни'
           context: {
-            platform: "VAQTA Web",
-            last_action: image ? "vision_scan" : "chat"
+            platform: "VAQTA Production",
+            ui_language: language,
+            has_image: !!image
           }
         },
       });
 
       if (error) throw error;
 
-      const reply = data?.reply || data?.message || "AI Connection Error";
+      const reply = data?.reply || data?.message || "AI Error";
       const assistantMsg: ChatMessage = { role: "assistant", content: reply };
       
       const updatedHistory = [...newHistory, assistantMsg].slice(-20);
@@ -48,12 +49,12 @@ export function useAiChat() {
       
       return reply;
     } catch (err) {
-      console.error("VAQTA AI Chat Error:", err);
+      console.error("VAQTA AI Production Error:", err);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [lang]);
+  }, [language]);
 
   const clearHistory = useCallback(() => {
     historyRef.current = [];
