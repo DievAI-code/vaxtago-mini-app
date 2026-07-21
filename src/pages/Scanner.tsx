@@ -2,9 +2,8 @@
 
 import { useState, useRef, useCallback } from "react";
 import { 
-  Camera, Loader2, Languages, AlertCircle, Sparkles, 
-  ShieldAlert, Copy, Share2, Save, FileSearch, 
-  CheckCircle2, Info, RefreshCw, SearchCode, MapPin
+  Camera, Loader2, ShieldAlert, Copy, Share2, Save, FileSearch, 
+  CheckCircle2, Info, RefreshCw, MapPin
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { FadeUp } from "@/components/animations";

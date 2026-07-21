@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, ShieldCheck, MapPin, DollarSign, Sparkles, Filter, Briefcase, Zap, Star } from "lucide-react";
+import { Search, ShieldCheck, MapPin, DollarSign, Sparkles, Filter, Briefcase } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { FadeUp } from "@/components/animations";
 import { motion } from "framer-motion";

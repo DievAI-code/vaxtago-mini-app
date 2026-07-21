@@ -1,16 +1,15 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { 
   Search, 
-  Zap, 
   TrendingUp, 
   Clock, 
   MapPin,
   ChevronRight,
   Sparkles,
-  Heart
+  Heart,
+  ShieldCheck
 } from "lucide-react";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { BottomNav } from "@/components/BottomNav";
@@ -172,5 +171,3 @@ function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
     </motion.div>
   );
 }
-
-import { ShieldCheck } from "lucide-react";
