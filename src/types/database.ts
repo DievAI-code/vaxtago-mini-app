@@ -1,3 +1,19 @@
+export interface UserProfile {
+  id: string;
+  phone_number: string;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  avatar_url?: string;
+  country?: string;
+  city?: string;
+  role: string;
+  last_login?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Employer {
   id: string;
   name: string;
@@ -19,15 +35,5 @@ export interface Vacancy {
   url: string;
   employer_id?: string;
   employers?: Employer;
-  created_at: string;
-}
-
-export interface ScanHistory {
-  id: string;
-  user_id?: string;
-  image_url: string;
-  original_text: string;
-  translated_text: string;
-  language: string;
   created_at: string;
 }
