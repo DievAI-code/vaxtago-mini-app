@@ -56,7 +56,7 @@ export function useAiChat() {
 
       return reply;
     } catch (err) {
-      console.error("VAQTA AI Error:", err);
+      console.error("VAQTA AI Error (FunctionsFetchError / Network):", err);
       const fallbackReply = "Не удалось получить ответ. Попробуйте ещё раз.";
       const assistantMsg: ChatMessage = { role: "assistant", content: fallbackReply };
       const updatedHistory = [...newHistory, assistantMsg].slice(-20);

@@ -1,5 +1,7 @@
 "use client";
 
+import { getYandexKey } from "@/lib/env";
+
 export interface GeocodingResult {
   latitude: number;
   longitude: number;
@@ -14,8 +16,6 @@ export interface GeocodingSearchResponse {
   error?: string;
   isTooShort?: boolean;
 }
-
-const DEFAULT_API_KEY = "6a28f618-4ed1-466d-8d3e-85d74a320991";
 
 const ORG_KEYWORDS = [
   "вокзал", "аэропорт", "магазин", "завод", "больница", "гостиница",
@@ -58,26 +58,18 @@ export function cleanAddressQuery(query: string): string {
     .replace(/\bказани\b/gi, "Казань")
     .replace(/\bекатеринбурга\b/gi, "Екатеринбург");
 
-  // Normalize double spaces
   return cleaned.replace(/\s+/g, " ").trim();
 }
 
-/**
- * Checks if the query is an organization or point of interest (POI).
- */
 export function isOrgQuery(query: string): boolean {
   const low = query.toLowerCase();
   return ORG_KEYWORDS.some((kw) => low.includes(kw));
 }
 
-/**
- * Validates whether a returned result is relevant to the POI search.
- * Rejects arbitrary residential districts or unmatching places.
- */function isResultRelevant(cleanQuery: string, result: GeocodingResult): boolean {
+function isResultRelevant(cleanQuery: string, result: GeocodingResult): boolean {
   const queryLow = cleanQuery.toLowerCase();
   const resLow = (result.display_name + " " + (result.name || "")).toLowerCase();
 
-  // Check key words from query in result
   if (queryLow.includes("вокзал") && !resLow.includes("вокзал") && !resLow.includes("станция") && !resLow.includes("привокзал")) {
     return false;
   }
@@ -93,7 +85,7 @@ export function isOrgQuery(query: string): boolean {
 
 export const geocodingService = {
   /**
-   * Search address or POI using Yandex Geocoder + OpenStreetMap Nominatim with relevance checks.
+   * Search address or POI using Yandex Geocoder + OpenStreetMap Nominatim fallback with 403 handling.
    */
   async searchAddressFull(rawQuery: string): Promise<GeocodingSearchResponse> {
     const cleanQuery = cleanAddressQuery(rawQuery);
@@ -106,10 +98,10 @@ export const geocodingService = {
       };
     }
 
-    const apiKey = import.meta.env.VITE_YANDEX_MAPS_KEY || DEFAULT_API_KEY;
+    const apiKey = getYandexKey();
     const isOrg = isOrgQuery(cleanQuery);
 
-    // 1. Try Nominatim first for POI/Org queries as it handles POIs accurately
+    // 1. Try Nominatim first for POI/Org queries
     if (isOrg) {
       try {
         const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
@@ -151,7 +143,7 @@ export const geocodingService = {
       }
     }
 
-    // 2. Yandex Geocoder API
+    // 2. Yandex Geocoder API with 403 error handling
     try {
       const yandexUrl = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(
         apiKey
@@ -159,7 +151,9 @@ export const geocodingService = {
 
       const response = await fetch(yandexUrl);
 
-      if (response.ok) {
+      if (response.status === 403) {
+        console.warn("[Yandex Geocoder 403 Forbidden]: Key restricted or missing JS Geocoder permission. Falling back to OpenStreetMap.");
+      } else if (response.ok) {
         const data = await response.json();
         const featureMembers =
           data?.response?.GeoObjectCollection?.featureMember || [];
@@ -199,43 +193,41 @@ export const geocodingService = {
         }
       }
     } catch (err) {
-      console.warn("[Yandex Geocoder Warning]:", err);
+      console.warn("[Yandex Geocoder Error]:", err);
     }
 
-    // 3. Fallback Nominatim for street addresses
-    if (!isOrg) {
-      try {
-        const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
-          cleanQuery
-        )}&limit=5&addressdetails=1&accept-language=ru`;
+    // 3. Fallback Nominatim for all street addresses
+    try {
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+        cleanQuery
+      )}&limit=5&addressdetails=1&accept-language=ru`;
 
-        const response = await fetch(nominatimUrl, {
-          headers: {
-            "User-Agent": "VaxtaGo/3.0 (contact@vaxtago.app)",
-          },
-        });
+      const response = await fetch(nominatimUrl, {
+        headers: {
+          "User-Agent": "VaxtaGo/3.0 (contact@vaxtago.app)",
+        },
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.length > 0) {
-            const results: GeocodingResult[] = data.map((place: any) => {
-              const addr = place.address || {};
-              const city =
-                addr.city || addr.town || addr.village || addr.state || "";
-              return {
-                latitude: parseFloat(place.lat),
-                longitude: parseFloat(place.lon),
-                display_name: place.display_name,
-                name: place.name || place.display_name.split(",")[0],
-                city,
-              };
-            });
-            return { results };
-          }
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const results: GeocodingResult[] = data.map((place: any) => {
+            const addr = place.address || {};
+            const city =
+              addr.city || addr.town || addr.village || addr.state || "";
+            return {
+              latitude: parseFloat(place.lat),
+              longitude: parseFloat(place.lon),
+              display_name: place.display_name,
+              name: place.name || place.display_name.split(",")[0],
+              city,
+            };
+          });
+          return { results };
         }
-      } catch (err) {
-        console.error("[Nominatim Geocoder Error]:", err);
       }
+    } catch (err) {
+      console.error("[Nominatim Geocoder Error]:", err);
     }
 
     return {
