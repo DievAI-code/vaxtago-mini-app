@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, ChevronRight, Loader2 } from "lucide-react";
+import { Phone, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, clearSupabaseSession } from "@/integrations/supabase/client";
 import { isConfigured } from "@/lib/env";
 import { motion } from "framer-motion";
 
@@ -18,47 +18,83 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isConfigured()) return;
+    
+    // Очищаем возможные проблемы с сессией
+    await clearSupabaseSession();
+
+    if (!isConfigured()) {
+      toast.error("Supabase не настроен. Проверьте переменные окружения.");
+      return;
+    }
 
     const cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.length < 10) {
-      toast.error("Введите корректный номер телефона");
+      toast.error("Введите корректный номер телефона (минимум 10 цифр)");
       return;
     }
 
     setLoading(true);
+    
     try {
-      // 1. Пробуем найти или создать пользователя
+      // Расширенное логирование
+      console.log('[Login] Attempting upsert for phone:', cleanPhone);
+      console.log('[Login] Supabase client:', !!supabase);
+      
       const { data, error } = await supabase
         .from("users")
         .upsert({
           phone_number: cleanPhone,
           last_login: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          subscription_status: 'free'
         }, { 
-          onConflict: 'phone_number' 
+          onConflict: 'phone_number',
+          ignoreDuplicates: false
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Login] Supabase error:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        
+        // Обработка специфических ошибок
+        if (error.code === '23505') {
+          toast.error("Этот номер телефона уже зарегистрирован");
+        } else if (error.code === '42501') {
+          toast.error("Ошибка доступа. Проверьте RLS политики");
+        } else if (error.code === '401') {
+          toast.error("Ошибка авторизации. Проверьте Supabase ключи");
+        } else {
+          toast.error(`Ошибка: ${error.message}`);
+        }
+        return;
+      }
 
-      // 2. Сохраняем сессию
+      console.log('[Login] Upsert success:', data);
+      
+      // Сохраняем пользователя
       localStorage.setItem("vaxtago_auth", "true");
       localStorage.setItem("vaxtago_user_data", JSON.stringify(data));
       localStorage.setItem("vaxtago_user_phone", cleanPhone);
       
-      // 3. Редирект: если язык не выбран — на выбор языка, иначе — домой
+      toast.success("Добро пожаловать!");
+      
+      // Редирект в зависимости от наличия языка
       if (!data.language_code) {
         nav("/language-select", { replace: true });
       } else {
         localStorage.setItem("vaxtago_language", data.language_code);
-        toast.success("Xush kelibsiz!");
         nav("/home", { replace: true });
       }
       
     } catch (err: any) {
-      toast.error(`Ошибка: ${err.message || "Unknown error"}`);
+      console.error('[Login] Unexpected error:', err);
+      toast.error(`Неожиданная ошибка: ${err.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -94,6 +130,19 @@ export default function Login() {
             )}
           </button>
         </form>
+
+        {/* Диагностическая информация */}
+        <div className="text-center">
+          <button 
+            onClick={() => {
+              console.log('Current Supabase client:', supabase);
+              console.log('ENV configured:', isConfigured());
+            }}
+            className="text-xs text-[#5C7A6D] hover:text-[#00A86B]"
+          >
+            Диагностика подключения
+          </button>
+        </div>
       </motion.div>
     </div>
   );

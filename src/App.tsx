@@ -29,6 +29,7 @@ const Contacts = lazy(() => import("./pages/Contacts"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Login = lazy(() => import("./pages/Login"));
+const LanguageSelect = lazy(() => import("./pages/LanguageSelect"));
 const FounderDashboard = lazy(() => import("./pages/FounderDashboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -63,6 +64,7 @@ const App = () => {
                     <div className="min-h-[100dvh] bg-[#06140F] overflow-x-hidden text-white font-sans">
                       <Routes>
                         <Route path="/login" element={<Login />} />
+                        <Route path="/language-select" element={<LanguageSelect />} />
                         <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
                         <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
                         <Route path="/jobs" element={<PrivateRoute><Jobs /></PrivateRoute>} />
