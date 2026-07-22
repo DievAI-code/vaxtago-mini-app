@@ -15,94 +15,123 @@ export interface GeocodingSearchResponse {
   results: GeocodingResult[];
   error?: string;
   isTooShort?: boolean;
+  isRoute?: boolean;
+  routePoints?: { origin: string; destination: string };
 }
 
 /**
- * Очищает запрос от 'мусорных' слов для повышения точности поиска.
+ * Очищает запрос от разговорных фраз и стоп-слов.
  */
-export function cleanAddressQuery(query: string): string {
-  if (!query) return "";
-
-  let cleaned = query.toLowerCase().trim();
+export function cleanQuery(text: string): string {
+  if (!text) return "";
+  let cleaned = text.toLowerCase().trim();
 
   const stopWords = [
-    "найди", "покажи", "адрес", "где находится", "маршрут", "карта", 
-    "яндекс карта", "на карте", "покажи на карте", "г.", "город"
+    /^(найди|покажи|где находится|как добраться|как доехать|маршрут|адрес|на карте|яндекс карта|поищи)\s+/gi,
+    /\s+(на карте|яндекс карте|покажи|найди)$/gi,
+    /\bг\.\s*/gi,
+    /\bгород\s+/gi
   ];
 
-  stopWords.forEach(word => {
-    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+  stopWords.forEach(regex => {
     cleaned = cleaned.replace(regex, "");
   });
 
-  return cleaned.replace(/\s+/g, " ").trim();
+  return cleaned.trim();
 }
 
 /**
- * Определяет, является ли запрос организацией.
+ * Пытается извлечь две точки для маршрута (из А в Б).
  */
-function isOrganization(query: string): boolean {
-  const orgKeywords = [
-    "вокзал", "аэропорт", "завод", "магазин", "кафе", 
-    "гостиница", "больница", "работодатель", "мвд", "мц"
-  ];
-  const low = query.toLowerCase();
-  return orgKeywords.some(k => low.includes(k));
+export function extractRoutePoints(text: string): { origin: string; destination: string } | null {
+  const low = text.toLowerCase();
+  // Шаблоны: "из X в Y", "от X до Y"
+  const routeMatch = low.match(/(?:из|от)\s+(.+?)\s+(?:в|до)\s+(.+)/i);
+  
+  if (routeMatch) {
+    return {
+      origin: cleanQuery(routeMatch[1]),
+      destination: cleanQuery(routeMatch[2])
+    };
+  }
+  return null;
 }
 
 export const geocodingService = {
   async searchAddressFull(rawQuery: string): Promise<GeocodingSearchResponse> {
-    const cleanQuery = cleanAddressQuery(rawQuery);
-    
-    if (!cleanQuery || cleanQuery.length < 3) {
+    const route = extractRoutePoints(rawQuery);
+    if (route) {
+      return { results: [], isRoute: true, routePoints: route };
+    }
+
+    const query = cleanQuery(rawQuery);
+    if (!query || query.length < 2) {
       return { results: [], isTooShort: true };
     }
 
     const apiKey = getYandexKey();
-    if (!apiKey) {
-      return { results: [], error: "API ключ Яндекс Карт не настроен." };
-    }
 
-    const isOrg = isOrganization(cleanQuery);
-    
-    // В идеале здесь должен быть вызов Yandex Search API (Организации), 
-    // но используем Геокодер с уточненным запросом.
+    // 1. Попытка через Яндекс
     try {
-      const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${encodeURIComponent(cleanQuery)}&format=json&results=5`;
-      
-      console.log("GEOLOCATION REQUEST", { original: rawQuery, cleaned: cleanQuery, isOrg });
-      
+      const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${encodeURIComponent(query)}&format=json&results=5`;
       const response = await fetch(url);
-      
+
       if (response.status === 403) {
-        return { results: [], error: "Доступ к Яндекс Геокодеру запрещён. Проверьте настройки API-ключа." };
+        console.warn("[Yandex] 403 Forbidden: API key lacks Geocoder HTTP access.");
+        // Не бросаем ошибку сразу, идем в Fallback
+      } else if (response.ok) {
+        const data = await response.json();
+        const members = data.response?.GeoObjectCollection?.featureMember || [];
+        
+        if (members.length > 0) {
+          return {
+            results: members.map((m: any) => {
+              const obj = m.GeoObject;
+              const [lng, lat] = obj.Point.pos.split(" ").map(Number);
+              return {
+                latitude: lat,
+                longitude: lng,
+                display_name: obj.metaDataProperty.GeocoderMetaData.text,
+                name: obj.name,
+                city: obj.description
+              };
+            })
+          };
+        }
       }
-
-      if (!response.ok) throw new Error("API Error");
-
-      const data = await response.json();
-      const featureMembers = data.response?.GeoObjectCollection?.featureMember || [];
-
-      if (featureMembers.length === 0) {
-        return { results: [], error: "Не удалось найти объект. Попробуйте уточнить название или город." };
-      }
-
-      const results: GeocodingResult[] = featureMembers.map((item: any) => {
-        const obj = item.GeoObject;
-        const [lng, lat] = obj.Point.pos.split(" ").map(Number);
-        return {
-          latitude: lat,
-          longitude: lng,
-          display_name: obj.metaDataProperty.GeocoderMetaData.text,
-          name: obj.name,
-          city: obj.description
-        };
-      });
-
-      return { results };
-    } catch (err) {
-      console.error("Geocoding failed", err);
-      return { results: [], error: "Ошибка связи с сервисом карт." };
+    } catch (e) {
+      console.error("[Yandex Error]", e);
     }
+
+    // 2. Fallback: OpenStreetMap (Nominatim)
+    // Используется если Яндекс выдал 403 или ошибка сети
+    try {
+      const osmUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&limit=5`;
+      const response = await fetch(osmUrl, { 
+        headers: { "User-Agent": "VaxtaGo-App-v3" } 
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.length > 0) {
+          return {
+            results: data.map((p: any) => ({
+              latitude: parseFloat(p.lat),
+              longitude: parseFloat(p.lon),
+              display_name: p.display_name,
+              name: p.name || p.display_name.split(',')[0],
+              type: p.type
+            }))
+          };
+        }
+      }
+    } catch (e) {
+      console.error("[OSM Fallback Error]", e);
+    }
+
+    return { 
+      results: [], 
+      error: apiKey ? "Объект не найден. Уточните город или название." : "Доступ к Яндекс Геокодеру запрещён. Проверьте настройки API-ключа." 
+    };
   }
 };
