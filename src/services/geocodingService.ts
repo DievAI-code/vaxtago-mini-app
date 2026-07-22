@@ -18,110 +18,91 @@ export interface GeocodingSearchResponse {
 }
 
 /**
- * Cleans the query by removing search verbs and location keywords.
- * Example: "найди адрес жд вокзал тюмень на карте" -> "жд вокзал тюмень"
+ * Очищает запрос от 'мусорных' слов для повышения точности поиска.
  */
 export function cleanAddressQuery(query: string): string {
   if (!query) return "";
 
-  let cleaned = query.trim();
+  let cleaned = query.toLowerCase().trim();
 
   const stopWords = [
-    /^(найди|покажи|поищи|где находится|где|адрес|местоположение)\s+/gi,
-    /\s+(на карте|яндекс карте|покажи на карте|в яндексе)$/gi,
+    "найди", "покажи", "адрес", "где находится", "маршрут", "карта", 
+    "яндекс карта", "на карте", "покажи на карте", "г.", "город"
   ];
 
-  for (const regex of stopWords) {
-    cleaned = cleaned.replace(regex, "").trim();
-  }
+  stopWords.forEach(word => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    cleaned = cleaned.replace(regex, "");
+  });
 
-  // Remove common city prefixes for better geocoding
-  cleaned = cleaned.replace(/\bг\.\s*/gi, "").replace(/\bгород\s+/gi, "");
+  return cleaned.replace(/\s+/g, " ").trim();
+}
 
-  return cleaned || query.trim();
+/**
+ * Определяет, является ли запрос организацией.
+ */
+function isOrganization(query: string): boolean {
+  const orgKeywords = [
+    "вокзал", "аэропорт", "завод", "магазин", "кафе", 
+    "гостиница", "больница", "работодатель", "мвд", "мц"
+  ];
+  const low = query.toLowerCase();
+  return orgKeywords.some(k => low.includes(k));
 }
 
 export const geocodingService = {
   async searchAddressFull(rawQuery: string): Promise<GeocodingSearchResponse> {
     const cleanQuery = cleanAddressQuery(rawQuery);
-
-    if (!cleanQuery || cleanQuery.length < 2) {
-      return {
-        results: [],
-        isTooShort: true,
-        error: "Введите название объекта или адрес",
-      };
+    
+    if (!cleanQuery || cleanQuery.length < 3) {
+      return { results: [], isTooShort: true };
     }
 
     const apiKey = getYandexKey();
+    if (!apiKey) {
+      return { results: [], error: "API ключ Яндекс Карт не настроен." };
+    }
 
+    const isOrg = isOrganization(cleanQuery);
+    
+    // В идеале здесь должен быть вызов Yandex Search API (Организации), 
+    // но используем Геокодер с уточненным запросом.
     try {
-      const yandexUrl = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(
-        apiKey
-      )}&geocode=${encodeURIComponent(cleanQuery)}&format=json&lang=ru_RU&results=5`;
-
-      const response = await fetch(yandexUrl);
-
+      const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${encodeURIComponent(cleanQuery)}&format=json&results=5`;
+      
+      console.log("GEOLOCATION REQUEST", { original: rawQuery, cleaned: cleanQuery, isOrg });
+      
+      const response = await fetch(url);
+      
       if (response.status === 403) {
-        return {
-          results: [],
-          error: "Доступ к Яндекс Геокодеру запрещён. Проверьте настройки API-ключа.",
-        };
+        return { results: [], error: "Доступ к Яндекс Геокодеру запрещён. Проверьте настройки API-ключа." };
       }
 
-      if (!response.ok) throw new Error(`Yandex API status: ${response.status}`);
+      if (!response.ok) throw new Error("API Error");
 
       const data = await response.json();
-      const featureMembers = data?.response?.GeoObjectCollection?.featureMember || [];
+      const featureMembers = data.response?.GeoObjectCollection?.featureMember || [];
 
-      if (featureMembers.length > 0) {
-        const results: GeocodingResult[] = featureMembers.map((item: any) => {
-          const geo = item.GeoObject;
-          const [lng, lat] = (geo.Point?.pos || "0 0").split(" ").map(Number);
-          return {
-            latitude: lat,
-            longitude: lng,
-            display_name: geo.metaDataProperty?.GeocoderMetaData?.text || geo.name || "",
-            name: geo.name,
-            city: geo.description || "",
-          };
-        });
-        return { results };
+      if (featureMembers.length === 0) {
+        return { results: [], error: "Не удалось найти объект. Попробуйте уточнить название или город." };
       }
-    } catch (err) {
-      console.error("[Geocoding Error]:", err);
-    }
 
-    // Fallback to Nominatim if Yandex fails
-    try {
-      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
-        cleanQuery
-      )}&limit=3&accept-language=ru`;
-      
-      const response = await fetch(nominatimUrl, {
-        headers: { "User-Agent": "VaxtaGo/3.0" }
+      const results: GeocodingResult[] = featureMembers.map((item: any) => {
+        const obj = item.GeoObject;
+        const [lng, lat] = obj.Point.pos.split(" ").map(Number);
+        return {
+          latitude: lat,
+          longitude: lng,
+          display_name: obj.metaDataProperty.GeocoderMetaData.text,
+          name: obj.name,
+          city: obj.description
+        };
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.length > 0) {
-          return {
-            results: data.map((p: any) => ({
-              latitude: parseFloat(p.lat),
-              longitude: parseFloat(p.lon),
-              display_name: p.display_name,
-              name: p.name || p.display_name.split(",")[0],
-            })),
-          };
-        }
-      }
-    } catch (e) {
-      console.warn("[Nominatim Fallback Error]:", e);
+      return { results };
+    } catch (err) {
+      console.error("Geocoding failed", err);
+      return { results: [], error: "Ошибка связи с сервисом карт." };
     }
-
-    return {
-      results: [],
-      error: "Не удалось найти объект. Попробуйте уточнить название.",
-    };
-  },
+  }
 };

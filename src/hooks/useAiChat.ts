@@ -15,47 +15,53 @@ export function useAiChat() {
 
   const sendMessage = useCallback(async (message: string, image?: string): Promise<string | null> => {
     setLoading(true);
-    
+    console.log("USER MESSAGE", message);
+
     const userMsg: ChatMessage = { role: "user", content: message };
-    const newHistory = [...historyRef.current, userMsg].slice(-20);
+    const newHistory = [...historyRef.current, userMsg].slice(-10);
     historyRef.current = newHistory;
     setMessages(newHistory);
 
+    const payload = {
+      message,
+      image,
+      language_code: language,
+      history: newHistory,
+    };
+
+    console.log("AI REQUEST", payload);
+
     try {
-      // Set a 30s timeout for the edge function call
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: {
-          message,
-          image,
-          language_code: language,
-          history: newHistory,
-        },
+        body: payload,
       });
 
       if (error) {
-        console.error("[AI Assistant Error]:", error);
-        let errorMsg = "AI помощник временно недоступен. Попробуйте еще раз через минуту.";
-        
-        if (error.status === 404) errorMsg = "Сервис AI не найден. Обратитесь в поддержку.";
-        if (error.status === 504 || error.message?.includes("timeout")) errorMsg = "AI слишком долго думал. Попробуйте сократить запрос.";
-        
-        throw new Error(errorMsg);
+        console.error("AI RESPONSE ERROR", error);
+        throw error;
       }
 
-      const reply = data?.reply || data?.message || "AI не прислал текст ответа.";
+      console.log("AI RESPONSE SUCCESS", data);
+      
+      const reply = data?.reply || data?.message || "Извините, я не смог подготовить ответ.";
       const assistantMsg: ChatMessage = { role: "assistant", content: reply };
-      const updatedHistory = [...newHistory, assistantMsg].slice(-20);
+      
+      const updatedHistory = [...newHistory, assistantMsg];
       historyRef.current = updatedHistory;
       setMessages(updatedHistory);
 
       return reply;
     } catch (err: any) {
-      const fallbackReply = err.message || "Не удалось получить ответ. Попробуйте ещё раз.";
-      const assistantMsg: ChatMessage = { role: "assistant", content: fallbackReply };
-      const updatedHistory = [...newHistory, assistantMsg].slice(-20);
-      historyRef.current = updatedHistory;
-      setMessages(updatedHistory);
-      return fallbackReply;
+      console.error("AI Assistant Failure", err);
+      
+      let errorText = "AI помощник временно недоступен. Попробуйте еще раз через минуту.";
+      if (err.message?.includes("Failed to fetch")) {
+        errorText = "Ошибка сети. Проверьте подключение или настройки Supabase.";
+      }
+
+      const assistantMsg: ChatMessage = { role: "assistant", content: errorText };
+      setMessages(prev => [...prev, assistantMsg]);
+      return null;
     } finally {
       setLoading(false);
     }
