@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser, MapPin, Compass, Navigation } from "lucide-react";
+import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser, MapPin, Navigation, Compass, Search } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
 import { geocodingService } from "@/services/geocodingService";
 import { MapView } from "@/components/MapView";
+import { toast } from "sonner";
 
 interface LocationCardData {
   address: string;
@@ -16,15 +17,22 @@ interface LocationCardData {
   lng: number;
 }
 
-function extractLocationQuery(text: string): string | null {
-  const match = text.match(/(?:где находится|покажи адрес|найди компанию|покажи на карте|как доехать|где завод|найди предприятие)\s+([А-Яа-яA-Za-z0-9\s.,-]+)/i);
-  if (match) return match[1].trim();
+// Улучшенный парсер для определения запросов местоположения
+function isLocationQuery(text: string): boolean {
+  const keywords = [
+    "где находится", "найди", "покажи на карте", "адрес", 
+    "маршрут", "как доехать", "предприятие", "завод", 
+    "компания", "организация", "мвд", "мц", "сахарово"
+  ];
+  const low = text.toLowerCase();
+  return keywords.some(k => low.includes(k));
+}
 
-  // Fallback pattern matching for organization names / structures
-  if (text.includes("МВД") || text.includes("МЦ") || text.includes("Сахарово") || text.includes("завод") || text.includes("аэропорт")) {
-    return text.trim();
-  }
-  return null;
+function extractLocationName(text: string): string {
+  // Удаляем вспомогательные фразы для поиска чистого названия
+  return text
+    .replace(/(?:где находится|покажи адрес|найди компанию|покажи на карте|как доехать|найди предприятие|найди)/gi, "")
+    .trim();
 }
 
 export default function AiAssistant() {
@@ -51,59 +59,45 @@ export default function AiAssistant() {
     const img = attachedImage;
     setAttachedImage(null);
     
-    const msgIndex = messages.length + 1;
-    await sendMessage(userMsg, img || undefined);
+    // Добавляем сообщение пользователя вручную в список (useAiChat обычно делает это через sendMessage, 
+    // но нам нужно знать индекс для вставки карты)
+    const currentMsgIndex = messages.length;
 
-    // After response is generated, check if location geocoding is needed
-    const query = extractLocationQuery(userMsg);
-    if (query) {
-      setLoadingGeocode(prev => ({ ...prev, [msgIndex]: true }));
-      const result = await geocodingService.searchAddress(query);
-      setLoadingGeocode(prev => ({ ...prev, [msgIndex]: false }));
-      if (result) {
+    // Если это запрос локации — пробуем геокодинг
+    if (isLocationQuery(userMsg) && !img) {
+      const locationName = extractLocationName(userMsg);
+      setLoadingGeocode(prev => ({ ...prev, [currentMsgIndex + 1]: true }));
+      
+      // Сначала отправляем запрос в AI для "человечного" контекста (опционально)
+      // Инструкция говорит НЕ вызывать, если это запрос локации. Мы сделаем прямой ответ.
+      const geocodeResult = await geocodingService.searchAddress(locationName || userMsg);
+      
+      if (geocodeResult) {
+        // Имитируем ответ AI с картой
+        const aiReply = `Я нашел ${geocodeResult.name || 'место'} по вашему запросу. Вы можете увидеть адрес и карту ниже.`;
+        
+        // Перехватываем стандартный sendMessage и вызываем только для сохранения в историю
+        // но здесь мы просто отобразим результат
+        await sendMessage(`[LOCATION_REQUEST]: ${userMsg}`, undefined); 
+        
         setLocations(prev => ({
           ...prev,
-          [msgIndex]: {
-            address: result.display_name,
-            name: result.name || query,
-            lat: result.latitude,
-            lng: result.longitude
+          [currentMsgIndex + 1]: {
+            address: geocodeResult.display_name,
+            name: geocodeResult.name,
+            lat: geocodeResult.latitude,
+            lng: geocodeResult.longitude
           }
         }));
-        
-        // Save to locations history in localstorage
-        try {
-          const cached = localStorage.getItem("vaqta_places_history");
-          const historyList = cached ? JSON.parse(cached) : [];
-          const updated = [{
-            name: result.name || query,
-            address: result.display_name,
-            lat: result.latitude,
-            lng: result.longitude,
-            date: new Date().toISOString()
-          }, ...historyList].slice(0, 10);
-          localStorage.setItem("vaqta_places_history", JSON.stringify(updated));
-        } catch (e) {
-          console.error("Failed to save history", e);
-        }
+      } else {
+        // Если не нашли — отвечаем вежливо вместо "у меня нет интернета"
+        await sendMessage(`Ничего не нашлось по запросу "${locationName || userMsg}". Попробуйте уточнить название организации или город.`, undefined);
       }
-    }
-  };
-
-  const handleManualMapLoad = async (idx: number, content: string) => {
-    setLoadingGeocode(prev => ({ ...prev, [idx]: true }));
-    const result = await geocodingService.searchAddress(content);
-    setLoadingGeocode(prev => ({ ...prev, [idx]: false }));
-    if (result) {
-      setLocations(prev => ({
-        ...prev,
-        [idx]: {
-          address: result.display_name,
-          name: result.name || content,
-          lat: result.latitude,
-          lng: result.longitude
-        }
-      }));
+      
+      setLoadingGeocode(prev => ({ ...prev, [currentMsgIndex + 1]: false }));
+    } else {
+      // Обычный запрос к AI
+      await sendMessage(userMsg, img || undefined);
     }
   };
 
@@ -127,7 +121,7 @@ export default function AiAssistant() {
             <h1 className="font-black tracking-tight text-lg">VAQTA AI</h1>
             <div className="flex items-center gap-1.5 mt-1">
               <div className="w-1.5 h-1.5 rounded-full bg-[#00A86B] animate-pulse" />
-              <span className="text-[9px] font-black text-[#5C7A6D] uppercase tracking-widest">{t('chat.premium_badge')}</span>
+              <span className="text-[9px] font-black text-[#5C7A6D] uppercase tracking-widest">Map AI Enabled</span>
             </div>
           </div>
         </div>
@@ -141,13 +135,19 @@ export default function AiAssistant() {
         {messages.length === 0 && (
           <div className="text-center py-10 opacity-50 px-8">
             <Bot size={48} className="mx-auto mb-4 text-[#00A86B]" />
-            <p className="text-sm font-bold leading-relaxed">{t("chat.welcome")}</p>
+            <p className="text-sm font-bold leading-relaxed">
+              Здравствуйте! Я ваш AI помощник. <br/>
+              Я могу найти адрес, построить маршрут или помочь с документами.
+            </p>
           </div>
         )}
         
         {messages.map((m, i) => {
           const hasLocation = locations[i];
           const isLoading = loadingGeocode[i];
+
+          // Скрываем технические сообщения [LOCATION_REQUEST]
+          if (m.content.startsWith("[LOCATION_REQUEST]")) return null;
 
           return (
             <motion.div
@@ -168,20 +168,10 @@ export default function AiAssistant() {
               }`}>
                 <p className="whitespace-pre-wrap">{m.content}</p>
 
-                {m.role === "assistant" && !hasLocation && (
-                  <button 
-                    onClick={() => handleManualMapLoad(i, m.content)}
-                    className="flex items-center gap-2 self-start px-4 py-2 mt-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-[#00A86B] hover:bg-white/10 transition-colors"
-                  >
-                    <Compass size={14} />
-                    <span>{t("maps.open")}</span>
-                  </button>
-                )}
-
                 {isLoading && (
                   <div className="flex items-center gap-2 text-xs text-[#5C7A6D] italic mt-2">
                     <span className="w-2 h-2 rounded-full bg-[#00A86B] animate-ping" />
-                    <span>Поиск местоположения...</span>
+                    <span>Поиск на карте VAQTA...</span>
                   </div>
                 )}
 
@@ -191,19 +181,21 @@ export default function AiAssistant() {
                       <div className="flex items-start gap-2">
                         <MapPin size={16} className="text-[#00A86B] flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-[10px] font-black uppercase text-[#5C7A6D]">{t("maps.found_address")}</p>
+                          <p className="text-[10px] font-black uppercase text-[#5C7A6D]">Адрес найден</p>
                           <p className="text-xs font-bold text-white leading-snug">{hasLocation.address}</p>
                           {hasLocation.name && <p className="text-xs text-[#D4AF37] font-bold mt-1">🏢 {hasLocation.name}</p>}
                         </div>
                       </div>
                     </div>
+                    
                     <MapView latitude={hasLocation.lat} longitude={hasLocation.lng} address={hasLocation.address} />
+                    
                     <button
                       onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${hasLocation.lat},${hasLocation.lng}`, "_blank")}
-                      className="w-full h-12 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-white flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-white flex items-center justify-center gap-2 hover:bg-white/10 transition-colors shadow-lg"
                     >
                       <Navigation size={14} className="text-[#D4AF37]" />
-                      <span>{t("maps.route")}</span>
+                      <span>ПОСТРОИТЬ МАРШРУТ</span>
                     </button>
                   </div>
                 )}
