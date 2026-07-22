@@ -4,18 +4,18 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { VVision } from "@/components/icons/VaxtaGoIcons";
 import { useTranslation } from "react-i18next";
 import { FadeUp } from "@/components/animations";
 import { supabase } from "@/integrations/supabase/client";
 import { useTelegramUser } from "@/components/TelegramProvider";
 import { analytics } from "@/services/Analytics";
+import { getSupabaseUrl } from "@/lib/env";
 
 type Status = "idle" | "processing" | "success" | "error";
 
 export default function PhotoTranslator() {
   const { t } = useTranslation();
-  const { telegramId, profile } = useTelegramUser();
+  const { user } = useTelegramUser();
   const [status, setStatus] = useState<Status>("idle");
   const [preview, setPreview] = useState<string>("");
   const [original, setOriginal] = useState("");
@@ -23,7 +23,7 @@ export default function PhotoTranslator() {
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
 
-  const VISION_URL = "https://watkanjjfsvqbhebchpk.supabase.co/functions/v1/vision-assistant";
+  const VISION_URL = `${getSupabaseUrl()}/functions/v1/vision-assistant`;
 
   const processFile = async (file: File) => {
     setStatus("processing");
@@ -35,42 +35,23 @@ export default function PhotoTranslator() {
       reader.onload = async () => {
         const dataUrl = reader.result as string;
         setPreview(dataUrl);
-        const payload = {
-          image: dataUrl,
-          message:
-            "Распознай русский текст и переведи на узбекский. Верни формат: Оригинал: ... Перевод: ...",
-          language: "uz",
-          telegram_id: telegramId,
-          user_id: profile?.id,
-          request_type: "translate_ru_uz",
-        };
         const res = await fetch(VISION_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
+            image: dataUrl,
+            language: "uz",
+            user_id: user?.id,
+            request_type: "translate_ru_uz",
+          }),
         });
         const data = await res.json();
         if (data?.success) {
-          const text = data.explanation || data.ocr_text || "";
-          const origMatch = text.match(/Оригинал[:\s]*([\s\S]*?)Перевод[:\s]*([\s\S]*)/i);
-          if (origMatch) {
-            setOriginal(origMatch[1].trim());
-            setTranslated(origMatch[2].trim());
-          } else {
-            setOriginal(data.ocr_text || "Текст не распознан");
-            setTranslated(text);
-          }
-          await supabase
-            .from("document_translations")
-            .insert({
-              user_id: profile?.id ?? null,
-              telegram_id: telegramId,
-              image_url: dataUrl.slice(0, 100),
-              original_text: original,
-              translated_text: translated,
-              created_at: new Date().toISOString(),
-            })
-            .catch(() => {});
+          setOriginal(data.ocr_text || "Текст не распознан");
+          setTranslated(data.translation || data.explanation || "");
           setStatus("success");
           analytics.track("photo_translate_success");
         } else {
@@ -83,146 +64,56 @@ export default function PhotoTranslator() {
     }
   };
 
-  const copyTranslation = () => {
-    navigator.clipboard.writeText(`Оригинал:\n${original}\n\nПеревод:\n${translated}`);
-  };
-
-  const saveTranslation = async () => {
-    await supabase
-      .from("document_translations")
-      .insert({
-        user_id: profile?.id ?? null,
-        telegram_id: telegramId,
-        image_url: preview.slice(0, 100),
-        original_text: original,
-        translated_text: translated,
-        created_at: new Date().toISOString(),
-      })
-      .catch(() => {});
-  };
-
-  const speakTranslation = () => {
-    if ("speechSynthesis" in window && translated) {
-      const u = new SpeechSynthesisUtterance(translated);
-      u.lang = "uz-UZ";
-      window.speechSynthesis.speak(u);
-    }
-  };
-
   return (
     <div className="flex flex-col h-[100dvh] bg-[#0F172A] text-white">
       <Header title="📷 Фото переводчик" />
-
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         <FadeUp>
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold vg-gradient-text">AI перевод документов</h2>
-            <p className="text-sm text-slate-400 mt-2">
-              Загрузите фото документа. VaxtaGo распознает русский текст и переведет его на узбекский язык.
-            </p>
-          </div>
-        </FadeUp>
-
-        <FadeUp>
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <Card onClick={() => cameraRef.current?.click()} className="text-center">
-              <Camera className="w-8 h-8 text-[#14B8A6] mx-auto mb-2" />
-              <span className="font-semibold text-sm">📷 Сделать фото</span>
+            <Card onClick={() => cameraRef.current?.click()} className="text-center p-4 cursor-pointer">
+              <Camera className="w-8 h-8 text-[#00A86B] mx-auto mb-2" />
+              <span className="font-semibold text-sm">Камера</span>
             </Card>
-            <Card onClick={() => fileRef.current?.click()} className="text-center">
-              <ImageIcon className="w-8 h-8 text-[#14B8A6] mx-auto mb-2" />
-              <span className="font-semibold text-sm">🖼 Выбрать изображение</span>
+            <Card onClick={() => fileRef.current?.click()} className="text-center p-4 cursor-pointer">
+              <ImageIcon className="w-8 h-8 text-[#00A86B] mx-auto mb-2" />
+              <span className="font-semibold text-sm">Галерея</span>
             </Card>
           </div>
-          <input
-            ref={cameraRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])}
-          />
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])}
-          />
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])} />
         </FadeUp>
-
-        {preview && (
-          <FadeUp>
-            <Card variant="default" className="mb-4 p-2">
-              <img src={preview} alt="preview" className="w-full rounded-xl" />
-            </Card>
-          </FadeUp>
-        )}
 
         {status === "processing" && (
-          <FadeUp>
-            <Card variant="gradient" className="flex items-center gap-3 mb-4">
-              <Loader2 className="w-6 h-6 text-[#14B8A6] animate-spin" />
-              <div>
-                <p className="font-semibold">AI обрабатывает...</p>
-                <p className="text-xs text-slate-400">Распознавание и перевод</p>
-              </div>
-            </Card>
-          </FadeUp>
+          <div className="text-center py-10">
+            <Loader2 className="w-10 h-10 animate-spin mx-auto text-[#00A86B]" />
+            <p className="mt-4 text-slate-400">AI переводит документ...</p>
+          </div>
         )}
 
         {status === "success" && (
-          <FadeUp>
-            <Card variant="default" className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                <span className="font-semibold text-green-400">Готово</span>
-              </div>
-              <p className="text-sm font-semibold text-slate-300 mb-1">🇷🇺 Оригинальный текст:</p>
-              <p className="text-sm text-white whitespace-pre-wrap mb-3">{original}</p>
-              <p className="text-sm font-semibold text-slate-300 mb-1">🇺🇿 Перевод:</p>
-              <p className="text-sm text-[#14B8A6] whitespace-pre-wrap mb-3">{translated}</p>
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" icon={<Copy size={16} />} onClick={copyTranslation}>
-                  📋 Копировать
-                </Button>
-                <Button size="sm" variant="secondary" icon={<Save size={16} />} onClick={saveTranslation}>
-                  💾 Сохранить
-                </Button>
-                <Button size="sm" variant="secondary" icon={<Volume2 size={16} />} onClick={speakTranslation}>
-                  🔊 Озвучить
-                </Button>
-              </div>
-            </Card>
-          </FadeUp>
+          <Card className="p-4 space-y-4">
+            <div className="flex items-center gap-2 text-green-400 font-bold">
+              <CheckCircle size={20} /> Готово
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase font-black">Оригинал</p>
+              <p className="text-sm mt-1">{original}</p>
+            </div>
+            <div>
+              <p className="text-xs text-[#00A86B] uppercase font-black">Перевод</p>
+              <p className="text-sm mt-1">{translated}</p>
+            </div>
+          </Card>
         )}
 
         {status === "error" && (
-          <FadeUp>
-            <Card variant="gradient" className="mb-4 border-red-500/30">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-5 h-5 text-red-400" />
-                <span className="font-semibold text-red-400">Ошибка</span>
-              </div>
-              <p className="text-sm text-slate-300">Не удалось обработать.</p>
-              <Button size="sm" variant="danger" className="mt-3" onClick={() => setStatus("idle")}>
-                Повторить
-              </Button>
-            </Card>
-          </FadeUp>
+          <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center">
+            <AlertCircle className="mx-auto text-red-500 mb-2" />
+            <p className="text-sm font-bold">Ошибка обработки</p>
+            <Button onClick={() => setStatus("idle")} variant="secondary" className="mt-4">Повторить</Button>
+          </div>
         )}
-
-        <FadeUp>
-          <Card variant="default" className="flex items-center gap-3">
-            <VVision className="w-8 h-8 text-[#14B8A6]" />
-            <div className="flex-1">
-              <p className="font-bold">AI Vision</p>
-              <p className="text-xs text-slate-400">Русский → Узбекский из фото</p>
-            </div>
-          </Card>
-        </FadeUp>
       </div>
-
       <BottomNav />
     </div>
   );

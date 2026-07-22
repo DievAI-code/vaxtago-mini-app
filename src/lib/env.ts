@@ -11,7 +11,7 @@ const DEFAULT_YANDEX_MAPS_KEY = "6a28f618-4ed1-466d-8d3e-85d74a320991";
 
 export function getSupabaseUrl(): string {
   const envUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!envUrl || envUrl.includes("your-project")) {
+  if (!envUrl || envUrl.includes("your-project") || envUrl.trim() === "") {
     return DEFAULT_SUPABASE_URL;
   }
   return envUrl;
@@ -19,7 +19,7 @@ export function getSupabaseUrl(): string {
 
 export function getSupabaseAnonKey(): string {
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  if (!envKey || envKey.includes("your-anon-key")) {
+  if (!envKey || envKey.includes("your-anon-key") || envKey.trim() === "") {
     return DEFAULT_SUPABASE_ANON_KEY;
   }
   return envKey;
@@ -47,7 +47,7 @@ export function checkEnvConfig(): { ok: boolean; warnings: string[] } {
   }
 
   if (warnings.length > 0) {
-    console.warn("[Env Check Warnings]:", warnings.join("; "));
+    console.warn("[VaxtaGo Env Check]:", warnings.join("; "));
   }
 
   return { ok: true, warnings };

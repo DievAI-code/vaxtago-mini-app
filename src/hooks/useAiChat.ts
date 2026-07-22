@@ -15,7 +15,7 @@ export function useAiChat() {
 
   const sendMessage = useCallback(async (message: string, image?: string): Promise<string | null> => {
     setLoading(true);
-    console.log("USER MESSAGE", message);
+    console.log("[AI] USER MESSAGE:", message);
 
     const userMsg: ChatMessage = { role: "user", content: message };
     const newHistory = [...historyRef.current, userMsg].slice(-20);
@@ -34,7 +34,7 @@ export function useAiChat() {
       },
     };
 
-    console.log("AI REQUEST", payload);
+    console.log("[AI] REQUEST PAYLOAD:", payload);
 
     try {
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
@@ -42,12 +42,12 @@ export function useAiChat() {
       });
 
       if (error) {
-        console.error("Supabase edge function error:", error);
+        console.error("[AI] Supabase edge function error:", error);
         throw error;
       }
 
-      const reply = data?.reply || data?.message || "Не удалось получить ответ. Попробуйте ещё раз.";
-      console.log("AI RESPONSE", reply);
+      const reply = data?.reply || data?.message || data?.text || "Не удалось получить ответ. Попробуйте ещё раз.";
+      console.log("[AI] RESPONSE SUCCESS:", reply);
 
       const assistantMsg: ChatMessage = { role: "assistant", content: reply };
       const updatedHistory = [...newHistory, assistantMsg].slice(-20);
@@ -56,12 +56,14 @@ export function useAiChat() {
 
       return reply;
     } catch (err) {
-      console.error("VAQTA AI Error (FunctionsFetchError / Network):", err);
+      console.error("[AI] Critical Failure:", err);
       const fallbackReply = "Не удалось получить ответ. Попробуйте ещё раз.";
+      
       const assistantMsg: ChatMessage = { role: "assistant", content: fallbackReply };
       const updatedHistory = [...newHistory, assistantMsg].slice(-20);
       historyRef.current = updatedHistory;
       setMessages(updatedHistory);
+      
       return fallbackReply;
     } finally {
       setLoading(false);
