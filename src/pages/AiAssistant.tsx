@@ -25,7 +25,7 @@ function isLocationQuery(text: string): boolean {
     "покажи на карте", "маршрут до", "адрес", "маршрут", "как доехать", 
     "предприятие", "завод", "компания", "организация", "мвд", "мц", "сахарово",
     "вокзал", "аэропорт", "больница", "рынок", "офис", "автовокзал", "жд вокзал", "метро",
-    "улица", "проспект", "переулок", "корпус", "дом"
+    "улица", "проспект", "переулок", "корпус", "дом", "гостиница", "кафе"
   ];
   const low = text.toLowerCase();
   
@@ -102,7 +102,7 @@ export default function AiAssistant() {
         await sendMessage(`📍 ${titleName}\n\nАдрес:\n${first.display_name}\n\n📍 Источник: Yandex Maps`);
         selectLocation(currentMsgIndex + 1, first);
       } else {
-        await sendMessage(`Я не смог найти этот адрес. Уточните город.`);
+        await sendMessage(geocodeRes.error || "Не удалось найти объект. Попробуйте уточнить название или город.");
       }
       
       setLoadingGeocode(prev => ({ ...prev, [currentMsgIndex + 1]: false }));
@@ -166,7 +166,7 @@ export default function AiAssistant() {
                 {isLoading && (
                   <div className="flex items-center gap-2 text-xs text-[#5C7A6D] italic mt-2">
                     <span className="w-2 h-2 rounded-full bg-[#00A86B] animate-ping" />
-                    <span>Поиск на картах Yandex...</span>
+                    <span>Поиск объекта на картах...</span>
                   </div>
                 )}
 
