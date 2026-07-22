@@ -1,7 +1,6 @@
 export interface UserProfile {
   id: string;
-  phone_number?: string;
-  telegram_id?: number;
+  phone_number: string;
   first_name?: string;
   last_name?: string;
   username?: string;
@@ -15,17 +14,6 @@ export interface UserProfile {
   updated_at: string;
 }
 
-export interface Employer {
-  id: string;
-  name: string;
-  rating?: number;
-  reviews_count?: number;
-  licenses_status?: string;
-  blacklist_flag?: boolean;
-  tax_debt_flag?: boolean;
-  ai_risk_score?: string;
-}
-
 export interface Vacancy {
   id: string;
   title: string;
@@ -35,6 +23,5 @@ export interface Vacancy {
   description?: string;
   url: string;
   employer_id?: string;
-  employers?: Employer;
   created_at: string;
 }
