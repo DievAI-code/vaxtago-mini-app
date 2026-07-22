@@ -30,51 +30,81 @@ const DEFAULT_API_KEY = "6a28f618-4ed1-466d-8d3e-85d74a320991";
 let loadPromise: Promise<void> | null = null;
 
 export function loadYandexMapsScript(): Promise<void> {
-  const envKey = import.meta.env.VITE_YANDEX_MAPS_KEY;
+  const apiKey = import.meta.env.VITE_YANDEX_MAPS_KEY || DEFAULT_API_KEY;
 
-  if (!envKey) {
-    console.error("Yandex Maps API key is missing. Add VITE_YANDEX_MAPS_KEY to .env");
+  if (!apiKey) {
+    console.error("Yandex key missing");
+    return Promise.reject(new Error("Yandex key missing"));
   }
 
-  const apiKey = envKey || DEFAULT_API_KEY;
+  if (window.ymaps3) {
+    return window.ymaps3.ready;
+  }
 
   if (loadPromise) return loadPromise;
 
   loadPromise = new Promise((resolve, reject) => {
-    if (window.ymaps3) {
-      window.ymaps3.ready.then(() => resolve()).catch(reject);
-      return;
-    }
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      'script[src*="api-maps.yandex.ru/v3"]'
+    );
 
-    const existingScript = document.querySelector('script[src*="api-maps.yandex.ru/v3"]');
     if (existingScript) {
-      existingScript.addEventListener("load", () => {
-        if (window.ymaps3) {
-          window.ymaps3.ready.then(() => resolve()).catch(reject);
-        } else {
-          reject(new Error("ymaps3 object not found on window"));
-        }
-      });
-      existingScript.addEventListener("error", (err) => reject(err));
+      if (window.ymaps3) {
+        window.ymaps3.ready
+          .then(() => resolve())
+          .catch((err: any) =>
+            reject(new Error(`Yandex Maps API init failed: ${err?.message || err}`))
+          );
+      } else {
+        existingScript.addEventListener(
+          "load",
+          () => {
+            if (window.ymaps3) {
+              window.ymaps3.ready
+                .then(() => resolve())
+                .catch((err: any) =>
+                  reject(new Error(`Yandex Maps API init failed: ${err?.message || err}`))
+                );
+            } else {
+              reject(new Error("Yandex Maps script loaded but ymaps3 object missing"));
+            }
+          },
+          { once: true }
+        );
+        existingScript.addEventListener(
+          "error",
+          () => {
+            loadPromise = null;
+            reject(new Error("Yandex Maps script loading failed"));
+          },
+          { once: true }
+        );
+      }
       return;
     }
 
     const script = document.createElement("script");
-    script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(apiKey)}&lang=ru_RU`;
+    script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(
+      apiKey
+    )}&lang=ru_RU`;
     script.async = true;
 
     script.onload = () => {
       if (window.ymaps3) {
-        window.ymaps3.ready.then(() => resolve()).catch(reject);
+        window.ymaps3.ready
+          .then(() => resolve())
+          .catch((err: any) =>
+            reject(new Error(`Yandex Maps API error: ${err?.message || err}`))
+          );
       } else {
-        reject(new Error("ymaps3 object not found on window"));
+        reject(new Error("Yandex Maps script loaded but ymaps3 object missing"));
       }
     };
 
-    script.onerror = (err) => {
-      console.error("Failed to load Yandex Maps API v3 script:", err);
-      loadPromise = null; // Позволить повторную попытку в случае ошибки сети
-      reject(err);
+    script.onerror = () => {
+      loadPromise = null;
+      script.remove();
+      reject(new Error("Yandex Maps script loading failed"));
     };
 
     document.head.appendChild(script);
@@ -84,7 +114,7 @@ export function loadYandexMapsScript(): Promise<void> {
 }
 
 export function YandexMap({
-  center = [69.2401, 41.2995], // Ташкент [lng, lat]
+  center = [69.2401, 41.2995], // Tashkent [lng, lat]
   zoom = 12,
   markers = [],
   selectedMarkerId,
@@ -100,19 +130,28 @@ export function YandexMap({
   useEffect(() => {
     let mounted = true;
 
+    const apiKey = import.meta.env.VITE_YANDEX_MAPS_KEY || DEFAULT_API_KEY;
+    if (!apiKey) {
+      setError("Yandex key missing");
+      setLoading(false);
+      return;
+    }
+
     loadYandexMapsScript()
       .then(() => {
         if (!mounted || !mapContainerRef.current) return;
 
-        const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer } = window.ymaps3;
+        const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer } =
+          window.ymaps3;
 
-        // Cleanup previous instance if any
+        // Clean container to handle React StrictMode re-mounts safely
         if (mapInstanceRef.current) {
           try {
             mapInstanceRef.current.destroy();
           } catch {}
           mapInstanceRef.current = null;
         }
+        mapContainerRef.current.innerHTML = "";
 
         const map = new YMap(mapContainerRef.current, {
           location: {
@@ -130,7 +169,8 @@ export function YandexMap({
       .catch((err) => {
         if (mounted) {
           console.error("[YandexMap] Initialization error:", err);
-          setError("Не удалось загрузить Яндекс Карты. Проверьте API ключ.");
+          const msg = err instanceof Error ? err.message : String(err);
+          setError(msg || "Yandex Maps script loading failed");
           setLoading(false);
         }
       });
@@ -146,14 +186,18 @@ export function YandexMap({
     };
   }, []);
 
-  // Update map camera location on prop change
+  // Update camera location on center or zoom change
   useEffect(() => {
     if (mapInstanceRef.current && center) {
-      mapInstanceRef.current.setLocation({
-        center,
-        zoom,
-        duration: 300,
-      });
+      try {
+        mapInstanceRef.current.setLocation({
+          center,
+          zoom,
+          duration: 300,
+        });
+      } catch (err) {
+        console.warn("[YandexMap] setLocation failed:", err);
+      }
     }
   }, [center[0], center[1], zoom]);
 
@@ -170,7 +214,8 @@ export function YandexMap({
     markers.forEach((m) => {
       const isSelected = selectedMarkerId === m.id;
       const el = document.createElement("div");
-      el.className = "cursor-pointer transition-transform transform hover:scale-110 active:scale-95";
+      el.className =
+        "cursor-pointer transition-transform transform hover:scale-110 active:scale-95";
 
       let badgeBg = "bg-red-500 text-white border-red-400";
       let icon = "🔴";
@@ -223,7 +268,9 @@ export function YandexMap({
   }, [markers, selectedMarkerId, userLocation, onSelectMarker]);
 
   return (
-    <div className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}>
+    <div
+      className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}
+    >
       {loading && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#06140F]/90 backdrop-blur-md">
           <div className="w-10 h-10 rounded-full border-4 border-[#00A86B]/20 border-t-[#00A86B] animate-spin mb-3" />
