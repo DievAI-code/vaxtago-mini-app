@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser, MapPin, Navigation, Compass, Search } from "lucide-react";
+import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser, MapPin, Navigation, Compass, Search, ChevronRight, List } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
-import { geocodingService } from "@/services/geocodingService";
+import { geocodingService, GeocodingResult } from "@/services/geocodingService";
 import { MapView } from "@/components/MapView";
 import { toast } from "sonner";
 
@@ -15,24 +15,18 @@ interface LocationCardData {
   name?: string;
   lat: number;
   lng: number;
+  options?: GeocodingResult[];
 }
 
-// Улучшенный парсер для определения запросов местоположения
 function isLocationQuery(text: string): boolean {
   const keywords = [
     "где находится", "найди", "покажи на карте", "адрес", 
     "маршрут", "как доехать", "предприятие", "завод", 
-    "компания", "организация", "мвд", "мц", "сахарово"
+    "компания", "организация", "мвд", "мц", "сахарово",
+    "вокзал", "аэропорт", "больница", "рынок"
   ];
   const low = text.toLowerCase();
   return keywords.some(k => low.includes(k));
-}
-
-function extractLocationName(text: string): string {
-  // Удаляем вспомогательные фразы для поиска чистого названия
-  return text
-    .replace(/(?:где находится|покажи адрес|найди компанию|покажи на карте|как доехать|найди предприятие|найди)/gi, "")
-    .trim();
 }
 
 export default function AiAssistant() {
@@ -51,6 +45,18 @@ export default function AiAssistant() {
     }
   }, [messages, isTyping, locations]);
 
+  const selectLocation = (msgIndex: number, result: GeocodingResult) => {
+    setLocations(prev => ({
+      ...prev,
+      [msgIndex]: {
+        address: result.display_name,
+        name: result.name,
+        lat: result.latitude,
+        lng: result.longitude
+      }
+    }));
+  };
+
   const handleSend = async () => {
     if ((!input.trim() && !attachedImage) || isTyping) return;
     
@@ -59,44 +65,48 @@ export default function AiAssistant() {
     const img = attachedImage;
     setAttachedImage(null);
     
-    // Добавляем сообщение пользователя вручную в список (useAiChat обычно делает это через sendMessage, 
-    // но нам нужно знать индекс для вставки карты)
     const currentMsgIndex = messages.length;
 
-    // Если это запрос локации — пробуем геокодинг
     if (isLocationQuery(userMsg) && !img) {
-      const locationName = extractLocationName(userMsg);
       setLoadingGeocode(prev => ({ ...prev, [currentMsgIndex + 1]: true }));
       
-      // Сначала отправляем запрос в AI для "человечного" контекста (опционально)
-      // Инструкция говорит НЕ вызывать, если это запрос локации. Мы сделаем прямой ответ.
-      const geocodeResult = await geocodingService.searchAddress(locationName || userMsg);
+      // Прямой поиск через Nominatim без ожидания AI
+      const results = await geocodingService.searchAddress(userMsg);
       
-      if (geocodeResult) {
-        // Имитируем ответ AI с картой
-        const aiReply = `Я нашел ${geocodeResult.name || 'место'} по вашему запросу. Вы можете увидеть адрес и карту ниже.`;
-        
-        // Перехватываем стандартный sendMessage и вызываем только для сохранения в историю
-        // но здесь мы просто отобразим результат
+      if (results.length > 0) {
+        // Сохраняем "запрос" в историю для UI
         await sendMessage(`[LOCATION_REQUEST]: ${userMsg}`, undefined); 
         
-        setLocations(prev => ({
-          ...prev,
-          [currentMsgIndex + 1]: {
-            address: geocodeResult.display_name,
-            name: geocodeResult.name,
-            lat: geocodeResult.latitude,
-            lng: geocodeResult.longitude
-          }
-        }));
+        if (results.length === 1) {
+          // Один результат — показываем сразу
+          const r = results[0];
+          setLocations(prev => ({
+            ...prev,
+            [currentMsgIndex + 1]: {
+              address: r.display_name,
+              name: r.name,
+              lat: r.latitude,
+              lng: r.longitude
+            }
+          }));
+        } else {
+          // Несколько результатов — показываем список выбора
+          setLocations(prev => ({
+            ...prev,
+            [currentMsgIndex + 1]: {
+              address: "Найдено несколько мест. Пожалуйста, выберите нужное:",
+              lat: 0,
+              lng: 0,
+              options: results
+            }
+          }));
+        }
       } else {
-        // Если не нашли — отвечаем вежливо вместо "у меня нет интернета"
-        await sendMessage(`Ничего не нашлось по запросу "${locationName || userMsg}". Попробуйте уточнить название организации или город.`, undefined);
+        await sendMessage(`Место не найдено по запросу "${userMsg}". Попробуйте уточнить название или город.`, undefined);
       }
       
       setLoadingGeocode(prev => ({ ...prev, [currentMsgIndex + 1]: false }));
     } else {
-      // Обычный запрос к AI
       await sendMessage(userMsg, img || undefined);
     }
   };
@@ -121,7 +131,7 @@ export default function AiAssistant() {
             <h1 className="font-black tracking-tight text-lg">VAQTA AI</h1>
             <div className="flex items-center gap-1.5 mt-1">
               <div className="w-1.5 h-1.5 rounded-full bg-[#00A86B] animate-pulse" />
-              <span className="text-[9px] font-black text-[#5C7A6D] uppercase tracking-widest">Map AI Enabled</span>
+              <span className="text-[9px] font-black text-[#5C7A6D] uppercase tracking-widest">Maps Live Enabled</span>
             </div>
           </div>
         </div>
@@ -143,10 +153,9 @@ export default function AiAssistant() {
         )}
         
         {messages.map((m, i) => {
-          const hasLocation = locations[i];
+          const loc = locations[i];
           const isLoading = loadingGeocode[i];
 
-          // Скрываем технические сообщения [LOCATION_REQUEST]
           if (m.content.startsWith("[LOCATION_REQUEST]")) return null;
 
           return (
@@ -171,32 +180,53 @@ export default function AiAssistant() {
                 {isLoading && (
                   <div className="flex items-center gap-2 text-xs text-[#5C7A6D] italic mt-2">
                     <span className="w-2 h-2 rounded-full bg-[#00A86B] animate-ping" />
-                    <span>Поиск на карте VAQTA...</span>
+                    <span>Поиск объектов на карте...</span>
                   </div>
                 )}
 
-                {hasLocation && (
+                {loc && (
                   <div className="mt-3 space-y-4">
-                    <div className="p-4 bg-[#06140F]/60 border border-[#1A3D2E] rounded-3xl space-y-2">
-                      <div className="flex items-start gap-2">
-                        <MapPin size={16} className="text-[#00A86B] flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-[10px] font-black uppercase text-[#5C7A6D]">Адрес найден</p>
-                          <p className="text-xs font-bold text-white leading-snug">{hasLocation.address}</p>
-                          {hasLocation.name && <p className="text-xs text-[#D4AF37] font-bold mt-1">🏢 {hasLocation.name}</p>}
+                    {!loc.options ? (
+                      <>
+                        <div className="p-4 bg-[#06140F]/60 border border-[#1A3D2E] rounded-3xl space-y-2">
+                          <div className="flex items-start gap-2">
+                            <MapPin size={16} className="text-[#00A86B] flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-[10px] font-black uppercase text-[#5C7A6D]">Найденный адрес</p>
+                              <p className="text-xs font-bold text-white leading-snug">{loc.address}</p>
+                              {loc.name && <p className="text-xs text-[#D4AF37] font-bold mt-1">🏢 {loc.name}</p>}
+                            </div>
+                          </div>
                         </div>
+                        
+                        <MapView latitude={loc.lat} longitude={loc.lng} address={loc.address} />
+                        
+                        <button
+                          onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`, "_blank")}
+                          className="w-full h-12 vaqta-gradient rounded-2xl text-xs font-black text-white flex items-center justify-center gap-2 shadow-lg uppercase"
+                        >
+                          <Navigation size={14} />
+                          <span>Построить маршрут</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 mb-2">
+                           <List size={14} className="text-[#00A86B]"/>
+                           <span className="text-[10px] font-black uppercase text-[#5C7A6D]">Выберите вариант:</span>
+                        </div>
+                        {loc.options.map((opt, idx) => (
+                          <button 
+                            key={idx}
+                            onClick={() => selectLocation(i, opt)}
+                            className="w-full text-left p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-[#00A86B]/10 hover:border-[#00A86B]/30 transition-all group"
+                          >
+                            <p className="text-xs font-bold text-white truncate">{opt.name}</p>
+                            <p className="text-[9px] text-[#5C7A6D] truncate mt-0.5">{opt.display_name}</p>
+                          </button>
+                        ))}
                       </div>
-                    </div>
-                    
-                    <MapView latitude={hasLocation.lat} longitude={hasLocation.lng} address={hasLocation.address} />
-                    
-                    <button
-                      onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${hasLocation.lat},${hasLocation.lng}`, "_blank")}
-                      className="w-full h-12 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-white flex items-center justify-center gap-2 hover:bg-white/10 transition-colors shadow-lg"
-                    >
-                      <Navigation size={14} className="text-[#D4AF37]" />
-                      <span>ПОСТРОИТЬ МАРШРУТ</span>
-                    </button>
+                    )}
                   </div>
                 )}
               </div>
