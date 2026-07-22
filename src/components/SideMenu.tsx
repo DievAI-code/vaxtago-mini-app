@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   X, LayoutGrid, Sparkles, Scan, Search, User, 
-  Clock, Crown, Settings, Info, Mail, ShieldCheck 
+  Clock, Crown, Settings, Info, Mail, ShieldCheck, MapPin 
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { VaqtaLogo } from "./VaqtaLogo";
@@ -22,6 +22,7 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
   const MENU_ITEMS = [
     { path: "/home", icon: LayoutGrid, label: "nav.home" },
     { path: "/ai", icon: Sparkles, label: "nav.ai" },
+    { path: "/map", icon: MapPin, label: "nav.map" },
     { path: "/scanner", icon: Scan, label: "nav.scanner" },
     { path: "/jobs", icon: Search, label: "nav.jobs" },
     { path: "/profile", icon: User, label: "nav.profile" },
@@ -32,10 +33,8 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
     { separator: true },
     { path: "/about", icon: Info, label: "nav.about" },
     { path: "/contacts", icon: Mail, label: "nav.contacts" },
-    { path: "/policy", icon: NavPolicy, label: "nav.policy" },
+    { path: "/policy", icon: ShieldCheck, label: "nav.policy" },
   ];
-
-  function NavPolicy(props: any) { return <ShieldCheck {...props} />; }
 
   return (
     <AnimatePresence>
@@ -101,3 +100,4 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
     </AnimatePresence>
   );
 }
+</SideMenu>
