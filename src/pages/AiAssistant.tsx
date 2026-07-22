@@ -24,10 +24,14 @@ function isLocationQuery(text: string): boolean {
     "где находится", "найди", "покажи на карте", "адрес", 
     "маршрут", "как доехать", "предприятие", "завод", 
     "компания", "организация", "мвд", "мц", "сахарово",
-    "вокзал", "аэропорт", "больница", "рынок", "офис", "автовокзал"
+    "вокзал", "аэропорт", "больница", "рынок", "офис", "автовокзал",
+    "улица", "проспект", "переулок", "корпус", "дом"
   ];
   const low = text.toLowerCase();
-  return keywords.some(k => low.includes(k));
+  
+  // Direct matching or street number patterns (e.g. "карнацевича 1 к 1", "ленина 25")
+  const hasStreetNumber = /\b[а-яa-z]+\s+\d+\s*(к|корп|корпус|\/)?\s*\d*\b/i.test(low);
+  return keywords.some(k => low.includes(k)) || hasStreetNumber;
 }
 
 export default function AiAssistant() {
@@ -58,7 +62,6 @@ export default function AiAssistant() {
       }
     }));
 
-    // Сохраняем в историю поиск объектов
     try {
       const existing = JSON.parse(localStorage.getItem("vaqta_places_history") || "[]");
       const updated = [{ name: result.name || "Объект", address: result.display_name, lat: result.latitude, lng: result.longitude, date: new Date().toISOString() }, ...existing].slice(0, 10);
@@ -79,27 +82,15 @@ export default function AiAssistant() {
     if (isLocationQuery(userMsg) && !img) {
       setLoadingGeocode(prev => ({ ...prev, [currentMsgIndex + 1]: true }));
       
-      const results = await geocodingService.searchAddress(userMsg);
+      const geocodeRes = await geocodingService.searchAddressFull(userMsg);
+      const results = geocodeRes.results;
       
-      if (results.length > 0) {
-        await sendMessage(`[LOCATION_REQUEST]: ${userMsg}`, undefined); 
-        
-        if (results.length === 1) {
-          const r = results[0];
-          selectLocation(currentMsgIndex + 1, r);
-        } else {
-          setLocations(prev => ({
-            ...prev,
-            [currentMsgIndex + 1]: {
-              address: "Найдено несколько мест. Пожалуйста, выберите нужное:",
-              lat: 0,
-              lng: 0,
-              options: results
-            }
-          }));
-        }
+      if (results && results.length > 0) {
+        const first = results[0];
+        await sendMessage(`Нашел адрес: ${first.display_name}. Показываю на карте.`);
+        selectLocation(currentMsgIndex + 1, first);
       } else {
-        await sendMessage(`Место не найдено по запросу "${userMsg}". Попробуйте уточнить название организации или город.`, undefined);
+        await sendMessage(`Я не смог найти этот адрес. Уточните город (например, Тюмень, ${userMsg}).`);
       }
       
       setLoadingGeocode(prev => ({ ...prev, [currentMsgIndex + 1]: false }));
@@ -141,8 +132,6 @@ export default function AiAssistant() {
           const loc = locations[i];
           const isLoading = loadingGeocode[i];
 
-          if (m.content.startsWith("[LOCATION_REQUEST]")) return null;
-
           return (
             <motion.div
               key={i}
@@ -165,7 +154,7 @@ export default function AiAssistant() {
                 {isLoading && (
                   <div className="flex items-center gap-2 text-xs text-[#5C7A6D] italic mt-2">
                     <span className="w-2 h-2 rounded-full bg-[#00A86B] animate-ping" />
-                    <span>Поиск на карте OpenStreetMap...</span>
+                    <span>Поиск на карте Яндекс / OSM...</span>
                   </div>
                 )}
 
@@ -188,18 +177,18 @@ export default function AiAssistant() {
                         
                         <div className="grid grid-cols-2 gap-2 pt-1">
                           <button
-                            onClick={() => window.open(`https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=;${loc.lat}%2C${loc.lng}`, "_blank")}
+                            onClick={() => window.open(`https://yandex.ru/maps/?rtext=~${loc.lat},${loc.lng}&rtt=auto`, "_blank")}
                             className="h-11 vaqta-gradient rounded-xl text-[10px] font-black text-white flex items-center justify-center gap-1.5 shadow-md uppercase"
                           >
                             <Navigation size={14} />
                             <span>Маршрут</span>
                           </button>
                           <button
-                            onClick={() => window.open(`https://www.openstreetmap.org/?mlat=${loc.lat}&mlon=${loc.lng}#map=16/${loc.lat}/${loc.lng}`, "_blank")}
+                            onClick={() => window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(loc.address)}`, "_blank")}
                             className="h-11 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black text-white flex items-center justify-center gap-1.5 hover:bg-white/10 transition-colors uppercase"
                           >
                             <ExternalLink size={14} className="text-[#00A86B]" />
-                            <span>Открыть OSM</span>
+                            <span>Яндекс Карты</span>
                           </button>
                         </div>
                       </>

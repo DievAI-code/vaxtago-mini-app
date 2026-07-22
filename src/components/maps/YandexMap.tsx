@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
+import { loadYandexMaps } from "@/lib/yandexMaps";
 
 export interface VacancyMarkerData {
   id: string;
@@ -26,93 +27,6 @@ interface YandexMapProps {
   className?: string;
 }
 
-const DEFAULT_API_KEY = "6a28f618-4ed1-466d-8d3e-85d74a320991";
-let loadPromise: Promise<void> | null = null;
-
-export function loadYandexMapsScript(): Promise<void> {
-  const apiKey = import.meta.env.VITE_YANDEX_MAPS_KEY || DEFAULT_API_KEY;
-
-  if (!apiKey) {
-    console.error("Yandex key missing");
-    return Promise.reject(new Error("Yandex key missing"));
-  }
-
-  if (window.ymaps3) {
-    return window.ymaps3.ready;
-  }
-
-  if (loadPromise) return loadPromise;
-
-  loadPromise = new Promise((resolve, reject) => {
-    const existingScript = document.querySelector<HTMLScriptElement>(
-      'script[src*="api-maps.yandex.ru/v3"]'
-    );
-
-    if (existingScript) {
-      if (window.ymaps3) {
-        window.ymaps3.ready
-          .then(() => resolve())
-          .catch((err: any) =>
-            reject(new Error(`Yandex Maps API init failed: ${err?.message || err}`))
-          );
-      } else {
-        existingScript.addEventListener(
-          "load",
-          () => {
-            if (window.ymaps3) {
-              window.ymaps3.ready
-                .then(() => resolve())
-                .catch((err: any) =>
-                  reject(new Error(`Yandex Maps API init failed: ${err?.message || err}`))
-                );
-            } else {
-              reject(new Error("Yandex Maps script loaded but ymaps3 object missing"));
-            }
-          },
-          { once: true }
-        );
-        existingScript.addEventListener(
-          "error",
-          () => {
-            loadPromise = null;
-            reject(new Error("Yandex Maps script loading failed"));
-          },
-          { once: true }
-        );
-      }
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(
-      apiKey
-    )}&lang=ru_RU`;
-    script.async = true;
-
-    script.onload = () => {
-      if (window.ymaps3) {
-        window.ymaps3.ready
-          .then(() => resolve())
-          .catch((err: any) =>
-            reject(new Error(`Yandex Maps API error: ${err?.message || err}`))
-          );
-      } else {
-        reject(new Error("Yandex Maps script loaded but ymaps3 object missing"));
-      }
-    };
-
-    script.onerror = () => {
-      loadPromise = null;
-      script.remove();
-      reject(new Error("Yandex Maps script loading failed"));
-    };
-
-    document.head.appendChild(script);
-  });
-
-  return loadPromise;
-}
-
 export function YandexMap({
   center = [69.2401, 41.2995], // Tashkent [lng, lat]
   zoom = 12,
@@ -130,21 +44,13 @@ export function YandexMap({
   useEffect(() => {
     let mounted = true;
 
-    const apiKey = import.meta.env.VITE_YANDEX_MAPS_KEY || DEFAULT_API_KEY;
-    if (!apiKey) {
-      setError("Yandex key missing");
-      setLoading(false);
-      return;
-    }
-
-    loadYandexMapsScript()
+    loadYandexMaps()
       .then(() => {
         if (!mounted || !mapContainerRef.current) return;
 
         const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer } =
           window.ymaps3;
 
-        // Clean container to handle React StrictMode re-mounts safely
         if (mapInstanceRef.current) {
           try {
             mapInstanceRef.current.destroy();
@@ -168,9 +74,8 @@ export function YandexMap({
       })
       .catch((err) => {
         if (mounted) {
-          console.error("[YandexMap] Initialization error:", err);
-          const msg = err instanceof Error ? err.message : String(err);
-          setError(msg || "Yandex Maps script loading failed");
+          console.error("[YandexMap] Error:", err);
+          setError("Карта временно недоступна. Проверьте подключение.");
           setLoading(false);
         }
       });
@@ -186,7 +91,6 @@ export function YandexMap({
     };
   }, []);
 
-  // Update camera location on center or zoom change
   useEffect(() => {
     if (mapInstanceRef.current && center) {
       try {
@@ -201,16 +105,13 @@ export function YandexMap({
     }
   }, [center[0], center[1], zoom]);
 
-  // Render & sync custom markers
   useEffect(() => {
     if (!mapInstanceRef.current || !window.ymaps3) return;
 
     const { YMapMarker } = window.ymaps3;
     const map = mapInstanceRef.current;
-
     const markerElements: any[] = [];
 
-    // Render vacancy markers
     markers.forEach((m) => {
       const isSelected = selectedMarkerId === m.id;
       const el = document.createElement("div");
@@ -245,7 +146,6 @@ export function YandexMap({
       markerElements.push(marker);
     });
 
-    // Render user location marker if available
     if (userLocation) {
       const uEl = document.createElement("div");
       uEl.innerHTML = `

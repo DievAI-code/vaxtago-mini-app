@@ -15,42 +15,54 @@ export function useAiChat() {
 
   const sendMessage = useCallback(async (message: string, image?: string): Promise<string | null> => {
     setLoading(true);
+    console.log("USER MESSAGE:", message);
+
     const userMsg: ChatMessage = { role: "user", content: message };
-    
-    // Поддержка памяти на 20 сообщений
     const newHistory = [...historyRef.current, userMsg].slice(-20);
     historyRef.current = newHistory;
     setMessages(newHistory);
 
+    const payload = {
+      message,
+      image,
+      language_code: language,
+      history: newHistory,
+      context: {
+        platform: "VAQTA Production",
+        ui_language: language,
+        has_image: !!image,
+      },
+    };
+
+    console.log("AI REQUEST:", payload);
+
     try {
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: { 
-          message,
-          image,
-          language_code: language, 
-          history: newHistory,
-          // Передаем контекст для умных команд 'переведи/объясни'
-          context: {
-            platform: "VAQTA Production",
-            ui_language: language,
-            has_image: !!image
-          }
-        },
+        body: payload,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase edge function error:", error);
+        throw error;
+      }
 
-      const reply = data?.reply || data?.message || "AI Error";
+      const reply = data?.reply || data?.message || "Не удалось получить ответ помощника. Попробуйте еще раз.";
+      console.log("AI RESPONSE:", reply);
+
       const assistantMsg: ChatMessage = { role: "assistant", content: reply };
-      
       const updatedHistory = [...newHistory, assistantMsg].slice(-20);
       historyRef.current = updatedHistory;
       setMessages(updatedHistory);
-      
+
       return reply;
     } catch (err) {
-      console.error("VAQTA AI Production Error:", err);
-      return null;
+      console.error("VAQTA AI Error:", err);
+      const fallbackReply = "Не удалось получить ответ помощника. Попробуйте еще раз.";
+      const assistantMsg: ChatMessage = { role: "assistant", content: fallbackReply };
+      const updatedHistory = [...newHistory, assistantMsg].slice(-20);
+      historyRef.current = updatedHistory;
+      setMessages(updatedHistory);
+      return fallbackReply;
     } finally {
       setLoading(false);
     }
