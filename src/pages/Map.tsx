@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, Navigation, MapPin, ShieldCheck, Star, 
-  ExternalLink, Crosshair, ArrowLeft, Briefcase 
+  ExternalLink, Crosshair, Briefcase, RefreshCw, AlertCircle 
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
@@ -58,6 +58,7 @@ export default function MapPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [center, setCenter] = useState<[number, number]>([69.2401, 41.2995]); // [lng, lat] Tashkent
   const [zoom, setZoom] = useState(12);
   const [selectedVacancy, setSelectedVacancy] = useState<VacancyMarkerData | null>(SAMPLE_VACANCIES[0]);
@@ -66,18 +67,30 @@ export default function MapPage() {
   const handleAddressSearch = async () => {
     if (!searchQuery.trim()) return;
     setIsSearching(true);
+    setSearchError(null);
 
     try {
-      const results = await geocodingService.searchAddress(searchQuery);
-      if (results && results.length > 0) {
-        const first = results[0];
+      const res = await geocodingService.searchAddressFull(searchQuery);
+
+      if (res.isTooShort) {
+        setSearchError("Введите полный адрес:\nгород + улица + дом");
+        toast.warning("Введите полный адрес (напр. Москва, Ленина 25)");
+        return;
+      }
+
+      if (res.results && res.results.length > 0) {
+        const first = res.results[0];
         setCenter([first.longitude, first.latitude]);
         setZoom(14);
-        toast.success(`Найдено: ${first.display_name.slice(0, 40)}...`);
+        setSearchError(null);
+        toast.success(`Найдено: ${first.display_name.slice(0, 45)}...`);
       } else {
-        toast.error("Адрес не найден. Попробуйте уточнить запрос.");
+        const msg = res.error || "Не удалось найти адрес. Уточните город или улицу.";
+        setSearchError(msg);
+        toast.error("Адрес не найден");
       }
     } catch {
+      setSearchError("Не удалось найти адрес. Уточните город или улицу.");
       toast.error("Ошибка при поиске адреса.");
     } finally {
       setIsSearching(false);
@@ -105,7 +118,6 @@ export default function MapPage() {
   };
 
   const buildRoute = useCallback((coords: [number, number]) => {
-    // Yandex Maps router URL [lat, lng] for web navigation
     const [lng, lat] = coords;
     const url = `https://yandex.ru/maps/?rtext=~${lat},${lng}&rtt=auto`;
     window.open(url, "_blank");
@@ -124,7 +136,7 @@ export default function MapPage() {
               <span>🗺️</span> Карта вакансий
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">
-              Яндекс Карты v3 • Поиск работы на карте
+              Яндекс Карты v3 • Поиск адресов и вакансий
             </p>
           </div>
           <button
@@ -143,9 +155,12 @@ export default function MapPage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (searchError) setSearchError(null);
+              }}
               onKeyDown={(e) => e.key === "Enter" && handleAddressSearch()}
-              placeholder="Введите город или адрес (напр. Ташкент)..."
+              placeholder="Введите адрес (напр. Москва, Ленинский проспект 25)..."
               className="flex-1 bg-transparent py-3 text-xs outline-none placeholder-[#5C7A6D] font-bold text-white"
             />
             <button
@@ -157,6 +172,27 @@ export default function MapPage() {
             </button>
           </div>
         </div>
+
+        {/* Search Error State with Retry Button */}
+        {searchError && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="vaqta-glass p-4 border-amber-500/30 bg-amber-500/5 flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-200 whitespace-pre-line">
+              <AlertCircle size={18} className="text-amber-400 flex-shrink-0" />
+              <span>{searchError}</span>
+            </div>
+            <button
+              onClick={handleAddressSearch}
+              className="px-3 py-1.5 bg-amber-500/20 border border-amber-500/40 text-amber-200 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 hover:bg-amber-500/30 transition-colors flex-shrink-0"
+            >
+              <RefreshCw size={12} />
+              <span>Попробовать снова</span>
+            </button>
+          </motion.div>
+        )}
 
         {/* Legend Filter Badges */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 text-[10px] font-black uppercase tracking-wider">
