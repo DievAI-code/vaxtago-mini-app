@@ -5,15 +5,16 @@ const DEFAULT_API_KEY = "6a28f618-4ed1-466d-8d3e-85d74a320991";
 let loadPromise: Promise<void> | null = null;
 
 export function getYandexMapsKey(): string {
-  return import.meta.env.VITE_YANDEX_MAPS_KEY || DEFAULT_API_KEY;
+  const envKey = import.meta.env.VITE_YANDEX_MAPS_KEY;
+  return envKey && envKey.trim() !== "" ? envKey : DEFAULT_API_KEY;
 }
 
 export function loadYandexMaps(): Promise<void> {
   const apiKey = getYandexMapsKey();
 
   if (!apiKey) {
-    console.error("[YandexMaps] Key missing");
-    return Promise.reject(new Error("Yandex key missing"));
+    console.error("[YandexMaps] Yandex Maps API key missing");
+    return Promise.reject(new Error("Yandex Maps API key missing"));
   }
 
   if (window.ymaps3) {
@@ -32,7 +33,7 @@ export function loadYandexMaps(): Promise<void> {
         window.ymaps3.ready
           .then(() => resolve())
           .catch((err: any) =>
-            reject(new Error(`Yandex Maps API init failed: ${err?.message || err}`))
+            reject(new Error(`Yandex Maps loading error: ${err?.message || err}`))
           );
       } else {
         existingScript.addEventListener(
@@ -42,10 +43,10 @@ export function loadYandexMaps(): Promise<void> {
               window.ymaps3.ready
                 .then(() => resolve())
                 .catch((err: any) =>
-                  reject(new Error(`Yandex Maps API init failed: ${err?.message || err}`))
+                  reject(new Error(`Yandex Maps loading error: ${err?.message || err}`))
                 );
             } else {
-              reject(new Error("Yandex Maps script loaded but ymaps3 object missing"));
+              reject(new Error("Yandex Maps loading error"));
             }
           },
           { once: true }
@@ -54,7 +55,7 @@ export function loadYandexMaps(): Promise<void> {
           "error",
           () => {
             loadPromise = null;
-            reject(new Error("Yandex Maps script loading failed"));
+            reject(new Error("Yandex Maps loading error"));
           },
           { once: true }
         );
@@ -73,17 +74,17 @@ export function loadYandexMaps(): Promise<void> {
         window.ymaps3.ready
           .then(() => resolve())
           .catch((err: any) =>
-            reject(new Error(`Yandex Maps API error: ${err?.message || err}`))
+            reject(new Error(`Yandex Maps loading error: ${err?.message || err}`))
           );
       } else {
-        reject(new Error("Yandex Maps script loaded but ymaps3 object missing"));
+        reject(new Error("Yandex Maps loading error"));
       }
     };
 
     script.onerror = () => {
       loadPromise = null;
       script.remove();
-      reject(new Error("Yandex Maps script loading failed"));
+      reject(new Error("Yandex Maps loading error"));
     };
 
     document.head.appendChild(script);

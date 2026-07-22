@@ -50,18 +50,19 @@ async function fetchConversationHistory(supabase: any, userId: string, conversat
 }
 
 serve(async (req) => {
+  console.log("FUNCTION START");
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   let body: any;
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ success: false, error: "Invalid JSON body", reply: "Не удалось получить ответ помощника. Попробуйте еще раз." }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ success: false, error: "Invalid JSON body", reply: "Не удалось получить ответ. Попробуйте ещё раз." }), { status: 400, headers: corsHeaders });
   }
 
   console.log("AI REQUEST BODY", JSON.stringify(body, null, 2));
 
   const { message, language_code, telegram_id, image, image_url, context, user_id, has_image, conversation_id } = body;
   if (!message || typeof message !== "string") {
-    return new Response(JSON.stringify({ success: false, error: "Message required", reply: "Не удалось получить ответ помощника. Попробуйте еще раз." }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ success: false, error: "Message required", reply: "Не удалось получить ответ. Попробуйте ещё раз." }), { status: 400, headers: corsHeaders });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -78,6 +79,7 @@ serve(async (req) => {
   let reply: string;
   let model = "none";
   try {
+    console.log("OPENROUTER REQUEST", message);
     const aiResult = await createAIRequest({
       type: image || image_url ? "vision" : "assistant",
       text: message,
@@ -98,7 +100,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: false, 
       error: "AI временно недоступен",
-      reply: "Не удалось получить ответ помощника. Попробуйте еще раз."
+      reply: "Не удалось получить ответ. Попробуйте ещё раз."
     }), { headers: corsHeaders, status: 200 });
   }
 

@@ -15,7 +15,7 @@ export function useAiChat() {
 
   const sendMessage = useCallback(async (message: string, image?: string): Promise<string | null> => {
     setLoading(true);
-    console.log("USER MESSAGE:", message);
+    console.log("USER MESSAGE", message);
 
     const userMsg: ChatMessage = { role: "user", content: message };
     const newHistory = [...historyRef.current, userMsg].slice(-20);
@@ -34,7 +34,7 @@ export function useAiChat() {
       },
     };
 
-    console.log("AI REQUEST:", payload);
+    console.log("AI REQUEST", payload);
 
     try {
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
@@ -46,8 +46,8 @@ export function useAiChat() {
         throw error;
       }
 
-      const reply = data?.reply || data?.message || "Не удалось получить ответ помощника. Попробуйте еще раз.";
-      console.log("AI RESPONSE:", reply);
+      const reply = data?.reply || data?.message || "Не удалось получить ответ. Попробуйте ещё раз.";
+      console.log("AI RESPONSE", reply);
 
       const assistantMsg: ChatMessage = { role: "assistant", content: reply };
       const updatedHistory = [...newHistory, assistantMsg].slice(-20);
@@ -57,7 +57,7 @@ export function useAiChat() {
       return reply;
     } catch (err) {
       console.error("VAQTA AI Error:", err);
-      const fallbackReply = "Не удалось получить ответ помощника. Попробуйте еще раз.";
+      const fallbackReply = "Не удалось получить ответ. Попробуйте ещё раз.";
       const assistantMsg: ChatMessage = { role: "assistant", content: fallbackReply };
       const updatedHistory = [...newHistory, assistantMsg].slice(-20);
       historyRef.current = updatedHistory;

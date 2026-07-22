@@ -28,7 +28,7 @@ interface YandexMapProps {
 }
 
 export function YandexMap({
-  center = [69.2401, 41.2995], // Tashkent [lng, lat]
+  center = [69.2401, 41.2995], // Default Tashkent center
   zoom = 12,
   markers = [],
   selectedMarkerId,
@@ -75,7 +75,7 @@ export function YandexMap({
       .catch((err) => {
         if (mounted) {
           console.error("[YandexMap] Error:", err);
-          setError("Карта временно недоступна. Проверьте подключение.");
+          setError("Yandex Maps loading error");
           setLoading(false);
         }
       });

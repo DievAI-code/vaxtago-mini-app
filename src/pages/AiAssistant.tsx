@@ -86,7 +86,6 @@ export default function AiAssistant() {
       const results = geocodeRes.results;
       
       if (results && results.length > 1) {
-        // Multiple matches found - prompt candidate list
         await sendMessage(`Я нашел несколько мест по вашему запросу. Выберите нужное:\n\n📍 Источник: Yandex Maps`);
         setLocations(prev => ({
           ...prev,
@@ -98,13 +97,12 @@ export default function AiAssistant() {
           }
         }));
       } else if (results && results.length === 1) {
-        // Single match found
         const first = results[0];
-        await sendMessage(`Нашел место: ${first.name || first.display_name}.\n📍 Адрес: ${first.display_name}\n\n📍 Источник: Yandex Maps`);
+        const titleName = first.name || "Найденный объект";
+        await sendMessage(`📍 ${titleName}\n\nАдрес:\n${first.display_name}\n\n📍 Источник: Yandex Maps`);
         selectLocation(currentMsgIndex + 1, first);
       } else {
-        // No match found
-        await sendMessage(`Я не смог найти этот адрес. Уточните город (например, Тюмень, ${userMsg}).`);
+        await sendMessage(`Я не смог найти этот адрес. Уточните город.`);
       }
       
       setLoadingGeocode(prev => ({ ...prev, [currentMsgIndex + 1]: false }));

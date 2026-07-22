@@ -43,16 +43,16 @@ export function cleanAddressQuery(query: string): string {
 
 export const geocodingService = {
   /**
-   * Main search address function using Yandex Geocoder API with OpenStreetMap fallback.
+   * Search address/organization using Yandex Geocoder API with Nominatim fallback.
    */
   async searchAddressFull(rawQuery: string): Promise<GeocodingSearchResponse> {
     const cleanQuery = cleanAddressQuery(rawQuery);
 
-    if (!cleanQuery || cleanQuery.length < 3) {
+    if (!cleanQuery || cleanQuery.length < 2) {
       return {
         results: [],
         isTooShort: true,
-        error: "Введите полный адрес:\nгород + улица + дом или название объекта",
+        error: "Введите адрес или название объекта",
       };
     }
 
@@ -106,7 +106,7 @@ export const geocodingService = {
         }
       }
     } catch (err) {
-      console.warn("[Yandex Geocoder Error, falling back to Nominatim]:", err);
+      console.warn("[Yandex Geocoder Warning]:", err);
     }
 
     // 2. Fallback to OpenStreetMap Nominatim
