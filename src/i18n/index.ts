@@ -3,8 +3,10 @@ import { initReactI18next } from "react-i18next";
 import ru from "./locales/ru.json";
 import uz from "./locales/uz.json";
 import tg from "./locales/tg.json";
+import ky from "./locales/ky.json";
+import en from "./locales/en.json";
 
-export const SUPPORTED_LANGS = ["ru", "uz", "tg"] as const;
+export const SUPPORTED_LANGS = ["ru", "uz", "tg", "ky", "en"] as const;
 export type Lang = (typeof SUPPORTED_LANGS)[number];
 
 const savedLang = localStorage.getItem("vaxtago_language") as Lang;
@@ -15,6 +17,8 @@ i18n.use(initReactI18next).init({
     ru: { translation: ru },
     uz: { translation: uz },
     tg: { translation: tg },
+    ky: { translation: ky },
+    en: { translation: en },
   },
   lng: initialLang,
   fallbackLng: "ru",

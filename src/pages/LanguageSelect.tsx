@@ -2,72 +2,64 @@
 
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useApp } from "@/lib/theme";
-import { Lang } from "@/i18n";
+import { useLanguage } from "@/context/LanguageProvider";
+import { supabase } from "@/integrations/supabase/client";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { Globe, ChevronRight } from "lucide-react";
+import { Lang } from "@/i18n";
 
-const LANGUAGES: { code: Lang; name: string; native: string; flag: string }[] = [
-  { code: "uz", name: "Uzbek", native: "O'zbekcha", flag: "🇺🇿" },
-  { code: "ru", name: "Russian", native: "Русский", flag: "🇷🇺" },
-  { code: "tg", name: "Tajik", native: "Тоҷикӣ", flag: "🇹🇯" },
+const LANGUAGES: { code: Lang; native: string; flag: string }[] = [
+  { code: "uz", native: "O'zbekcha", flag: "🇺🇿" },
+  { code: "ru", native: "Русский", flag: "🇷🇺" },
+  { code: "tg", native: "Тоҷикӣ", flag: "🇹🇯" },
+  { code: "ky", native: "Кыргызча", flag: "🇰🇬" },
+  { code: "en", native: "English", flag: "🇬🇧" },
 ];
 
 export default function LanguageSelect() {
-  const { setLang } = useApp();
+  const { setLanguage } = useLanguage();
   const nav = useNavigate();
 
-  const handleSelect = (code: Lang) => {
-    setLang(code);
-    localStorage.setItem("vaxtago_first_run", "false");
-    nav("/home", { replace: true });
+  const handleSelect = async (code: Lang) => {
+    try {
+      const phone = localStorage.getItem("vaxtago_user_phone");
+      if (phone) {
+        await supabase
+          .from("users")
+          .update({ language_code: code })
+          .eq("phone_number", phone);
+      }
+      setLanguage(code);
+      nav("/home", { replace: true });
+    } catch (e) {
+      console.error(e);
+      nav("/home", { replace: true });
+    }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#06140F] text-white p-6 items-center justify-center">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center space-y-8 w-full max-w-sm"
-      >
-        <div className="flex flex-col items-center gap-4">
-          <VaqtaLogo size={64} animated glow />
-          <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tight">VAQTA AI</h1>
-            <p className="text-[#5C7A6D] text-xs font-bold uppercase tracking-widest">
-              Ish va hayot uchun aqlli yordamchi
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3 pt-4">
-          {LANGUAGES.map((lang, idx) => (
-            <motion.button
-              key={lang.code}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => handleSelect(lang.code)}
-              className="w-full vaqta-glass p-5 flex items-center justify-between group hover:border-[#00A86B]/50 transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <span className="text-2xl">{lang.flag}</span>
-                <div className="text-left">
-                  <p className="font-bold text-lg">{lang.native}</p>
-                  <p className="text-xs text-[#5C7A6D] font-medium">{lang.name}</p>
-                </div>
-              </div>
-              <ChevronRight className="text-[#5C7A6D] group-hover:text-[#00A86B] transition-colors" />
-            </motion.button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 justify-center text-[#5C7A6D]">
-          <Globe size={14} />
-          <span className="text-[10px] font-black uppercase tracking-widest">Select Language</span>
-        </div>
-      </motion.div>
+    <div className="flex flex-col min-h-screen bg-[#06140F] text-white p-8 items-center justify-center">
+      <VaqtaLogo size={64} animated className="mb-8" />
+      <h2 className="text-2xl font-black mb-10 tracking-tight uppercase">Выберите язык / Tilni tanlang</h2>
+      
+      <div className="w-full max-w-xs space-y-3">
+        {LANGUAGES.map((lang, idx) => (
+          <motion.button
+            key={lang.code}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: idx * 0.1 }}
+            onClick={() => handleSelect(lang.code)}
+            className="w-full vaqta-glass p-5 flex items-center justify-between group hover:border-[#00A86B] transition-all"
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-2xl">{lang.flag}</span>
+              <span className="font-bold text-lg">{lang.native}</span>
+            </div>
+            <ChevronRight size={18} className="text-[#5C7A6D] group-hover:text-[#00A86B]" />
+          </motion.button>
+        ))}
+      </div>
     </div>
   );
 }
