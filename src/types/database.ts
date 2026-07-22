@@ -24,4 +24,8 @@ export interface Vacancy {
   url: string;
   employer_id?: string;
   created_at: string;
+  employers?: {
+    name: string;
+    rating?: number;
+  };
 }
