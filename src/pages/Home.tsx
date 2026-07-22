@@ -18,6 +18,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Vacancy } from "@/types/database";
 import { useLanguage } from "@/context/LanguageProvider";
+import { motion } from "framer-motion";
 
 const CATEGORIES = [
   { name: "Сварка", icon: "👨‍🏭" },

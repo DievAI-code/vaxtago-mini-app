@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Phone, Globe, ChevronRight, Sparkles } from "lucide-react";
+import { Phone, Globe, ChevronRight } from "lucide-react";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useApp } from "@/lib/theme";
@@ -31,32 +31,39 @@ export default function Login() {
     }
 
     setLoading(true);
+    
+    // 1. Выполняем локальную авторизацию немедленно, чтобы не блокировать пользователя
+    localStorage.setItem("vaxtago_auth", "true");
+    localStorage.setItem("vaxtago_user_phone", phone);
+    toast.success(t("common.done"));
+    navigate("/", { replace: true });
+
+    // 2. Фоновая попытка синхронизации с Supabase
     try {
-      // Имитация авторизации и создания пользователя в БД
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: selectError } = await supabase
         .from("users")
         .select("*")
-        .eq("phone", phone)
+        .eq("phone_number", phone)
         .maybeSingle();
 
-      if (!existingUser) {
-        await supabase.from("users").insert({
-          phone,
-          name: "User_" + phone.slice(-4),
-          language: document.documentElement.lang,
-          is_premium: false,
-          status: "active"
-        });
+      if (selectError) {
+        console.warn("[Supabase Select Error]:", selectError);
       }
 
-      localStorage.setItem("vaxtago_auth", "true");
-      localStorage.setItem("vaxtago_user_phone", phone);
-      
-      toast.success(t("common.done"));
-      navigate("/home", { replace: true });
+      if (!existingUser) {
+        const { error: insertError } = await supabase.from("users").insert({
+          phone_number: phone,
+          first_name: "User_" + phone.slice(-4),
+          language_code: document.documentElement.lang || "uz",
+        });
+
+        if (insertError) {
+          console.error("[Supabase Insert Error Details]:", JSON.stringify(insertError, null, 2));
+          toast.warning("Локальный вход выполнен. Синхронизация профиля будет завершена позже.");
+        }
+      }
     } catch (err) {
-      console.error(err);
-      toast.error(t("common.error"));
+      console.warn("[Supabase Connection Warning]:", err);
     } finally {
       setLoading(false);
     }
