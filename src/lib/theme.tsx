@@ -21,7 +21,7 @@ export function useApp() {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
     const saved = localStorage.getItem("vaxtago_language") as Lang;
-    return saved || (i18n.language as Lang) || "uz";
+    return saved || (i18n.language as Lang) || "ru";
   });
   
   const [theme, setTheme] = useState<Theme>(

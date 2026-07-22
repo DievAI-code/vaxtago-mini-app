@@ -8,7 +8,7 @@ export const SUPPORTED_LANGS = ["ru", "uz", "tg"] as const;
 export type Lang = (typeof SUPPORTED_LANGS)[number];
 
 const savedLang = localStorage.getItem("vaxtago_language") as Lang;
-const initialLang = SUPPORTED_LANGS.includes(savedLang) ? savedLang : "uz";
+const initialLang = SUPPORTED_LANGS.includes(savedLang) ? savedLang : "ru";
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -17,7 +17,7 @@ i18n.use(initReactI18next).init({
     tg: { translation: tg },
   },
   lng: initialLang,
-  fallbackLng: "uz",
+  fallbackLng: "ru",
   interpolation: { escapeValue: false },
 });
 

@@ -1,4 +1,10 @@
 {
+  "hero_title": "Aqlli AI yordamchi\nhayotingiz uchun",
+  "hero_subtitle": "Premium intellekt",
+  "btn_upload": "Hujjat yuklash",
+  "btn_chat": "AI dan so'rash",
+  "search_job": "Ish qidirish",
+  "all_services": "Barchasi",
   "auth": {
     "subtitle": "Ish, hujjatlar va tarjimalar uchun AI yordamchi",
     "phone_label": "Telefon raqami",

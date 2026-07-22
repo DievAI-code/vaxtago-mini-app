@@ -16,7 +16,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const { t } = useTranslation();
   const [language, setLangState] = useState<Lang>(() => {
     const saved = localStorage.getItem("vaxtago_language") as Lang;
-    return saved || (i18n.language as Lang) || "uz";
+    return saved || (i18n.language as Lang) || "ru";
   });
 
   useEffect(() => {
