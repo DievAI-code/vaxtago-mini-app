@@ -19,41 +19,49 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConfigured()) {
-      toast.error("Ошибка конфигурации. Обратитесь в поддержку.");
+      toast.error("Ошибка конфигурации. Проверьте VITE_SUPABASE_URL.");
       return;
     }
 
     if (phone.length < 10) {
-      toast.error("Введите корректный номер телефона");
+      toast.error(t("auth.phone_placeholder"));
       return;
     }
 
     setLoading(true);
     try {
+      // Пытаемся найти пользователя или создать нового (UPSERT)
+      // onConflict: 'phone_number' гарантирует, что мы не создадим дубликат
       const { data, error } = await supabase
         .from("users")
         .upsert({
           phone_number: phone,
           first_name: `User_${phone.slice(-4)}`,
+          language_code: document.documentElement.lang || 'uz',
+          last_login: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          language_code: document.documentElement.lang || 'uz'
+          role: 'user'
         }, { 
           onConflict: 'phone_number' 
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Auth Error:", error);
+        throw new Error("DB_ERROR");
+      }
 
+      // Сохраняем локальную сессию
       localStorage.setItem("vaxtago_auth", "true");
       localStorage.setItem("vaxtago_user_phone", phone);
+      localStorage.setItem("vaxtago_user_id", data.id);
       localStorage.setItem("vaxtago_user_data", JSON.stringify(data));
       
-      toast.success("Вход выполнен!");
+      toast.success("Muvaffaqiyatli kirish!");
       nav("/home", { replace: true });
     } catch (err: any) {
-      console.error("[Auth Error]:", err.message);
-      toast.error("Не удалось войти. Проверьте соединение.");
+      toast.error("Kirishda xatolik yuz berdi. Tarmoqni tekshiring.");
     } finally {
       setLoading(false);
     }
@@ -64,7 +72,7 @@ export default function Login() {
       <div className="min-h-screen bg-[#06140F] flex flex-col items-center justify-center p-8 text-center">
         <AlertCircle size={48} className="text-red-500 mb-4" />
         <h2 className="text-xl font-bold mb-2">Настройка не завершена</h2>
-        <p className="text-slate-400 text-sm">Пожалуйста, добавьте переменные окружения в Vercel (SUPABASE_URL и ANON_KEY).</p>
+        <p className="text-slate-400 text-sm">Добавьте VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY в настройки Vercel.</p>
       </div>
     );
   }
@@ -88,8 +96,8 @@ export default function Login() {
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+7 (___) ___ __ __"
-                  className="w-full h-16 bg-[#0C1F1A] border border-[#1A3D2E] rounded-[1.5rem] pl-14 pr-4 text-white focus:outline-none focus:border-[#00A86B] transition-all font-bold"
+                  placeholder={t("auth.phone_placeholder")}
+                  className="w-full h-16 bg-[#0C1F1A] border border-[#1A3D2E] rounded-[1.5rem] pl-14 pr-4 text-white focus:outline-none focus:border-[#00A86B] transition-all font-bold tracking-widest"
                 />
               </div>
             </div>
@@ -98,7 +106,7 @@ export default function Login() {
               disabled={loading}
               className="w-full h-16 rounded-[1.5rem] vaqta-gradient flex items-center justify-center gap-3 text-lg font-black text-white shadow-xl disabled:opacity-50"
             >
-              {loading ? "Загрузка..." : t("common.continue")}
+              {loading ? t("common.loading") : t("common.continue")}
               {!loading && <ChevronRight size={20} />}
             </button>
           </form>
