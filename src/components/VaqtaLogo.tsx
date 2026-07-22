@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { motion } from "framer-motion";
 
 interface VaqtaLogoProps {
@@ -8,9 +9,11 @@ interface VaqtaLogoProps {
   glow?: boolean;
 }
 
-export const VaqtaLogo = ({ size = 40, animated = false, glow = true }: VaqtaLogoProps) => {
-  console.log("VAQTA LOGO RENDER", { size, animated });
-
+/**
+ * Оптимизированный компонент логотипа.
+ * Используется React.memo для исключения повторных рендеров при обновлении родительских состояний.
+ */
+export const VaqtaLogo = React.memo(({ size = 40, animated = false, glow = true }: VaqtaLogoProps) => {
   return (
     <motion.div 
       initial={animated ? { scale: 0.8, opacity: 0 } : { scale: 1, opacity: 1 }}
@@ -47,6 +50,8 @@ export const VaqtaLogo = ({ size = 40, animated = false, glow = true }: VaqtaLog
       </svg>
     </motion.div>
   );
-};
+});
+
+VaqtaLogo.displayName = "VaqtaLogo";
 
 export default VaqtaLogo;

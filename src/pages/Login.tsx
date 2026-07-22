@@ -32,38 +32,32 @@ export default function Login() {
 
     setLoading(true);
     
-    // 1. Выполняем локальную авторизацию немедленно, чтобы не блокировать пользователя
-    localStorage.setItem("vaxtago_auth", "true");
-    localStorage.setItem("vaxtago_user_phone", phone);
-    toast.success(t("common.done"));
-    navigate("/", { replace: true });
-
-    // 2. Фоновая попытка синхронизации с Supabase
     try {
-      const { data: existingUser, error: selectError } = await supabase
+      // Использование upsert позволяет автоматически создать или обновить пользователя
+      // по уникальному полю phone_number
+      const { data, error } = await supabase
         .from("users")
-        .select("*")
-        .eq("phone_number", phone)
-        .maybeSingle();
-
-      if (selectError) {
-        console.warn("[Supabase Select Error]:", selectError);
-      }
-
-      if (!existingUser) {
-        const { error: insertError } = await supabase.from("users").insert({
+        .upsert({
           phone_number: phone,
           first_name: "User_" + phone.slice(-4),
           language_code: document.documentElement.lang || "uz",
-        });
+          updated_at: new Date().toISOString()
+        }, { 
+          onConflict: 'phone_number' 
+        })
+        .select()
+        .single();
 
-        if (insertError) {
-          console.error("[Supabase Insert Error Details]:", JSON.stringify(insertError, null, 2));
-          toast.warning("Локальный вход выполнен. Синхронизация профиля будет завершена позже.");
-        }
-      }
-    } catch (err) {
-      console.warn("[Supabase Connection Warning]:", err);
+      if (error) throw error;
+
+      localStorage.setItem("vaxtago_auth", "true");
+      localStorage.setItem("vaxtago_user_phone", phone);
+      
+      toast.success(t("common.done"));
+      navigate("/", { replace: true });
+    } catch (err: any) {
+      console.error("[Login Error]:", err.message);
+      toast.error("Ошибка при входе. Пожалуйста, попробуйте позже.");
     } finally {
       setLoading(false);
     }
@@ -76,19 +70,12 @@ export default function Login() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white overflow-hidden">
-      {/* Background Decorations */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#00A86B]/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#D4AF37]/5 blur-[120px] rounded-full" />
-      </div>
-
       <main className="flex-1 flex flex-col items-center justify-center px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm space-y-12"
         >
-          {/* Logo Section */}
           <div className="flex flex-col items-center text-center space-y-6">
             <VaqtaLogo size={80} animated glow />
             <div className="space-y-2">
@@ -99,7 +86,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Form Section */}
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5C7A6D] ml-2">
@@ -129,7 +115,6 @@ export default function Login() {
             </motion.button>
           </form>
 
-          {/* Language Selection */}
           <div className="space-y-4">
             <p className="text-center text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">
               {t("auth.select_lang")}
@@ -153,12 +138,6 @@ export default function Login() {
           </div>
         </motion.div>
       </main>
-
-      <footer className="p-8 text-center relative z-10">
-        <p className="text-[10px] text-[#5C7A6D] font-medium max-w-[280px] mx-auto leading-relaxed">
-          {t("auth.privacy_note")}
-        </p>
-      </footer>
     </div>
   );
 }

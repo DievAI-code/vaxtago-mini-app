@@ -1,7 +1,9 @@
--- Fix for PGRST204: Could not find the 'first_name' column of 'users'
+-- Migration to add missing user profile columns
 ALTER TABLE public.users 
 ADD COLUMN IF NOT EXISTS first_name TEXT,
-ADD COLUMN IF NOT EXISTS last_name TEXT;
+ADD COLUMN IF NOT EXISTS last_name TEXT,
+ADD COLUMN IF NOT EXISTS username TEXT,
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
 
--- Ensure RLS is updated if needed (usually columns don't break policies, but good practice)
-COMMENT ON COLUMN public.users.first_name IS 'User first name for UI and AI personalization';
+-- Ensure proper indexing for performance
+CREATE INDEX IF NOT EXISTS users_phone_number_idx ON public.users (phone_number);
