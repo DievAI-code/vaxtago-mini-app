@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Menu, Bell } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { motion } from "framer-motion";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 interface HeaderProps {
   title: string;
@@ -37,6 +38,7 @@ export function Header({ title, showBack = false, onMenuClick }: HeaderProps) {
       </div>
       
       <div className="flex items-center gap-2">
+        <LanguageSwitcher />
         <button className="p-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-xl text-[#5C7A6D] relative">
           <Bell size={20} />
           <span className="absolute top-2 right-2 w-2 h-2 bg-[#00A86B] rounded-full border border-[#06140F]" />

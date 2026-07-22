@@ -99,5 +99,21 @@
     "stats_ai": "Запросы к AI",
     "stats_scans": "Сканирования",
     "stats_trans": "Переводы"
+  },
+  "ai": {
+    "thinking": "Думаю...",
+    "error": "Ошибка соединения с AI",
+    "try_again": "Попробуйте еще раз",
+    "vision_processing": "Анализирую изображение...",
+    "document_analysis": "Анализ документа",
+    "translation_complete": "Перевод завершен",
+    "employer_check": "Проверка работодателя"
+  },
+  "premium": {
+    "title": "Premium подписка",
+    "features": "Премиум функции",
+    "buy": "Купить Premium",
+    "active": "Premium активен",
+    "inactive": "Неактивен"
   }
 }

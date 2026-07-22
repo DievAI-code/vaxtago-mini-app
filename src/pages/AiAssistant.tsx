@@ -2,85 +2,60 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Bot, Paperclip, X, MapPin, Navigation, List, ExternalLink } from "lucide-react";
+import { Send, User, Bot, Paperclip, X, ImageIcon, Camera } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
-import { geocodingService, GeocodingResult } from "@/services/geocodingService";
-import { MapView } from "@/components/MapView";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { toast } from "sonner";
-
-interface LocationCardData {
-  address: string;
-  name?: string;
-  lat: number;
-  lng: number;
-  options?: GeocodingResult[];
-}
-
-function isLocationIntent(text: string): boolean {
-  const keywords = ["где", "адрес", "на карте", "вокзал", "мвд", "мц", "улица", "как доехать", "маршрут"];
-  return keywords.some(k => text.toLowerCase().includes(k));
-}
+import { subscriptionService } from "@/services/subscriptionService";
 
 export default function AiAssistant() {
   const { t } = useLanguage();
-  const { sendMessage, loading: isTyping, messages } = useAiChat();
+  const { sendMessage, loading: isTyping, messages, clearChat } = useAiChat();
   const [input, setInput] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
-  const [locations, setLocations] = useState<Record<number, LocationCardData>>({});
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, isTyping, locations]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isTyping]);
 
   const handleSend = async () => {
     if ((!input.trim() && !attachedImage) || isTyping) return;
     
+    // Проверяем подписку
+    const canUseAI = await subscriptionService.canUseFeature('ai_request');
+    if (!canUseAI) {
+      toast.error(t("premium.feature_locked") || "Эта функция доступна в Premium");
+      return;
+    }
+
     const userMsg = input.trim();
     setInput("");
     const img = attachedImage;
     setAttachedImage(null);
     
-    const msgIdx = messages.length;
+    await sendMessage(userMsg, img || undefined);
+    await subscriptionService.decrementRequestCount();
+  };
 
-    // Если это запрос места или маршрута
-    if (isLocationIntent(userMsg) && !img) {
-      const geoRes = await geocodingService.searchAddressFull(userMsg);
+  const handleImageUpload = async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setAttachedImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
-      if (geoRes.isRoute && geoRes.routePoints) {
-        const { origin, destination } = geoRes.routePoints;
-        await sendMessage(`Строю маршрут из ${origin} в ${destination}. Открываю навигатор...`);
-        window.open(`https://yandex.ru/maps/?rtext=${encodeURIComponent(origin)}~${encodeURIComponent(destination)}&rtt=auto`, "_blank");
-        return;
-      }
-
-      if (geoRes.results && geoRes.results.length > 0) {
-        const first = geoRes.results[0];
-        await sendMessage(`Нашел на карте: ${first.display_name}`);
-        setLocations(prev => ({
-          ...prev,
-          [msgIdx + 1]: {
-            address: first.display_name,
-            name: first.name,
-            lat: first.latitude,
-            lng: first.longitude,
-            options: geoRes.results.length > 1 ? geoRes.results : undefined
-          }
-        }));
-      } else if (geoRes.error) {
-        await sendMessage(geoRes.error);
-      } else {
-        await sendMessage(userMsg, img || undefined);
-      }
-    } else {
-      await sendMessage(userMsg, img || undefined);
-    }
+  const removeImage = () => {
+    setAttachedImage(null);
   };
 
   return (
@@ -96,18 +71,6 @@ export default function AiAssistant() {
             </div>
             <div className={`max-w-[85%] p-4 rounded-[2rem] text-sm leading-relaxed font-medium shadow-xl flex flex-col gap-3 ${m.role === "user" ? "bg-[#00A86B] text-white rounded-tr-none" : "bg-[#0C1F1A] border border-[#1A3D2E] rounded-tl-none text-slate-100"}`}>
               <p className="whitespace-pre-wrap">{m.content}</p>
-              {locations[i] && (
-                <div className="mt-2 space-y-3">
-                  <div className="p-3 bg-[#06140F]/80 border border-[#1A3D2E] rounded-2xl">
-                    <p className="text-[9px] font-black uppercase text-[#5C7A6D]">Адрес найден</p>
-                    <p className="text-xs font-bold text-white">{locations[i].address}</p>
-                  </div>
-                  <MapView latitude={locations[i].lat} longitude={locations[i].lng} address={locations[i].address} />
-                  <button onClick={() => window.open(`https://yandex.ru/maps/?rtext=~${locations[i].lat},${locations[i].lng}&rtt=auto`, "_blank")} className="w-full h-11 vaqta-gradient rounded-xl text-[10px] font-black text-white flex items-center justify-center gap-1.5 shadow-md uppercase">
-                    <Navigation size={14} /> Построить маршрут
-                  </button>
-                </div>
-              )}
             </div>
           </motion.div>
         ))}
@@ -115,11 +78,42 @@ export default function AiAssistant() {
       </div>
 
       <div className="fixed bottom-24 left-0 w-full px-6 pb-2">
+        {attachedImage && (
+          <div className="relative mb-2">
+            <img src={attachedImage} alt="Attached" className="w-20 h-20 rounded-2xl object-cover border-2 border-[#00A86B]" />
+            <button onClick={removeImage} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+        
         <div className="relative vaqta-glass border-[#1A3D2E] focus-within:border-[#00A86B]/40 transition-all p-2 pr-4 flex items-end gap-2 shadow-2xl">
-          <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())} placeholder={t("chat.placeholder")} className="flex-1 bg-transparent py-3 text-sm text-white focus:outline-none resize-none max-h-32 min-h-[48px] no-scrollbar font-medium" />
-          <button onClick={handleSend} disabled={!input.trim() || isTyping} className="mb-1.5 p-3 bg-[#00A86B] text-white rounded-2xl disabled:opacity-30 transition-all shadow-lg active:scale-95"><Send size={18} /></button>
+          <div className="flex gap-1">
+            <input type="file" ref={fileRef} accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
+            <input type="file" ref={cameraRef} accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
+            
+            <button onClick={() => fileRef.current?.click()} className="p-2 text-[#5C7A6D] hover:text-[#00A86B]">
+              <ImageIcon size={20} />
+            </button>
+            <button onClick={() => cameraRef.current?.click()} className="p-2 text-[#5C7A6D] hover:text-[#00A86B]">
+              <Camera size={20} />
+            </button>
+          </div>
+          
+          <textarea 
+            value={input} 
+            onChange={(e) => setInput(e.target.value)} 
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())} 
+            placeholder={t("chat.placeholder")} 
+            className="flex-1 bg-transparent py-3 text-sm text-white focus:outline-none resize-none max-h-32 min-h-[48px] no-scrollbar font-medium" 
+          />
+          
+          <button onClick={handleSend} disabled={!input.trim() && !attachedImage} className="mb-1.5 p-3 bg-[#00A86B] text-white rounded-2xl disabled:opacity-30 transition-all shadow-lg active:scale-95">
+            <Send size={18} />
+          </button>
         </div>
       </div>
+      
       <BottomNav />
     </div>
   );

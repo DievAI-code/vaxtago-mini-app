@@ -40,3 +40,24 @@ export function loadYandexMaps(): Promise<void> {
 
   return loadPromise;
 }
+
+// Fallback для случаев, когда API ключ недоступен
+export const yandexMapsFallback = {
+  searchAddress: async (query: string) => {
+    console.warn("Yandex Maps unavailable, using fallback geocoding");
+    
+    // Простой fallback - возвращаем координаты Ташкента
+    return [{
+      lat: 41.2995,
+      lng: 69.2401,
+      address: query,
+      name: query,
+      city: "Ташкент"
+    }];
+  },
+  
+  createRoute: (lat: number, lng: number) => {
+    const url = `https://yandex.ru/maps/?rtext=~${lat},${lng}&rtt=auto`;
+    window.open(url, "_blank");
+  }
+};
