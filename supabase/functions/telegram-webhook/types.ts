@@ -1,4 +1,4 @@
-export type Lang = "ru" | "uz";
+export type Lang = "ru" | "uz" | "tg" | "ky" | "en";
 
 export interface TelegramFrom {
   id: number;
@@ -17,4 +17,26 @@ export interface Vacancy {
   url: string;
   schedule?: string;
   housing?: string;
+}
+
+// Payment Types
+export interface LabeledPrice {
+  label: string;
+  amount: number;
+}
+
+export interface SuccessfulPayment {
+  currency: string;
+  total_amount: number;
+  invoice_payload: string;
+  telegram_payment_charge_id: string;
+  provider_payment_charge_id: string;
+}
+
+export interface PreCheckoutQuery {
+  id: string;
+  from: TelegramFrom;
+  currency: string;
+  total_amount: number;
+  invoice_payload: string;
 }
