@@ -1,22 +1,15 @@
 {
-  "common": {
-    "loading": "Боргирӣ...",
-    "error": "Хатогӣ",
-    "retry": "Дубора кӯшиш кунед",
-    "save": "Захира кардан",
-    "copy": "Нусхабардорӣ",
-    "share": "Мубодила кардан",
-    "back": "Ба ақиб",
-    "done": "Тайёр",
-    "close": "Пӯшидан",
-    "cancel": "Бекор кардан",
-    "more": "Муфассал",
-    "clear": "Тоза кардан"
+  "auth": {
+    "subtitle": "Ёвари AI барои кор, ҳуҷҷатҳо ва тарҷумаҳо",
+    "phone_label": "Рақами телефон",
+    "phone_placeholder": "+992 (__) ___ __ __",
+    "privacy_note": "Бо идома додани шумо шартҳои истифода ва сиёсати махфиятро қабул мекунед",
+    "select_lang": "Забонро интихоб кунед"
   },
   "nav": {
     "home": "Асосӣ",
+    "ai": "Ёвари AI",
     "scanner": "Сканер",
-    "ai": "VAQTA AI",
     "jobs": "Корҳо",
     "profile": "Профил",
     "history": "Таърих",
@@ -26,52 +19,55 @@
     "contacts": "Тамос",
     "policy": "Сиёсат"
   },
-  "profile": {
-    "user_section": "Корбар",
-    "user_name": "Ном",
-    "user_lang": "Забон",
-    "user_country": "Кишвар",
-    "user_status": "Ҳолати ҳисоб",
-    "ai_section": "Интеллекти сунъӣ",
-    "ai_history": "Таърихи муколамаҳо",
-    "ai_analysis": "Таҳлили охирин",
-    "ai_translation": "Тарҷумаи охирин",
-    "docs_section": "Ҳуҷҷатҳо",
-    "docs_last": "Ҳуҷҷатҳои охирин",
-    "docs_trans": "Тарҷумаҳои охирин",
-    "docs_photos": "Аксҳои охирин",
-    "settings_section": "Танзимот",
-    "settings_ui_lang": "Забони барнома",
-    "settings_ai_lang": "Забони AI",
-    "settings_ocr_lang": "Забони OCR",
-    "settings_trans_lang": "Забони тарҷума",
-    "settings_theme": "Намуди зоҳирӣ",
-    "premium_section": "VaxtaGo Premium",
-    "premium_status": "Ҳолати обуна",
-    "premium_benefits": "Имкониятҳо",
-    "info_section": "Маълумот",
-    "info_version": "Версияи барнома",
-    "info_policy": "Сиёсати махфият",
-    "info_contacts": "Тамос бо мо"
-  },
   "home": {
-    "hero_title": "Ёвари ҳуشمند\nбарои кор ва зиндагӣ",
-    "hero_subtitle": "Акс фиристед. Мо мефаҳмонем.",
-    "quick_services": "Хизматрасониҳо",
-    "market_analysis": "Таҳлили бозор"
+    "hero_title": "Ёвари ҳушманди AI\nбарои зиндагии шумо",
+    "hero_subtitle": "Интеллекти премиум",
+    "btn_upload": "Боркунии ҳуҷҷат",
+    "btn_chat": "Пурсидан аз AI",
+    "quick_services": "Хизматрасониҳои зуд",
+    "all_services": "Ҳама",
+    "search_job": "Ҷустуҷӯи кор",
+    "scanner_desc": "Тарҷумаи ҳуҷҷатҳо",
+    "market_analysis": "Таҳлили бозор",
+    "market_desc": "Прогнози талабот ба касбҳо дар вақти воқеӣ дар асоси таҳлили AI."
   },
-  "chat": {
-    "welcome": "Салом! 👋\n\nМан ёвари VAQTA AI ҳастам. Саволи худро нависед.",
-    "placeholder": "Савол нависед...",
-    "typing": "AI фикр мекунад...",
-    "premium_badge": "Premium"
+  "jobs": {
+    "placeholder": "Ба шумо кадом кор лозим аст?",
+    "found_count": "Вакансиҳои машҳур"
   },
   "scanner": {
-    "title": "Сканер",
-    "desc": "Таҳлили ҳуҷҷатҳо",
-    "upload_area": "Боркунии акс ё аксбардорӣ",
-    "processing": "Таҳлил мешавад..."
+    "title": "Сканери ҳуشمند",
+    "desc": "Муайянкунӣ ва тарҷума",
+    "upload_area": "Барои боркунии акс пахш кунед",
+    "step_upload": "Боргирӣ...",
+    "step_ocr": "Муайянкунӣ...",
+    "step_lang": "Муайянкунии забон...",
+    "step_translate": "Тарҷума...",
+    "step_analyze": "Таҳлили AI...",
+    "result_ready": "Натиҷа тайёр аст",
+    "translation": "Тарҷума",
+    "explanation": "Тӯзеҳ",
+    "risks": "Таҳлили хатарҳо",
+    "new_scan": "Скани нав",
+    "error_ocr": "Матнро муайян карда нашуд",
+    "error_ai": "AI муваққатан дастнорас аст",
+    "error_unsupported": "Формати файли дастгиринашаванда"
   },
+  "chat": {
+    "welcome": "Ассалому алейкум! Имрӯз ба шумо чӣ гуна кӯмак карда метавонам? Ман ҳуҷҷатҳо, аксҳо ва тарҷумаҳоро мефаҳмам.",
+    "placeholder": "Саволи худро нависед...",
+    "premium_badge": "Premium AI"
+  },
+  "common": {
+    "continue": "Идома додан",
+    "loading": "Боргирӣ...",
+    "error": "Хатогӣ",
+    "done": "Тайёр",
+    "more": "Муфассал",
+    "save": "Захира кардан",
+    "share": "Мубодила кардан"
+  },
+  "settings_lang": "Забон",
   "maps": {
     "open": "Google Maps",
     "route": "Хатсайр",
@@ -79,5 +75,22 @@
     "found_address": "Нишонӣ ёфт шуд",
     "confidence": "Боварӣ",
     "job_location": "Ҷойи кор"
+  },
+  "profile": {
+    "user_info": "Маълумоти корбар",
+    "user_name": "Номи корбар",
+    "user_phone": "Рақами телефон",
+    "user_lang": "Забони интерфейс",
+    "ai_activity": "Фаъолияти AI",
+    "ai_requests": "Дархостҳо ба AI",
+    "logout": "Баромадан аз ҳисоб"
+  },
+  "admin": {
+    "title": "Панли администратор",
+    "stats_users": "Ҷами корбарон",
+    "stats_new": "Навҳои имрӯза",
+    "stats_ai": "Дархостҳо ба AI",
+    "stats_scans": "Сканеркуниҳо",
+    "stats_trans": "Тарҷумаҳо"
   }
 }

@@ -11,7 +11,13 @@
     "ai": "AI Yordamchi",
     "scanner": "Skaner",
     "jobs": "Ishlar",
-    "profile": "Profil"
+    "profile": "Profil",
+    "history": "Tarix",
+    "premium": "Premium",
+    "settings": "Sozlamalar",
+    "about": "Loyiha haqida",
+    "contacts": "Aloqa",
+    "policy": "Siyosat"
   },
   "home": {
     "hero_title": "Aqlli AI yordamchi\nhayotingiz uchun",
@@ -42,7 +48,10 @@
     "translation": "Tarjima",
     "explanation": "Tushuntirish",
     "risks": "Xavf tahlili",
-    "new_scan": "Yangi skaner"
+    "new_scan": "Yangi skaner",
+    "error_ocr": "Matnni aniqlab bo'lmadi",
+    "error_ai": "AI vaqtincha ishlamayapti",
+    "error_unsupported": "Qo'llab-quvvatlanmaydigan fayl formati"
   },
   "chat": {
     "welcome": "Assalomu alaykum! Bugun sizga qanday yordam bera olaman? Men hujjatlar, rasmlar va tarjimalarni tushunaman.",
@@ -66,5 +75,22 @@
     "found_address": "Manzil topildi",
     "confidence": "Ishonch",
     "job_location": "Ish joyi"
+  },
+  "profile": {
+    "user_info": "Foydalanuvchi ma'lumotlari",
+    "user_name": "Foydalanuvchi nomi",
+    "user_phone": "Telefon raqami",
+    "user_lang": "Interfeys tili",
+    "ai_activity": "AI faolligi",
+    "ai_requests": "AI so'rovlari",
+    "logout": "Hisobdan chiqish"
+  },
+  "admin": {
+    "title": "Administrator paneli",
+    "stats_users": "Jami foydalanuvchilar",
+    "stats_new": "Bugungi yangilar",
+    "stats_ai": "AI so'rovlari",
+    "stats_scans": "Skanerlashlar",
+    "stats_trans": "Tarjimalar"
   }
 }
