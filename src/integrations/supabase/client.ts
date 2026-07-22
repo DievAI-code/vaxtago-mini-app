@@ -41,6 +41,17 @@ export const clearSupabaseSession = async () => {
   }
 };
 
+// Расширенное логирование ошибок Supabase
+export const logSupabaseError = (error: any, context: string = '') => {
+  console.error(`[Supabase Error] ${context}`, {
+    code: error?.code,
+    message: error?.message,
+    details: error?.details,
+    hint: error?.hint,
+    status: error?.status
+  });
+};
+
 // Проверка подключения
 export const checkSupabaseConnection = async () => {
   if (!supabase) {
@@ -51,7 +62,7 @@ export const checkSupabaseConnection = async () => {
     const { data, error } = await supabase.from('users').select('count').limit(1);
     
     if (error) {
-      console.error('[Supabase Connection Test] Error:', error);
+      logSupabaseError(error, 'Connection Test');
       return false;
     }
     

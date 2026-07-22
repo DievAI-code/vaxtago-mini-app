@@ -40,61 +40,81 @@ export default function Login() {
       console.log('[Login] Attempting upsert for phone:', cleanPhone);
       console.log('[Login] Supabase client:', !!supabase);
       
-      const { data, error } = await supabase
+      // Сначала пробуем найти существующего пользователя
+      const { data: existingUser, error: selectError } = await supabase
         .from("users")
-        .upsert({
-          phone_number: cleanPhone,
-          last_login: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          subscription_status: 'free'
-        }, { 
-          onConflict: 'phone_number',
-          ignoreDuplicates: false
-        })
-        .select()
-        .single();
+        .select("*")
+        .eq("phone_number", cleanPhone)
+        .maybeSingle();
 
-      if (error) {
-        console.error('[Login] Supabase error:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        
-        // Обработка специфических ошибок
-        if (error.code === '23505') {
-          toast.error("Этот номер телефона уже зарегистрирован");
-        } else if (error.code === '42501') {
-          toast.error("Ошибка доступа. Проверьте RLS политики");
-        } else if (error.code === '401') {
-          toast.error("Ошибка авторизации. Проверьте Supabase ключи");
-        } else {
-          toast.error(`Ошибка: ${error.message}`);
-        }
-        return;
+      if (selectError) {
+        console.error('[Login] Select error:', selectError);
       }
 
-      console.log('[Login] Upsert success:', data);
+      let userData;
+      
+      if (existingUser) {
+        // Обновляем существующего пользователя
+        const { data, error } = await supabase
+          .from("users")
+          .update({
+            last_login: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq("phone_number", cleanPhone)
+          .select()
+          .single();
+
+        if (error) throw error;
+        userData = data;
+      } else {
+        // Создаем нового пользователя
+        const { data, error } = await supabase
+          .from("users")
+          .insert({
+            phone_number: cleanPhone,
+            last_login: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            subscription_status: 'free',
+            language_code: 'uz'
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        userData = data;
+      }
+
+      console.log('[Login] Upsert success:', userData);
       
       // Сохраняем пользователя
       localStorage.setItem("vaxtago_auth", "true");
-      localStorage.setItem("vaxtago_user_data", JSON.stringify(data));
+      localStorage.setItem("vaxtago_user_data", JSON.stringify(userData));
       localStorage.setItem("vaxtago_user_phone", cleanPhone);
       
       toast.success("Добро пожаловать!");
       
       // Редирект в зависимости от наличия языка
-      if (!data.language_code) {
+      if (!userData.language_code || userData.language_code === 'uz') {
         nav("/language-select", { replace: true });
       } else {
-        localStorage.setItem("vaxtago_language", data.language_code);
+        localStorage.setItem("vaxtago_language", userData.language_code);
         nav("/home", { replace: true });
       }
       
     } catch (err: any) {
-      console.error('[Login] Unexpected error:', err);
-      toast.error(`Неожиданная ошибка: ${err.message || "Unknown error"}`);
+      console.error('[Login] Error:', err);
+      
+      // Детальный анализ ошибки
+      if (err.code === '23505') {
+        toast.error("Этот номер телефона уже зарегистрирован");
+      } else if (err.code === '42501') {
+        toast.error("Ошибка доступа. Проверьте RLS политики");
+      } else if (err.code === '409') {
+        toast.error("Конфликт данных. Попробуйте еще раз");
+      } else {
+        toast.error(`Ошибка: ${err.message || "Неизвестная ошибка"}`);
+      }
     } finally {
       setLoading(false);
     }

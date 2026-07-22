@@ -7,7 +7,7 @@
 
 export function getSupabaseUrl(): string {
   const url = import.meta.env.VITE_SUPABASE_URL;
-  if (!url || url.includes("your-project")) {
+  if (!url || url.includes("your-project") || url.includes("example")) {
     console.error("CRITICAL: VITE_SUPABASE_URL is missing or invalid.");
     return ""; 
   }
@@ -16,7 +16,7 @@ export function getSupabaseUrl(): string {
 
 export function getSupabaseAnonKey(): string {
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  if (!key || key.includes("your-anon-key")) {
+  if (!key || key.includes("your-anon-key") || key.includes("example")) {
     console.error("CRITICAL: VITE_SUPABASE_ANON_KEY is missing or invalid.");
     return "";
   }
@@ -32,4 +32,23 @@ export function getYandexKey(): string {
  */
 export function isConfigured(): boolean {
   return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
+}
+
+/**
+ * Диагностика переменных окружения
+ */
+export function logEnvDiagnostics() {
+  console.log('[VAQTA ENV] diagnostics:', {
+    supabaseUrl: getSupabaseUrl() ? '✅ OK' : '❌ MISSING',
+    supabaseKey: getSupabaseAnonKey() ? '✅ OK' : '❌ MISSING',
+    yandexKey: getYandexKey() ? '✅ OK' : '❌ MISSING',
+    isConfigured: isConfigured()
+  });
+}
+
+// Автоматическая диагностика при импорте
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    logEnvDiagnostics();
+  }, 1000);
 }
