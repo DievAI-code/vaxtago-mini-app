@@ -11,8 +11,9 @@ import {
   Heart,
   ShieldCheck
 } from "lucide-react";
-import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { BottomNav } from "@/components/BottomNav";
+import { Header } from "@/components/Header";
+import { SideMenu } from "@/components/SideMenu";
 import { FadeUp } from "@/components/animations";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +32,7 @@ export default function Home() {
   const nav = useNavigate();
   const { t } = useLanguage();
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -42,17 +44,10 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] pb-40 safe-top">
-      <header className="p-6 flex items-center justify-between sticky top-0 bg-[#06140F]/80 backdrop-blur-md z-40">
-        <div className="flex items-center gap-3">
-          <VaqtaLogo size={32} />
-          <h1 className="text-xl font-black tracking-tight">VAQTA AI</h1>
-        </div>
-        <button onClick={() => nav("/profile")} className="w-10 h-10 rounded-2xl border border-[#1A3D2E] bg-[#0C1F1A] overflow-hidden flex items-center justify-center p-0.5">
-          <img src={`https://avatar.vercel.sh/vaqta-user`} alt="profile" className="w-full h-full rounded-xl" />
-        </button>
-      </header>
+      <Header title="nav.home" onMenuClick={() => setIsMenuOpen(true)} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-      <main className="px-6 space-y-8">
+      <main className="px-6 space-y-6 mt-4">
         <FadeUp>
           <div className="relative group">
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-500">
@@ -62,7 +57,7 @@ export default function Home() {
               type="text"
               readOnly
               placeholder={t("jobs.placeholder")}
-              className="w-full bg-[#0C1F1A] border border-[#1A3D2E] rounded-2xl py-4 pl-12 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 transition-all cursor-pointer"
+              className="w-full bg-[#0C1F1A] border border-[#1A3D2E] rounded-2xl py-4 pl-12 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 transition-all cursor-pointer font-medium"
               onClick={() => nav("/jobs")}
             />
           </div>
@@ -89,15 +84,15 @@ export default function Home() {
           </div>
         </FadeUp>
 
-        <section className="space-y-4">
+        <section className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5C7A6D] ml-2">{t('home.quick_services')}</h3>
-          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
             {CATEGORIES.map((cat) => (
               <motion.div
                 key={cat.name}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => nav("/jobs")}
-                className="flex-shrink-0 p-5 w-32 vaqta-glass text-center space-y-3 cursor-pointer border-[#1A3D2E]"
+                className="flex-shrink-0 p-4 w-28 vaqta-glass text-center space-y-2 cursor-pointer border-[#1A3D2E]"
               >
                 <span className="text-2xl">{cat.icon}</span>
                 <p className="text-[10px] font-black uppercase tracking-widest text-white">{cat.name}</p>
@@ -130,14 +125,13 @@ function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
   const { t } = useLanguage();
   return (
     <motion.div 
-      variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }}
-      whileHover={{ y: -4 }}
-      className="vaqta-glass p-6 space-y-5 border-[#1A3D2E]"
+      whileHover={{ y: -2 }}
+      className="vaqta-glass p-6 space-y-4 border-[#1A3D2E]"
     >
       <div className="flex justify-between items-start">
         <div className="space-y-1">
-          <h4 className="font-bold text-lg leading-tight text-white">{vacancy.title}</h4>
-          <p className="text-[10px] text-[#5C7A6D] font-black uppercase tracking-widest">{vacancy.employers?.name || "Premium Partner"}</p>
+          <h4 className="font-bold text-base leading-tight text-white">{vacancy.title}</h4>
+          <p className="text-[10px] text-[#5C7A6D] font-black uppercase tracking-widest">{vacancy.employers?.name || "Verified Partner"}</p>
         </div>
         <div className="bg-[#00A86B]/10 text-[#00A86B] p-2 rounded-xl border border-[#00A86B]/20">
           <ShieldCheck size={18} />
@@ -155,7 +149,7 @@ function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t border-white/5">
+      <div className="flex items-center justify-between pt-3 border-t border-white/5">
         <span className="text-lg font-black text-[#00A86B]">{vacancy.salary_from || 0} ₽</span>
         <div className="flex gap-2">
           <button className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors">
@@ -163,7 +157,7 @@ function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
           </button>
           <button 
             onClick={() => window.open(vacancy.url, '_blank')}
-            className="px-6 py-3 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#00A86B] hover:text-white transition-all shadow-lg"
+            className="px-5 py-2.5 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#00A86B] hover:text-white transition-all shadow-lg"
           >
             {t('common.more')}
           </button>

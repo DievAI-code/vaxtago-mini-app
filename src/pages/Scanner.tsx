@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { 
   Camera, Loader2, ShieldAlert, Copy, Share2, Save, FileSearch, 
-  CheckCircle2, Info, RefreshCw, MapPin
+  CheckCircle2, Info, RefreshCw, MapPin, Globe
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { FadeUp } from "@/components/animations";
@@ -13,8 +13,17 @@ import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
 import { MapView } from "@/components/MapView";
 import { geocodingService } from "@/services/geocodingService";
+import { Header } from "@/components/Header";
+import { SideMenu } from "@/components/SideMenu";
 
-type ScanStep = 'idle' | 'uploading' | 'ocr' | 'detecting' | 'translating' | 'analyzing' | 'done';
+type ScanStep = 'idle' | 'uploading' | 'ocr' | 'analyzing' | 'done';
+
+const TARGET_LANGS = [
+  { code: "uz", label: "O'zbekcha", flag: "🇺🇿" },
+  { code: "ru", label: "Русский", flag: "🇷🇺" },
+  { code: "tg", label: "Тоҷикӣ", flag: "🇹🇯" },
+  { code: "en", label: "English", flag: "🇬🇧" },
+];
 
 interface ScanResult {
   ocr_text: string;
@@ -24,40 +33,34 @@ interface ScanResult {
   doc_type: string;
   detected_lang: string;
   address?: string;
-  confidence?: string;
   lat?: number;
   lng?: number;
 }
 
 export default function Scanner() {
   const { t, language } = useLanguage();
+  const [targetLang, setTargetLang] = useState<string>(language || "uz");
   const [step, setStep] = useState<ScanStep>('idle');
   const [result, setResult] = useState<ScanResult | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const processImage = useCallback(async (base64: string) => {
     setStep('uploading');
-    console.log("[Scanner] Starting process...");
 
     try {
       setStep('ocr');
       const { data, error } = await supabase.functions.invoke("vision-assistant", {
         body: { 
           image: base64,
-          language_code: language,
+          language_code: targetLang,
           request_type: "analyze_document"
         },
       });
 
-      if (error) {
-        console.error("[Scanner] Supabase Function Error:", error);
+      if (error || !data) {
         throw new Error("AI_UNAVAILABLE");
-      }
-
-      if (!data || (!data.ocr_text && !data.explanation)) {
-        console.error("[Scanner] Empty data received:", data);
-        throw new Error("OCR_FAILED");
       }
 
       setStep('analyzing');
@@ -67,42 +70,45 @@ export default function Scanner() {
       let lng: number | undefined;
 
       if (potentialAddr) {
-        const coords = await geocodingService.searchAddress(potentialAddr);
-        if (coords) {
-          lat = coords.latitude;
-          lng = coords.longitude;
+        const coordsList = await geocodingService.searchAddress(potentialAddr);
+        if (coordsList.length > 0) {
+          lat = coordsList[0].latitude;
+          lng = coordsList[0].longitude;
         }
       }
 
-      setResult({
+      const resObj: ScanResult = {
         ocr_text: data.ocr_text || "",
-        translation: data.translation || "",
-        explanation: data.explanation || "",
-        risks: data.risks || [],
+        translation: data.translation || data.ocr_text || "",
+        explanation: data.explanation || "Документ проанализирован.",
+        risks: data.risks || ["Проверьте личные данные и сроки действия."],
         doc_type: data.document_type || "Документ",
         detected_lang: data.source_lang || "Авто",
         address: potentialAddr || undefined,
-        confidence: data.confidence || "High",
         lat,
         lng
-      });
-      
+      };
+
+      setResult(resObj);
       setStep('done');
+
+      // Сохраняем скан в localStorage историю
+      try {
+        const existing = JSON.parse(localStorage.getItem("vaqta_doc_history") || "[]");
+        const updated = [{ id: Date.now(), doc_type: resObj.doc_type, summary: resObj.explanation, date: new Date().toISOString() }, ...existing].slice(0, 10);
+        localStorage.setItem("vaqta_doc_history", JSON.stringify(updated));
+      } catch {}
+
       toast.success(t('scanner.result_ready'));
     } catch (err: any) {
-      console.error("[Scanner] Fatal Error:", err);
+      console.error("[Scanner Error]:", err);
       setStep('idle');
-      
-      if (err.message === "OCR_FAILED") {
-        toast.error(t('scanner.error_ocr'));
-      } else {
-        toast.error(t('scanner.error_ai'));
-      }
+      toast.error(t('scanner.error_ai'));
     }
-  }, [language, t]);
+  }, [targetLang, t]);
 
   const handleFile = (file: File) => {
-    if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+    if (!['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'].includes(file.type)) {
       toast.error(t('scanner.error_unsupported'));
       return;
     }
@@ -121,30 +127,35 @@ export default function Scanner() {
     toast.success(t('common.done'));
   };
 
-  const getStepLabel = () => {
-    switch(step) {
-      case 'uploading': return t('scanner.step_upload');
-      case 'ocr': return t('scanner.step_ocr');
-      case 'detecting': return t('scanner.step_lang');
-      case 'translating': return t('scanner.step_translate');
-      case 'analyzing': return t('scanner.step_analyze');
-      default: return t('common.loading');
-    }
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] pb-32">
-      <header className="p-6 flex items-center justify-between sticky top-0 bg-[#06140F]/80 backdrop-blur-md z-40">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("scanner.title")}</h1>
-          <p className="text-[#5C7A6D] text-[10px] font-black uppercase tracking-widest mt-1">{t("scanner.desc")}</p>
-        </div>
-        <div className="w-10 h-10 rounded-2xl bg-[#00A86B]/10 flex items-center justify-center text-[#00A86B]">
-          <FileSearch size={20} />
-        </div>
-      </header>
+      <Header title="scanner.title" onMenuClick={() => setIsMenuOpen(true)} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-      <main className="px-6 flex-1">
+      <main className="px-6 flex-1 space-y-6 mt-4">
+        {/* Language selector for translation */}
+        <div className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#5C7A6D]">
+            <Globe size={16} className="text-[#00A86B]" />
+            <span>Перевести на:</span>
+          </div>
+          <div className="flex gap-1.5">
+            {TARGET_LANGS.map(l => (
+              <button
+                key={l.code}
+                onClick={() => setTargetLang(l.code)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                  targetLang === l.code 
+                    ? "bg-[#00A86B] border-[#00A86B] text-white" 
+                    : "bg-white/5 border-white/10 text-slate-400"
+                }`}
+              >
+                <span>{l.flag}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <AnimatePresence mode="wait">
           {step === 'idle' && (
             <FadeUp key="idle">
@@ -155,12 +166,15 @@ export default function Scanner() {
                 <div className="w-20 h-20 rounded-full bg-[#00A86B]/10 flex items-center justify-center text-[#00A86B] shadow-2xl">
                   <Camera size={36} />
                 </div>
-                <h3 className="text-lg font-black">{t("scanner.upload_area")}</h3>
+                <div>
+                  <h3 className="text-lg font-black text-white">{t("scanner.upload_area")}</h3>
+                  <p className="text-xs text-[#5C7A6D] mt-1">Поддерживаются фото, договоры, патенты, паспорта</p>
+                </div>
                 <input 
                   ref={fileRef} 
                   type="file" 
                   className="hidden" 
-                  accept="image/*" 
+                  accept="image/*,application/pdf" 
                   onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} 
                 />
               </div>
@@ -175,7 +189,7 @@ export default function Scanner() {
               </div>
               <div className="space-y-2">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-[#00D4A8] ai-shimmer">
-                  {getStepLabel()}
+                  {step === 'uploading' ? 'Загрузка файла...' : step === 'ocr' ? 'Распознавание текста...' : 'Анализ рисков и перевод AI...'}
                 </p>
               </div>
             </motion.div>
@@ -183,7 +197,6 @@ export default function Scanner() {
 
           {step === 'done' && result && (
             <motion.div key="done" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-20">
-              {/* Header Info */}
               <div className="flex items-center gap-3 bg-[#0C1F1A] border border-[#1A3D2E] p-4 rounded-3xl">
                 <div className="w-12 h-12 rounded-2xl bg-[#00A86B] flex items-center justify-center text-white">
                   <CheckCircle2 size={24} />
@@ -194,37 +207,31 @@ export default function Scanner() {
                 </div>
               </div>
 
-              {/* Google Maps / OpenStreetMap Detected Address Block */}
               {result.address && (
-                <div className="vaqta-glass p-6 border-[#00A86B]/30 flex flex-col gap-3">
+                <div className="vaqta-glass p-5 border-[#00A86B]/30 space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="p-3 bg-[#00A86B]/10 text-[#00A86B] rounded-xl flex-shrink-0">
+                    <div className="p-2.5 bg-[#00A86B]/10 text-[#00A86B] rounded-xl flex-shrink-0">
                       <MapPin size={20} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-[#5C7A6D] uppercase tracking-widest">{t("maps.found_address")}</p>
-                      <h4 className="text-base font-bold text-white leading-tight mt-1">{result.address}</h4>
-                      <p className="text-[9px] font-bold text-[#D4AF37] uppercase tracking-wider mt-1">{t("maps.confidence")}: {result.confidence}</p>
+                      <p className="text-[9px] font-black text-[#5C7A6D] uppercase tracking-widest">{t("maps.found_address")}</p>
+                      <h4 className="text-sm font-bold text-white leading-snug mt-0.5">{result.address}</h4>
                     </div>
                   </div>
-                  {result.lat && result.lng ? (
+                  {result.lat && result.lng && (
                     <MapView latitude={result.lat} longitude={result.lng} address={result.address} />
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">Координаты не найдены. Но вы всё равно можете попробовать скопировать адрес.</p>
                   )}
                 </div>
               )}
 
-              {/* Translation */}
               <div className="vaqta-glass p-6 border-[#00A86B]/20">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[10px] font-black uppercase text-[#00A86B]">{t('scanner.translation')}</span>
                   <button onClick={() => copyText(result.translation)} className="p-2 bg-white/5 rounded-xl text-slate-400"><Copy size={14}/></button>
                 </div>
-                <p className="text-sm font-medium leading-relaxed">{result.translation}</p>
+                <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{result.translation}</p>
               </div>
 
-              {/* Analysis */}
               <div className="vaqta-glass p-6 border-[#D4AF37]/20">
                 <div className="flex items-center gap-2 mb-3">
                   <Info size={16} className="text-[#D4AF37]" />
@@ -233,7 +240,6 @@ export default function Scanner() {
                 <p className="text-sm text-slate-300 italic leading-relaxed">{result.explanation}</p>
               </div>
 
-              {/* Risks */}
               {result.risks.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">{t('scanner.risks')}</h4>
@@ -246,19 +252,14 @@ export default function Scanner() {
                 </div>
               )}
 
-              {/* Buttons */}
               <div className="flex flex-col gap-3">
                 <button 
                   onClick={() => setStep('idle')}
-                  className="w-full h-16 rounded-3xl vaqta-gradient text-white font-black text-lg shadow-xl"
+                  className="w-full h-16 rounded-3xl vaqta-gradient text-white font-black text-lg shadow-xl flex items-center justify-center gap-2"
                 >
-                  <RefreshCw className="inline-block mr-2" size={20} />
+                  <RefreshCw size={20} />
                   {t("scanner.new_scan")}
                 </button>
-                <div className="grid grid-cols-2 gap-3">
-                   <button className="h-14 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold flex items-center justify-center gap-2"><Share2 size={16}/> {t('common.share')}</button>
-                   <button className="h-14 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold flex items-center justify-center gap-2"><Save size={16}/> {t('common.save')}</button>
-                </div>
               </div>
             </motion.div>
           )}

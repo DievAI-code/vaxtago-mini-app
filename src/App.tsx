@@ -8,16 +8,25 @@ import { AppProvider } from "@/lib/theme";
 import { LanguageProvider } from "@/context/LanguageProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NavStackProvider } from "@/components/NavigationStack";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import "@/i18n";
 
-// Lazy loading pages
+// Lazy loading компонентов страниц
 const Index = lazy(() => import("./pages/Index"));
 const Home = lazy(() => import("./pages/Home"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const AiAssistant = lazy(() => import("./pages/AiAssistant"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Scanner = lazy(() => import("./pages/Scanner"));
+const Documents = lazy(() => import("./pages/Documents"));
+const Translate = lazy(() => import("./pages/Translate"));
+const History = lazy(() => import("./pages/History"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Premium = lazy(() => import("./pages/Premium"));
+const About = lazy(() => import("./pages/About"));
+const Contacts = lazy(() => import("./pages/Contacts"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
 const Login = lazy(() => import("./pages/Login"));
 const FounderDashboard = lazy(() => import("./pages/FounderDashboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -50,12 +59,7 @@ const App = () => {
               <ErrorBoundary>
                 <Suspense fallback={<LoadingScreen />}>
                   <AnimatePresence mode="wait">
-                    <motion.div 
-                      initial={{ opacity: 1 }} 
-                      animate={{ opacity: 1 }} 
-                      exit={{ opacity: 0 }}
-                      className="min-h-[100dvh] bg-[#06140F] overflow-x-hidden"
-                    >
+                    <div className="min-h-[100dvh] bg-[#06140F] overflow-x-hidden text-white font-sans">
                       <Routes>
                         <Route path="/login" element={<Login />} />
                         <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
@@ -64,10 +68,19 @@ const App = () => {
                         <Route path="/ai" element={<PrivateRoute><AiAssistant /></PrivateRoute>} />
                         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
                         <Route path="/scanner" element={<PrivateRoute><Scanner /></PrivateRoute>} />
+                        <Route path="/documents" element={<PrivateRoute><Documents /></PrivateRoute>} />
+                        <Route path="/translate" element={<PrivateRoute><Translate /></PrivateRoute>} />
+                        <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
+                        <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+                        <Route path="/premium" element={<PrivateRoute><Premium /></PrivateRoute>} />
+                        <Route path="/about" element={<PrivateRoute><About /></PrivateRoute>} />
+                        <Route path="/contacts" element={<PrivateRoute><Contacts /></PrivateRoute>} />
+                        <Route path="/privacy" element={<PrivateRoute><Privacy /></PrivateRoute>} />
+                        <Route path="/terms" element={<PrivateRoute><Terms /></PrivateRoute>} />
                         <Route path="/founder" element={<FounderDashboard />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
-                    </motion.div>
+                    </div>
                   </AnimatePresence>
                 </Suspense>
               </ErrorBoundary>

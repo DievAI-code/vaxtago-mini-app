@@ -1,54 +1,88 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
+import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
-import { Card } from "@/components/ui/card";
-import { ChatHistory, useChatSessions } from "@/components/ChatHistory";
-import { useNavigate } from "react-router-dom";
-import { FadeUp } from "@/components/animations";
-import { MessageSquare, Plus, Trash2 } from "lucide-react";
+import { Clock, FileText, MapPin, MessageSquare, Trash2 } from "lucide-react";
+import { useLanguage } from "@/context/LanguageProvider";
 
 export default function History() {
-  const nav = useNavigate();
-  const { sessions, activeId, createSession, deleteSession, selectSession } = useChatSessions();
+  const { t } = useLanguage();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [docHistory, setDocHistory] = useState<any[]>([]);
+  const [placesHistory, setPlacesHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      setDocHistory(JSON.parse(localStorage.getItem("vaqta_doc_history") || "[]"));
+      setPlacesHistory(JSON.parse(localStorage.getItem("vaqta_places_history") || "[]"));
+    } catch {}
+  }, []);
+
+  const clearHistory = () => {
+    localStorage.removeItem("vaqta_doc_history");
+    localStorage.removeItem("vaqta_places_history");
+    setDocHistory([]);
+    setPlacesHistory([]);
+  };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#0F172A] text-white">
-      <Header title="История" />
-      
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
-        <FadeUp>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold">Чаты</h2>
-            <button onClick={() => { createSession(); nav("/ai"); }} className="p-2 rounded-xl bg-slate-800/50 text-[#06B6D4] hover:bg-slate-700/50 transition" aria-label="New chat">
-              <Plus size={18} />
-            </button>
-          </div>
+    <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-32">
+      <Header title="nav.history" onMenuClick={() => setIsMenuOpen(true)} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-          {sessions.length === 0 ? (
-            <Card variant="default" className="text-center py-12">
-              <MessageSquare className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-400">История пуста</p>
-              <p className="text-xs text-slate-500 mt-1">Начните новый чат с AI</p>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {sessions.map((s) => (
-                <Card key={s.id} variant="default" className="flex items-center gap-3 py-3 cursor-pointer hover:bg-slate-700/30" onClick={() => { selectSession(s.id); nav("/ai"); }}>
-                  <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center text-[#06B6D4]">
-                    <MessageSquare className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{s.title}</p>
-                    <p className="text-xs text-slate-400">{new Date(s.updated_at).toLocaleDateString()}</p>
-                  </div>
-                  <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }} className="p-2 rounded-xl text-red-400 hover:bg-red-500/10 transition" aria-label="Delete">
-                    <Trash2 size={16} />
-                  </button>
-                </Card>
-              ))}
-            </div>
+      <main className="px-6 space-y-6 mt-4 flex-1">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-black">{t("nav.history")}</h2>
+          {(docHistory.length > 0 || placesHistory.length > 0) && (
+            <button onClick={clearHistory} className="text-xs text-red-400 font-bold flex items-center gap-1 p-2 bg-red-500/10 rounded-xl">
+              <Trash2 size={14} /> Очистить
+            </button>
           )}
-        </FadeUp>
-      </div>
+        </div>
+
+        {docHistory.length === 0 && placesHistory.length === 0 ? (
+          <div className="text-center py-20 opacity-40 space-y-3">
+            <Clock size={48} className="mx-auto text-[#00A86B]" />
+            <p className="text-sm font-bold">История пока пуста</p>
+          </div>
+        ) : (
+          <>
+            {docHistory.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-[10px] font-black uppercase text-[#5C7A6D]">Сканированные документы</h3>
+                {docHistory.map((d, i) => (
+                  <div key={i} className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <FileText size={18} className="text-[#00A86B]" />
+                      <div>
+                        <p className="text-xs font-bold">{d.doc_type}</p>
+                        <p className="text-[10px] text-[#5C7A6D] truncate max-w-[200px]">{d.summary}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {placesHistory.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <h3 className="text-[10px] font-black uppercase text-[#D4AF37]">Искали на карте</h3>
+                {placesHistory.map((p, i) => (
+                  <div key={i} className="vaqta-glass p-4 border-[#1A3D2E] flex items-center gap-3">
+                    <MapPin size={18} className="text-[#D4AF37]" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold truncate">{p.name}</p>
+                      <p className="text-[10px] text-[#5C7A6D] truncate">{p.address}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </main>
 
       <BottomNav />
     </div>

@@ -6,6 +6,9 @@ export interface GeocodingResult {
   display_name: string;
   name?: string;
   type?: string;
+  phone?: string;
+  website?: string;
+  city?: string;
 }
 
 export const geocodingService = {
@@ -13,19 +16,20 @@ export const geocodingService = {
     if (!query || !query.trim()) return [];
     
     try {
-      // Подготовка поискового запроса: замена пробелов на +, удаление лишних слов
-      const cleanQuery = query
-        .replace(/(?:где находится|покажи адрес|найди компанию|покажи на карте|как доехать|найди предприятие|найди)/gi, "")
+      // Очистка вводных команд
+      let cleanQuery = query
+        .replace(/(?:где находится|покажи адрес|найди компанию|покажи на карте|как доехать|найди предприятие|найди|адрес|маршрут)/gi, "")
         .trim();
 
-      console.log(`[Nominatim] Searching: "${cleanQuery}"`);
+      if (!cleanQuery) cleanQuery = query.trim();
+
+      console.log(`[Nominatim Search] Query: "${cleanQuery}"`);
       
-      // Параметры: jsonv2 для детальных данных, limit=5 для списка выбора, ru для языка
       const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(cleanQuery)}&limit=5&addressdetails=1&accept-language=ru`;
       
       const response = await fetch(url, {
         headers: {
-          "User-Agent": "VaqtaAI/1.1 (contact@vaqta.ai; educational/non-commercial)"
+          "User-Agent": "VaqtaAI/3.0 (contact@vaqta.ai; educational/non-commercial)"
         }
       });
 
@@ -35,20 +39,30 @@ export const geocodingService = {
 
       const data = await response.json();
       if (!data || data.length === 0) {
-        console.warn(`[Nominatim] No results for: "${cleanQuery}"`);
+        console.warn(`[Nominatim] No direct results for "${cleanQuery}"`);
         return [];
       }
 
-      return data.map((place: any) => ({
-        latitude: parseFloat(place.lat),
-        longitude: parseFloat(place.lon),
-        display_name: place.display_name,
-        name: place.name || place.display_name.split(',')[0],
-        type: place.type
-      }));
+      return data.map((place: any) => {
+        const addr = place.address || {};
+        const city = addr.city || addr.town || addr.village || addr.state || "";
+        return {
+          latitude: parseFloat(place.lat),
+          longitude: parseFloat(place.lon),
+          display_name: place.display_name,
+          name: place.name || place.display_name.split(',')[0],
+          type: place.type,
+          city
+        };
+      });
     } catch (error) {
-      console.error("[Nominatim] Error:", error);
+      console.error("[Nominatim Service Error]:", error);
       return [];
     }
+  },
+
+  async searchEmployers(query: string, city?: string): Promise<GeocodingResult[]> {
+    const fullQuery = city ? `${query}, ${city}` : query;
+    return this.searchAddress(fullQuery);
   }
 };

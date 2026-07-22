@@ -2,13 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser, MapPin, Navigation, Compass, Search, ChevronRight, List } from "lucide-react";
+import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser, MapPin, Navigation, List, Languages, Info, ExternalLink } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
 import { geocodingService, GeocodingResult } from "@/services/geocodingService";
 import { MapView } from "@/components/MapView";
-import { toast } from "sonner";
+import { Header } from "@/components/Header";
+import { SideMenu } from "@/components/SideMenu";
 
 interface LocationCardData {
   address: string;
@@ -23,7 +24,7 @@ function isLocationQuery(text: string): boolean {
     "где находится", "найди", "покажи на карте", "адрес", 
     "маршрут", "как доехать", "предприятие", "завод", 
     "компания", "организация", "мвд", "мц", "сахарово",
-    "вокзал", "аэропорт", "больница", "рынок"
+    "вокзал", "аэропорт", "больница", "рынок", "офис", "автовокзал"
   ];
   const low = text.toLowerCase();
   return keywords.some(k => low.includes(k));
@@ -36,6 +37,7 @@ export default function AiAssistant() {
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [locations, setLocations] = useState<Record<number, LocationCardData>>({});
   const [loadingGeocode, setLoadingGeocode] = useState<Record<number, boolean>>({});
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -55,6 +57,13 @@ export default function AiAssistant() {
         lng: result.longitude
       }
     }));
+
+    // Сохраняем в историю поиск объектов
+    try {
+      const existing = JSON.parse(localStorage.getItem("vaqta_places_history") || "[]");
+      const updated = [{ name: result.name || "Объект", address: result.display_name, lat: result.latitude, lng: result.longitude, date: new Date().toISOString() }, ...existing].slice(0, 10);
+      localStorage.setItem("vaqta_places_history", JSON.stringify(updated));
+    } catch {}
   };
 
   const handleSend = async () => {
@@ -70,27 +79,15 @@ export default function AiAssistant() {
     if (isLocationQuery(userMsg) && !img) {
       setLoadingGeocode(prev => ({ ...prev, [currentMsgIndex + 1]: true }));
       
-      // Прямой поиск через Nominatim без ожидания AI
       const results = await geocodingService.searchAddress(userMsg);
       
       if (results.length > 0) {
-        // Сохраняем "запрос" в историю для UI
         await sendMessage(`[LOCATION_REQUEST]: ${userMsg}`, undefined); 
         
         if (results.length === 1) {
-          // Один результат — показываем сразу
           const r = results[0];
-          setLocations(prev => ({
-            ...prev,
-            [currentMsgIndex + 1]: {
-              address: r.display_name,
-              name: r.name,
-              lat: r.latitude,
-              lng: r.longitude
-            }
-          }));
+          selectLocation(currentMsgIndex + 1, r);
         } else {
-          // Несколько результатов — показываем список выбора
           setLocations(prev => ({
             ...prev,
             [currentMsgIndex + 1]: {
@@ -102,7 +99,7 @@ export default function AiAssistant() {
           }));
         }
       } else {
-        await sendMessage(`Место не найдено по запросу "${userMsg}". Попробуйте уточнить название или город.`, undefined);
+        await sendMessage(`Место не найдено по запросу "${userMsg}". Попробуйте уточнить название организации или город.`, undefined);
       }
       
       setLoadingGeocode(prev => ({ ...prev, [currentMsgIndex + 1]: false }));
@@ -122,33 +119,21 @@ export default function AiAssistant() {
 
   return (
     <div className="flex flex-col h-screen bg-[#06140F] text-white overflow-hidden">
-      <header className="p-6 border-b border-[#1A3D2E] bg-[#06140F]/80 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between safe-top">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl vaqta-gradient flex items-center justify-center vaqta-glow relative">
-            <Sparkles size={20} className="text-white" />
-          </div>
-          <div>
-            <h1 className="font-black tracking-tight text-lg">VAQTA AI</h1>
-            <div className="flex items-center gap-1.5 mt-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00A86B] animate-pulse" />
-              <span className="text-[9px] font-black text-[#5C7A6D] uppercase tracking-widest">Maps Live Enabled</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-1">
-           <button onClick={() => { clearHistory(); setLocations({}); }} className="p-2 text-[#5C7A6D] hover:text-red-400 transition-colors"><Eraser size={20}/></button>
-           <button className="p-2 text-[#5C7A6D]"><MoreVertical size={20}/></button>
-        </div>
-      </header>
+      <Header title="nav.ai" onMenuClick={() => setIsMenuOpen(true)} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-48">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar pb-48">
         {messages.length === 0 && (
-          <div className="text-center py-10 opacity-50 px-8">
-            <Bot size={48} className="mx-auto mb-4 text-[#00A86B]" />
-            <p className="text-sm font-bold leading-relaxed">
-              Здравствуйте! Я ваш AI помощник. <br/>
-              Я могу найти адрес, построить маршрут или помочь с документами.
-            </p>
+          <div className="text-center py-12 px-6 space-y-4">
+            <div className="w-16 h-16 rounded-3xl vaqta-gradient flex items-center justify-center mx-auto shadow-2xl vaqta-glow">
+              <Bot size={32} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-white">VAQTA AI Assistant</h2>
+              <p className="text-xs text-[#5C7A6D] font-medium leading-relaxed max-w-xs mx-auto mt-2">
+                Задайте любой вопрос. Я знаю законы, адреса, патенты, перевод с узбекского/таджикского и могу проверить работодателя.
+              </p>
+            </div>
           </div>
         )}
         
@@ -163,14 +148,14 @@ export default function AiAssistant() {
               key={i}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`flex gap-4 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+              className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
             >
-              <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg ${
+              <div className={`w-9 h-9 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg ${
                 m.role === "user" ? "bg-[#1A3D2E]" : "vaqta-gradient"
               }`}>
-                {m.role === "user" ? <User size={18} /> : <Bot size={18} />}
+                {m.role === "user" ? <User size={16} /> : <Bot size={16} />}
               </div>
-              <div className={`max-w-[85%] p-5 rounded-[2rem] text-sm leading-relaxed font-medium shadow-xl flex flex-col gap-3 ${
+              <div className={`max-w-[85%] p-4 rounded-[2rem] text-sm leading-relaxed font-medium shadow-xl flex flex-col gap-3 ${
                 m.role === "user" 
                   ? "bg-[#00A86B] text-white rounded-tr-none" 
                   : "bg-[#0C1F1A] border border-[#1A3D2E] rounded-tl-none text-slate-100"
@@ -180,19 +165,19 @@ export default function AiAssistant() {
                 {isLoading && (
                   <div className="flex items-center gap-2 text-xs text-[#5C7A6D] italic mt-2">
                     <span className="w-2 h-2 rounded-full bg-[#00A86B] animate-ping" />
-                    <span>Поиск объектов на карте...</span>
+                    <span>Поиск на карте OpenStreetMap...</span>
                   </div>
                 )}
 
                 {loc && (
-                  <div className="mt-3 space-y-4">
+                  <div className="mt-2 space-y-3">
                     {!loc.options ? (
                       <>
-                        <div className="p-4 bg-[#06140F]/60 border border-[#1A3D2E] rounded-3xl space-y-2">
+                        <div className="p-3 bg-[#06140F]/80 border border-[#1A3D2E] rounded-2xl space-y-1">
                           <div className="flex items-start gap-2">
                             <MapPin size={16} className="text-[#00A86B] flex-shrink-0 mt-0.5" />
                             <div>
-                              <p className="text-[10px] font-black uppercase text-[#5C7A6D]">Найденный адрес</p>
+                              <p className="text-[9px] font-black uppercase text-[#5C7A6D]">Точный адрес</p>
                               <p className="text-xs font-bold text-white leading-snug">{loc.address}</p>
                               {loc.name && <p className="text-xs text-[#D4AF37] font-bold mt-1">🏢 {loc.name}</p>}
                             </div>
@@ -201,19 +186,28 @@ export default function AiAssistant() {
                         
                         <MapView latitude={loc.lat} longitude={loc.lng} address={loc.address} />
                         
-                        <button
-                          onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`, "_blank")}
-                          className="w-full h-12 vaqta-gradient rounded-2xl text-xs font-black text-white flex items-center justify-center gap-2 shadow-lg uppercase"
-                        >
-                          <Navigation size={14} />
-                          <span>Построить маршрут</span>
-                        </button>
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <button
+                            onClick={() => window.open(`https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=;${loc.lat}%2C${loc.lng}`, "_blank")}
+                            className="h-11 vaqta-gradient rounded-xl text-[10px] font-black text-white flex items-center justify-center gap-1.5 shadow-md uppercase"
+                          >
+                            <Navigation size={14} />
+                            <span>Маршрут</span>
+                          </button>
+                          <button
+                            onClick={() => window.open(`https://www.openstreetmap.org/?mlat=${loc.lat}&mlon=${loc.lng}#map=16/${loc.lat}/${loc.lng}`, "_blank")}
+                            className="h-11 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black text-white flex items-center justify-center gap-1.5 hover:bg-white/10 transition-colors uppercase"
+                          >
+                            <ExternalLink size={14} className="text-[#00A86B]" />
+                            <span>Открыть OSM</span>
+                          </button>
+                        </div>
                       </>
                     ) : (
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-1">
                            <List size={14} className="text-[#00A86B]"/>
-                           <span className="text-[10px] font-black uppercase text-[#5C7A6D]">Выберите вариант:</span>
+                           <span className="text-[10px] font-black uppercase text-[#5C7A6D]">Выберите нужное место:</span>
                         </div>
                         {loc.options.map((opt, idx) => (
                           <button 
@@ -235,8 +229,8 @@ export default function AiAssistant() {
         })}
         
         {isTyping && (
-          <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-2xl vaqta-gradient flex items-center justify-center"><Bot size={18} /></div>
+          <div className="flex gap-3">
+            <div className="w-9 h-9 rounded-2xl vaqta-gradient flex items-center justify-center"><Bot size={16} /></div>
             <div className="bg-[#0C1F1A] border border-[#1A3D2E] p-4 rounded-[1.5rem] rounded-tl-none">
               <div className="flex gap-1.5">
                 {[0,1,2].map(dot => (
@@ -248,14 +242,15 @@ export default function AiAssistant() {
         )}
       </div>
 
-      <div className="fixed bottom-28 left-0 w-full px-6 pb-4">
+      {/* Input panel */}
+      <div className="fixed bottom-24 left-0 w-full px-6 pb-2">
         {attachedImage && (
           <div className="mb-2 relative inline-block animate-in fade-in slide-in-from-bottom-2">
              <img src={attachedImage} className="w-20 h-20 object-cover rounded-2xl border-2 border-[#00A86B] shadow-2xl" alt="attachment" />
-             <button onClick={() => setAttachedImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:scale-110 transition-transform"><X size={12}/></button>
+             <button onClick={() => setAttachedImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg"><X size={12}/></button>
           </div>
         )}
-        <div className="relative vaqta-glass overflow-hidden border-[#1A3D2E] focus-within:border-[#00A86B]/40 transition-all p-2 pr-4 flex items-end gap-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+        <div className="relative vaqta-glass overflow-hidden border-[#1A3D2E] focus-within:border-[#00A86B]/40 transition-all p-2 pr-4 flex items-end gap-2 shadow-2xl">
           <div className="flex gap-1 mb-2">
             <button onClick={() => fileRef.current?.click()} className="p-2.5 text-[#5C7A6D] hover:text-[#00A86B] transition-colors"><Paperclip size={20}/></button>
             <input ref={fileRef} type="file" className="hidden" accept="image/*" onChange={onFileChange} />
@@ -270,7 +265,7 @@ export default function AiAssistant() {
           <button
             onClick={handleSend}
             disabled={(!input.trim() && !attachedImage) || isTyping}
-            className="mb-1.5 p-3 bg-[#00A86B] text-white rounded-2xl disabled:opacity-30 transition-all shadow-lg hover:shadow-[#00A86B]/20 active:scale-95"
+            className="mb-1.5 p-3 bg-[#00A86B] text-white rounded-2xl disabled:opacity-30 transition-all shadow-lg active:scale-95"
           >
             <Send size={18} />
           </button>

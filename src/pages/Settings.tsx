@@ -1,80 +1,76 @@
-import { motion } from "framer-motion";
-import { Moon, Sun, Globe, Bell, Lock, HelpCircle, ChevronRight, Check } from "lucide-react";
-import { Header } from "@/components/Header";
-import { BottomNav } from "@/components/BottomNav";
-import { Card } from "@/components/ui/card";
-import { useApp } from "@/lib/theme";
-import { useTranslation } from "react-i18next";
-import { SUPPORTED_LANGS, Lang } from "@/i18n";
-import { FadeUp, stagger, fadeUp } from "@/components/animations";
+"use client";
 
-const LANGS: { code: Lang; label: string; flag: string }[] = [
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
-  { code: "uz", label: "O'zbekcha", flag: "🇺🇿" },
-  { code: "tg", label: "Тоҷикӣ", flag: "🇹🇯" },
-  { code: "ky", label: "Кыргызча", flag: "🇰🇬" },
-  { code: "en", label: "English", flag: "🇬🇧" },
+import { useState } from "react";
+import { Header } from "@/components/Header";
+import { SideMenu } from "@/components/SideMenu";
+import { BottomNav } from "@/components/BottomNav";
+import { Globe, Moon, Shield, Bell, HelpCircle, ChevronRight, Check } from "lucide-react";
+import { useLanguage } from "@/context/LanguageProvider";
+import { Lang } from "@/i18n";
+
+const LANGUAGES: { code: Lang; name: string; flag: string }[] = [
+  { code: "ru", name: "Русский", flag: "🇷🇺" },
+  { code: "uz", name: "O'zbekcha", flag: "🇺🇿" },
+  { code: "tg", name: "Тоҷикӣ", flag: "🇹🇯" },
 ];
 
 export default function Settings() {
-  const { lang, setLang, theme, toggleTheme } = useApp();
-  const { t } = useTranslation();
-
-  const settingsItems = [
-    { icon: <Bell className="w-5 h-5" />, label: "Уведомления", action: () => {} },
-    { icon: <Lock className="w-5 h-5" />, label: "Приватность", action: () => {} },
-    { icon: <HelpCircle className="w-5 h-5" />, label: "Помощь", action: () => {} },
-  ];
+  const { language, setLanguage, t } = useLanguage();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#0F172A] text-white">
-      <Header title="Настройки" />
-      
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
-        <FadeUp>
-          <h3 className="text-lg font-bold mb-3 px-1">Язык</h3>
-          <div className="grid grid-cols-1 gap-2 mb-6">
-            {LANGS.map((l) => (
-              <Card key={l.code} variant={lang === l.code ? "gradient" : "default"} className="flex items-center gap-3 py-3 cursor-pointer" onClick={() => setLang(l.code)}>
-                <span className="text-2xl">{l.flag}</span>
-                <span className="flex-1 font-medium">{l.label}</span>
-                {lang === l.code && <Check className="w-5 h-5 text-[#06B6D4]" />}
-              </Card>
+    <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-32">
+      <Header title="nav.settings" onMenuClick={() => setIsMenuOpen(true)} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+
+      <main className="px-6 space-y-6 mt-4 flex-1">
+        <section className="space-y-3">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">Язык интерфейса</h3>
+          <div className="space-y-2">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => setLanguage(l.code)}
+                className={`w-full vaqta-glass p-4 flex items-center justify-between transition-all ${
+                  language === l.code ? "border-[#00A86B] bg-[#00A86B]/10" : "border-[#1A3D2E]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{l.flag}</span>
+                  <span className="font-bold text-sm">{l.name}</span>
+                </div>
+                {language === l.code && <Check size={18} className="text-[#00A86B]" />}
+              </button>
             ))}
           </div>
-        </FadeUp>
+        </section>
 
-        <FadeUp>
-          <h3 className="text-lg font-bold mb-3 px-1">Внешний вид</h3>
-          <Card variant="default" className="flex items-center gap-3 py-3 cursor-pointer mb-6" onClick={toggleTheme}>
-            {theme === "light" ? <Moon className="w-5 h-5 text-[#06B6D4]" /> : <Sun className="w-5 h-5 text-[#06B6D4]" />}
-            <span className="flex-1 font-medium">Тема</span>
-            <span className="text-sm text-slate-400">{theme === "light" ? "Светлая" : "Темная"}</span>
-            <ChevronRight size={18} className="text-slate-400" />
-          </Card>
-        </FadeUp>
+        <section className="space-y-3 pt-2">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">Система</h3>
+          <div className="space-y-2">
+            <div className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Bell size={18} className="text-[#00A86B]" />
+                <span className="font-bold text-sm">Уведомления</span>
+              </div>
+              <span className="text-xs font-bold text-[#00A86B]">Включено</span>
+            </div>
 
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="space-y-2">
-          {settingsItems.map((item, i) => (
-            <motion.div key={i} variants={fadeUp}>
-              <Card variant="default" className="flex items-center gap-3 py-3 cursor-pointer hover:bg-slate-700/30" onClick={item.action}>
-                <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center text-[#06B6D4]">
-                  {item.icon}
-                </div>
-                <span className="flex-1 font-medium">{item.label}</span>
-                <ChevronRight size={18} className="text-slate-400" />
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        <FadeUp>
-          <div className="mt-6 text-center">
-            <p className="text-xs text-slate-500">VaxtaGo v2.0</p>
-            <p className="text-xs text-slate-500">© 2026 Dmitry Diev</p>
+            <div className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Shield size={18} className="text-[#D4AF37]" />
+                <span className="font-bold text-sm">Конфиденциальность</span>
+              </div>
+              <ChevronRight size={18} className="text-[#5C7A6D]" />
+            </div>
           </div>
-        </FadeUp>
-      </div>
+        </section>
+
+        <div className="pt-8 text-center text-xs text-[#5C7A6D] font-mono">
+          <p>VAQTA AI v3.0 Production</p>
+          <p className="text-[10px] mt-1">OpenStreetMap & Supabase Enabled</p>
+        </div>
+      </main>
 
       <BottomNav />
     </div>
