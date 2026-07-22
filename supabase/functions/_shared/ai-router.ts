@@ -44,33 +44,34 @@ export type Intent =
   | "LEGAL_HELP"
   | "DOCUMENT_ANALYSIS"
   | "EMPLOYER_CHECK"
+  | "LOCATION_SEARCH"
   | "PREMIUM"
   | "HELP"
   | "MIGRATION";
 
 const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
   assistant:
-    "Ты VaxtaGo AI — дружелюбный помощник для трудовых мигрантов в России.\nОтвечай естественно, как живой человек. Помогай с работой, документами, переводами, юридическими и миграционными вопросами.\nПоддерживай контекст беседы. Если просят перевести, сделать короче, продолжить или объяснить — просто выполняй на основе предыдущих сообщений.\nЯзыки: Русский, Узбекский, Таджикский, Кыргызский, Английский. Отвечай на языке пользователя.",
+    "Ты VaxtaGo AI — дружелюбный помощник для трудовых мигрантов в России.\nПравило адресов: Никогда не сообщай и не выдумывай точный адрес, номер дома или координаты самостоятельно, если они не получены через карту или геокодер.\nОтвечай естественно и кратко. Языки: Русский, Узбекский, Таджикский, Кыргызский, Английский.",
   translation:
-    "Ты — Translation Engine VaxtaGo.\nПравила:\n1. Определи исходный язык текста.\n2. Определи язык назначения из команды пользователя (русский, узбекский, таджикский, кыргызский, английский).\n3. Если язык назначения не указан — спроси 'Отправьте текст для перевода' только если нет текста.\n4. Если есть текст и команда 'переведи' без указания языка — переведи на русский по умолчанию.\n5. Верни ТОЛЬКО переведенный текст. Без объяснений, без приветствий, без отказов.\n6. Никогда не говори 'я не могу'.\nПример: текст 'Албатта! Қандай саволларингиз бор?' + 'Переведи на русский' → 'Конечно! Какие у вас вопросы?'",
+    "Ты — Translation Engine VaxtaGo.\nВерни ТОЛЬКО переведенный текст. Без объяснений и без приветствий.",
   vision:
-    "Ты система OCR и анализа документов VaxtaGo.\nРаспознай текст на изображении и верни ТОЛЬКО распознанный текст без комментариев.\nЕсли текста нет — напиши 'Текст не найден'.",
+    "Ты система OCR и анализа документов VaxtaGo.\nРаспознай текст на изображении и верни ТОЛЬКО распознанный текст.",
   document:
-    "Ты помощник по документам VaxtaGo.\nОбъясни права и риски простым языком.\nПроверь договоры на скрытые условия.",
+    "Ты помощник по документам VaxtaGo. Объясни права и риски простым языком.",
   vacancy:
-    "Ты помощник по поиску работы VaxtaGo.\nУчитывай риски и реальный доход.\nПредлагай только проверенные вакансии.",
+    "Ты помощник по поиску работы VaxtaGo. Предлагай только проверенные вакансии.",
   employer_check:
-    "Ты помощник по проверке работодателей VaxtaGo.\nПроверь по ИНН/ОГРН.\nДай оценку риска мошенничества.",
+    "Ты помощник по проверке работодателей VaxtaGo. Дай оценку риска мошенничества.",
   legal:
-    "Ты юридический помощник VaxtaGo.\nОбъясни права мигрантов в РФ.\nСсылайся на законы просто.",
+    "Ты юридический помощник VaxtaGo. Объясни права мигрантов в РФ.",
   migration:
-    "Ты помощник по миграции VaxtaGo.\nОбъясни МВД, патенты, регистрацию.\nДай чёткий план действий.",
+    "Ты помощник по миграции VaxtaGo. Объясни МВД, патенты, регистрацию.",
   premium:
-    "Ты помощник по Premium подписке VaxtaGo.\nОбъясни преимущества и помоги оформить.",
+    "Ты помощник по Premium подписке VaxtaGo.",
   chat:
-    "Ты дружелюбный собеседник VaxtaGo.\nПоддерживай беседу и помогай с общими вопросами.",
+    "Ты дружелюбный собеседник VaxtaGo.",
   help:
-    "Ты помощник по приложению VaxtaGo.\nОбъясни как пользоваться: поиск работы, перевод, сканер, профиль, премиум.\nОтвечай кратко и по делу.",
+    "Ты помощник по приложению VaxtaGo. Отвечай кратко и по делу.",
 };
 
 const MODELS = [
@@ -93,13 +94,18 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
     return "OCR_DOCUMENT";
   }
 
+  // Location search keywords
+  if (
+    /найди адрес|покажи адрес|где находится|найти место|покажи на карте|маршрут до|аэропорт|вокзал|жд вокзал|метро|больница|рынок|улица|проспект|корпус/i.test(low)
+  ) {
+    return "LOCATION_SEARCH";
+  }
+
   // Translation detection
   if (
     /перевед|перевод|таржима|таражума|translate|translation|русский|узбек|ўзбек|o'zbek|tojik|таҷик|кыргыз|kyrgyz|english|на русск|на узб|на англ/i.test(low)
   ) {
-    // If there's a previous message with text and current is just "переведи" / "теперь переведи"
-    if (/^(перевед|таржима|translate|теперь перевед|ещё перевед)/i.test(low.trim())) return "TRANSLATION";
-    if (/перевед|перевод|таржима|translate/i.test(low)) return "TRANSLATION";
+    return "TRANSLATION";
   }
 
   if (low.includes("премиум") || low.includes("premium") || low.includes("купить") || low.includes("оплат") || low.includes("подписк")) return "PREMIUM";
@@ -109,12 +115,13 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
   if (low.includes("работ") || low.includes("ваканс") || low.includes("job") || low.includes("иш") || low.includes("vacancy")) return "VACANCY_SEARCH";
   if (low.includes("проверь работодателя") || low.includes("employer") || low.includes("проверка") || low.includes("инн") || low.includes("огрн")) return "EMPLOYER_CHECK";
   if (low.includes("паспорт") || low.includes("договор") || low.includes("документ") || low.includes("разрешение") || low.includes("document") || low.includes("contract") || low.includes("ҳуҷҷат")) return "DOCUMENT_ANALYSIS";
-  if (low.includes("привет") || low.includes("hello") || low.includes("hi") || low.includes("salom") || low.includes("салом")) return "GENERAL_CHAT";
+  
   return "GENERAL_CHAT";
 }
 
 export function getActionForIntent(intent: Intent): string {
   switch (intent) {
+    case "LOCATION_SEARCH": return "search_location";
     case "VACANCY_SEARCH": return "search_jobs";
     case "OCR_DOCUMENT": return "process_image";
     case "VISION_ANALYSIS": return "vision_analysis";
@@ -131,6 +138,7 @@ export function getActionForIntent(intent: Intent): string {
 
 function mapIntentToRequestType(intent: Intent): AIRequestType {
   switch (intent) {
+    case "LOCATION_SEARCH": return "chat";
     case "VACANCY_SEARCH": return "vacancy";
     case "OCR_DOCUMENT": return "vision";
     case "VISION_ANALYSIS": return "vision";
@@ -145,7 +153,6 @@ function mapIntentToRequestType(intent: Intent): AIRequestType {
   }
 }
 
-// Detect OpenRouter guardrail / policy / availability errors
 function isGuardrailOrPolicyError(bodyText: string): boolean {
   return /No endpoints available|guardrail|privacy|policy|data policy/i.test(bodyText);
 }
@@ -184,7 +191,6 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
 
   const bodyText = await response.text();
   if (isGuardrailOrPolicyError(bodyText)) {
-    // Log full reason for Supabase debugging
     console.error(`[OpenRouter Guardrail/Policy] model=${model} status=${response.status} body=${bodyText.slice(0, 500)}`);
     throw new Error(`Model ${model} blocked by guardrail/policy: ${bodyText.slice(0, 200)}`);
   }
@@ -223,9 +229,7 @@ export async function createAIRequest(req: AIRequest): Promise<AIResult> {
     } catch (e) {
       const err = e instanceof Error ? e : new Error("unknown");
       lastError = err;
-      // Log each model failure with full context
       console.error(`[AI Router] model=${model} task=${requestType} error=${err.message}`);
-      // Continue to next model automatically (fallback)
     }
   }
 

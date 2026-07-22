@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, User, Bot, Paperclip, X, MoreVertical, Eraser, MapPin, Navigation, List, Languages, Info, ExternalLink } from "lucide-react";
+import { Send, User, Bot, Paperclip, X, MapPin, Navigation, List, ExternalLink } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
@@ -21,22 +21,21 @@ interface LocationCardData {
 
 function isLocationQuery(text: string): boolean {
   const keywords = [
-    "где находится", "найди", "покажи на карте", "адрес", 
-    "маршрут", "как доехать", "предприятие", "завод", 
-    "компания", "организация", "мвд", "мц", "сахарово",
-    "вокзал", "аэропорт", "больница", "рынок", "офис", "автовокзал",
+    "найди адрес", "покажи адрес", "где находится", "найти место",
+    "покажи на карте", "маршрут до", "адрес", "маршрут", "как доехать", 
+    "предприятие", "завод", "компания", "организация", "мвд", "мц", "сахарово",
+    "вокзал", "аэропорт", "больница", "рынок", "офис", "автовокзал", "жд вокзал", "метро",
     "улица", "проспект", "переулок", "корпус", "дом"
   ];
   const low = text.toLowerCase();
   
-  // Direct matching or street number patterns (e.g. "карнацевича 1 к 1", "ленина 25")
   const hasStreetNumber = /\b[а-яa-z]+\s+\d+\s*(к|корп|корпус|\/)?\s*\d*\b/i.test(low);
   return keywords.some(k => low.includes(k)) || hasStreetNumber;
 }
 
 export default function AiAssistant() {
   const { t } = useLanguage();
-  const { sendMessage, loading: isTyping, messages, clearHistory } = useAiChat();
+  const { sendMessage, loading: isTyping, messages } = useAiChat();
   const [input, setInput] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [locations, setLocations] = useState<Record<number, LocationCardData>>({});
@@ -58,7 +57,8 @@ export default function AiAssistant() {
         address: result.display_name,
         name: result.name,
         lat: result.latitude,
-        lng: result.longitude
+        lng: result.longitude,
+        options: undefined
       }
     }));
 
@@ -85,11 +85,25 @@ export default function AiAssistant() {
       const geocodeRes = await geocodingService.searchAddressFull(userMsg);
       const results = geocodeRes.results;
       
-      if (results && results.length > 0) {
+      if (results && results.length > 1) {
+        // Multiple matches found - prompt candidate list
+        await sendMessage(`Я нашел несколько мест по вашему запросу. Выберите нужное:\n\n📍 Источник: Yandex Maps`);
+        setLocations(prev => ({
+          ...prev,
+          [currentMsgIndex + 1]: {
+            address: userMsg,
+            lat: results[0].latitude,
+            lng: results[0].longitude,
+            options: results
+          }
+        }));
+      } else if (results && results.length === 1) {
+        // Single match found
         const first = results[0];
-        await sendMessage(`Нашел адрес: ${first.display_name}. Показываю на карте.`);
+        await sendMessage(`Нашел место: ${first.name || first.display_name}.\n📍 Адрес: ${first.display_name}\n\n📍 Источник: Yandex Maps`);
         selectLocation(currentMsgIndex + 1, first);
       } else {
+        // No match found
         await sendMessage(`Я не смог найти этот адрес. Уточните город (например, Тюмень, ${userMsg}).`);
       }
       
@@ -154,7 +168,7 @@ export default function AiAssistant() {
                 {isLoading && (
                   <div className="flex items-center gap-2 text-xs text-[#5C7A6D] italic mt-2">
                     <span className="w-2 h-2 rounded-full bg-[#00A86B] animate-ping" />
-                    <span>Поиск на карте Яндекс / OSM...</span>
+                    <span>Поиск на картах Yandex...</span>
                   </div>
                 )}
 
@@ -204,7 +218,7 @@ export default function AiAssistant() {
                             onClick={() => selectLocation(i, opt)}
                             className="w-full text-left p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-[#00A86B]/10 hover:border-[#00A86B]/30 transition-all group"
                           >
-                            <p className="text-xs font-bold text-white truncate">{opt.name}</p>
+                            <p className="text-xs font-bold text-white truncate">{opt.name || opt.display_name.split(',')[0]}</p>
                             <p className="text-[9px] text-[#5C7A6D] truncate mt-0.5">{opt.display_name}</p>
                           </button>
                         ))}

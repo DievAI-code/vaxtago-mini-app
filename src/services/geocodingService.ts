@@ -18,14 +18,14 @@ export interface GeocodingSearchResponse {
 const DEFAULT_API_KEY = "6a28f618-4ed1-466d-8d3e-85d74a320991";
 
 /**
- * Strips prefix search phrases from user input.
+ * Strips prefix search phrases from user input to pass clean query to Yandex Geocoder.
  */
 export function cleanAddressQuery(query: string): string {
   if (!query) return "";
 
   const prefixes = [
-    /^(покажи|найди|где находится|покажи место|покажи адрес|найди адрес|найди место|где)\s+/gi,
-    /^(адрес|маршрут|покажи на карте|как доехать|show address|find address|where is)\s+/gi,
+    /^(найди адрес|покажи адрес|где находится|найти место|покажи на карте|маршрут до|покажи место|покажи|найди|где)\s+/gi,
+    /^(адрес|маршрут|как доехать|show address|find address|where is)\s+/gi,
     /^(кўрсат|манзил|жой)\s+/gi,
   ];
 
@@ -34,7 +34,6 @@ export function cleanAddressQuery(query: string): string {
     cleaned = cleaned.replace(prefix, "").trim();
   }
 
-  // Also replace internal "покажи адрес" occurrences if repeated
   cleaned = cleaned
     .replace(/(?:покажи|найди|где находится)\s+(?:адрес|место)/gi, "")
     .trim();
@@ -44,23 +43,22 @@ export function cleanAddressQuery(query: string): string {
 
 export const geocodingService = {
   /**
-   * Main search address function using Yandex Geocoder API with fallback.
+   * Main search address function using Yandex Geocoder API with OpenStreetMap fallback.
    */
   async searchAddressFull(rawQuery: string): Promise<GeocodingSearchResponse> {
     const cleanQuery = cleanAddressQuery(rawQuery);
 
-    // Validation for short or incomplete queries like "ер", "а", "1"
     if (!cleanQuery || cleanQuery.length < 3) {
       return {
         results: [],
         isTooShort: true,
-        error: "Введите полный адрес:\nгород + улица + дом",
+        error: "Введите полный адрес:\nгород + улица + дом или название объекта",
       };
     }
 
     const apiKey = import.meta.env.VITE_YANDEX_MAPS_KEY || DEFAULT_API_KEY;
 
-    // 1. Try Yandex Geocoder API
+    // 1. Yandex Geocoder API
     try {
       const yandexUrl = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(
         apiKey
@@ -151,9 +149,6 @@ export const geocodingService = {
     };
   },
 
-  /**
-   * Helper returning GeocodingResult[] for backwards compatibility.
-   */
   async searchAddress(query: string): Promise<GeocodingResult[]> {
     const res = await this.searchAddressFull(query);
     return res.results;
