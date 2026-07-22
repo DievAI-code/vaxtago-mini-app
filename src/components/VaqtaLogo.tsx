@@ -11,7 +11,7 @@ interface VaqtaLogoProps {
 
 /**
  * Оптимизированный компонент логотипа.
- * Используется React.memo для исключения повторных рендеров при обновлении родительских состояний.
+ * Используется React.memo для исключения повторных рендеров.
  */
 export const VaqtaLogo = React.memo(({ size = 40, animated = false, glow = true }: VaqtaLogoProps) => {
   return (

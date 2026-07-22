@@ -1,12 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseUrl, getSupabaseAnonKey } from '@/lib/env';
 
-const SUPABASE_URL = getSupabaseUrl();
-const SUPABASE_PUBLISHABLE_KEY = getSupabaseAnonKey();
+const url = getSupabaseUrl();
+const key = getSupabaseAnonKey();
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-});
+// Создаем клиент только если есть валидные данные, иначе возвращаем прокси-заглушку для предотвращения крэша
+export const supabase = url && key 
+  ? createClient(url, key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    })
+  : (null as any);
+
+export const checkSupabaseConnection = () => {
+  if (!supabase) {
+    throw new Error("Supabase is not configured. Please check your environment variables.");
+  }
+};

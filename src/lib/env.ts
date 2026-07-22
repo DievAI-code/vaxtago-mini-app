@@ -1,45 +1,35 @@
 "use client";
 
 /**
- * Валидация переменных окружения.
- * Fallback значения удалены для обеспечения безопасности и корректности подключения к Supabase.
+ * Модуль валидации окружения.
+ * Гарантирует, что приложение не будет делать запросы к 'your-project' шаблонам.
  */
 
 export function getSupabaseUrl(): string {
   const url = import.meta.env.VITE_SUPABASE_URL;
-  if (!url || url.includes("your-project") || url.trim() === "") {
-    const error = "КРИТИЧЕСКАЯ ОШИБКА: VITE_SUPABASE_URL не настроен в .env файле.";
-    console.error(error);
-    throw new Error(error);
+  if (!url || url.includes("your-project")) {
+    console.error("CRITICAL: VITE_SUPABASE_URL is missing or invalid.");
+    return ""; 
   }
   return url;
 }
 
 export function getSupabaseAnonKey(): string {
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  if (!key || key.includes("your-anon-key") || key.trim() === "") {
-    const error = "КРИТИЧЕСКАЯ ОШИБКА: VITE_SUPABASE_ANON_KEY не настроен в .env файле.";
-    console.error(error);
-    throw new Error(error);
-  }
-  return key;
-}
-
-export function getYandexKey(): string {
-  const key = import.meta.env.VITE_YANDEX_MAPS_KEY;
-  if (!key || key.trim() === "") {
-    console.warn("[VaxtaGo]: VITE_YANDEX_MAPS_KEY отсутствует. Карты будут работать в ограниченном режиме.");
+  if (!key || key.includes("your-anon-key")) {
+    console.error("CRITICAL: VITE_SUPABASE_ANON_KEY is missing or invalid.");
     return "";
   }
   return key;
 }
 
-export function validateEnv() {
-  const errors: string[] = [];
-  if (!import.meta.env.VITE_SUPABASE_URL) errors.push("VITE_SUPABASE_URL");
-  if (!import.meta.env.VITE_SUPABASE_ANON_KEY) errors.push("VITE_SUPABASE_ANON_KEY");
+export function getYandexKey(): string {
+  return import.meta.env.VITE_YANDEX_MAPS_KEY || "";
+}
 
-  if (errors.length > 0) {
-    throw new Error(`Отсутствуют обязательные переменные окружения: ${errors.join(", ")}`);
-  }
+/**
+ * Проверка готовности приложения к работе с внешними API
+ */
+export function isConfigured(): boolean {
+  return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
 }
