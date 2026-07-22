@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MapPin, Navigation, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 export interface VacancyMarkerData {
   id: string;
@@ -26,14 +26,17 @@ interface YandexMapProps {
   className?: string;
 }
 
+const DEFAULT_API_KEY = "6a28f618-4ed1-466d-8d3e-85d74a320991";
 let loadPromise: Promise<void> | null = null;
 
 export function loadYandexMapsScript(): Promise<void> {
-  const apiKey = import.meta.env.VITE_YANDEX_MAPS_KEY;
+  const envKey = import.meta.env.VITE_YANDEX_MAPS_KEY;
 
-  if (!apiKey) {
-    console.error("Yandex Maps API key is missing");
+  if (!envKey) {
+    console.error("Yandex Maps API key is missing. Add VITE_YANDEX_MAPS_KEY to .env");
   }
+
+  const apiKey = envKey || DEFAULT_API_KEY;
 
   if (loadPromise) return loadPromise;
 
@@ -43,9 +46,21 @@ export function loadYandexMapsScript(): Promise<void> {
       return;
     }
 
+    const existingScript = document.querySelector('script[src*="api-maps.yandex.ru/v3"]');
+    if (existingScript) {
+      existingScript.addEventListener("load", () => {
+        if (window.ymaps3) {
+          window.ymaps3.ready.then(() => resolve()).catch(reject);
+        } else {
+          reject(new Error("ymaps3 object not found on window"));
+        }
+      });
+      existingScript.addEventListener("error", (err) => reject(err));
+      return;
+    }
+
     const script = document.createElement("script");
-    const keyParam = apiKey ? `apikey=${encodeURIComponent(apiKey)}&` : "";
-    script.src = `https://api-maps.yandex.ru/v3/?${keyParam}lang=ru_RU`;
+    script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(apiKey)}&lang=ru_RU`;
     script.async = true;
 
     script.onload = () => {
@@ -58,6 +73,7 @@ export function loadYandexMapsScript(): Promise<void> {
 
     script.onerror = (err) => {
       console.error("Failed to load Yandex Maps API v3 script:", err);
+      loadPromise = null; // Позволить повторную попытку в случае ошибки сети
       reject(err);
     };
 
@@ -68,7 +84,7 @@ export function loadYandexMapsScript(): Promise<void> {
 }
 
 export function YandexMap({
-  center = [69.2401, 41.2995], // Tashkent [lng, lat]
+  center = [69.2401, 41.2995], // Ташкент [lng, lat]
   zoom = 12,
   markers = [],
   selectedMarkerId,
@@ -81,20 +97,14 @@ export function YandexMap({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const apiKey = import.meta.env.VITE_YANDEX_MAPS_KEY;
-
   useEffect(() => {
     let mounted = true;
-
-    if (!apiKey) {
-      console.error("Yandex Maps API key is missing");
-    }
 
     loadYandexMapsScript()
       .then(() => {
         if (!mounted || !mapContainerRef.current) return;
 
-        const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker } = window.ymaps3;
+        const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer } = window.ymaps3;
 
         // Cleanup previous instance if any
         if (mapInstanceRef.current) {
@@ -154,7 +164,6 @@ export function YandexMap({
     const { YMapMarker } = window.ymaps3;
     const map = mapInstanceRef.current;
 
-    // Clear previous markers
     const markerElements: any[] = [];
 
     // Render vacancy markers
@@ -228,11 +237,6 @@ export function YandexMap({
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#06140F] p-6 text-center">
           <AlertCircle className="w-10 h-10 text-red-400 mb-2" />
           <p className="text-xs font-bold text-red-300 max-w-xs">{error}</p>
-          {!apiKey && (
-            <p className="text-[10px] text-slate-500 mt-2 font-mono">
-              Укажите VITE_YANDEX_MAPS_KEY в .env
-            </p>
-          )}
         </div>
       )}
 
