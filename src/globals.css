@@ -51,6 +51,10 @@
   -webkit-text-fill-color: transparent;
 }
 
+/* Улучшение читаемости на мобильных устройствах */
+.text-tiny { font-size: 0.7rem; line-height: 1rem; font-weight: 700; letter-spacing: 0.05em; }
+.text-caption { font-size: 0.8rem; line-height: 1.1rem; font-weight: 500; }
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
 .ai-shimmer {
