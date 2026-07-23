@@ -8,6 +8,7 @@ export interface Job {
   description: string;
   url: string;
   schedule: string;
+  accommodation?: string;
 }
 
 export interface JobSearchParams {
@@ -16,5 +17,6 @@ export interface JobSearchParams {
   salary?: number;
   schedule?: string;
   employment?: string;
+  accommodation?: boolean;
   page?: number;
 }

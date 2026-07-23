@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   X, LayoutGrid, Sparkles, Scan, MapPin, User,
   Settings, Clock, Info, Mail, ShieldCheck,
-  Calendar, ShieldAlert, FileSearch, Key, UserCircle
+  Calendar, ShieldAlert, FileSearch, Key, UserCircle, Briefcase
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { VaqtaLogo } from "./VaqtaLogo";
@@ -29,9 +29,10 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
     { path: "/ai", icon: Sparkles, label: "nav.ai" },
     { path: "/scanner", icon: Scan, label: "nav.scanner" },
     { path: "/map", icon: MapPin, label: "nav.map" },
+    { path: "/jobs-test", icon: Briefcase, label: "Тест Работа России" },
     { path: "/cabinet", icon: UserCircle, label: "nav.cabinet" },
     { separator: true },
-    { path: "/admin", icon: Key, label: "nav.admin" }, // Всегда доступен через MyCabinet логику
+    { path: "/admin", icon: Key, label: "nav.admin" },
     { path: "/tracker", icon: Calendar, label: "nav.tracker" },
     { path: "/sos", icon: ShieldAlert, label: "nav.sos" },
     { path: "/contract-audit", icon: FileSearch, label: "nav.contract" },
@@ -95,7 +96,7 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
                     }`}
                   >
                     <item.icon size={18} strokeWidth={loc.pathname === item.path ? 2.8 : 2} />
-                    <span className="font-bold text-sm uppercase tracking-widest">{t(item.label)}</span>
+                    <span className="font-bold text-sm uppercase tracking-widest">{item.label.startsWith("nav.") ? t(item.label) : item.label}</span>
                   </button>
                 );
               })}

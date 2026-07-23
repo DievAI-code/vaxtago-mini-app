@@ -7,7 +7,8 @@ export type AIActionType =
   | "MAP_NEARBY"
   | "MAP_LOCATION"
   | "TRANSLATE"
-  | "DOCUMENT_SCAN";
+  | "DOCUMENT_SCAN"
+  | "JOB_SEARCH";
 
 export interface AIActionResponse {
   action: AIActionType;
@@ -15,6 +16,9 @@ export interface AIActionResponse {
   destination?: string;
   origin?: string;
   placeType?: string;
+  profession?: string;
+  city?: string;
+  housing?: boolean;
   message?: string;
 }
 
@@ -23,6 +27,28 @@ export interface AIActionResponse {
  */
 export function detectAIAction(message: string): AIActionResponse {
   const text = message.toLowerCase().trim();
+
+  // 0. Детекция поиска работы
+  if (/работа|вакансия|ищу работу|найди работу|сварщик|водитель|разнорабочий|строитель|электрик|вахта/i.test(text)) {
+    const isHousing = /жиль|вахта|проживан|квартир/i.test(text);
+    let extractedCity = "";
+    
+    const CITIES = ["москв", "спб", "питер", "санкт-петербург", "казан", "новосибирск", "екатеринбург", "тюмен", "ташкент"];
+    for (const c of CITIES) {
+      if (text.includes(c)) {
+        extractedCity = c;
+        break;
+      }
+    }
+
+    return {
+      action: "JOB_SEARCH",
+      profession: extractPlace(text, ["найди", "работу", "вакансию", "ищу", "в", "с", "жильем"]),
+      city: extractedCity,
+      housing: isHousing,
+      message: "Формирую поиск вакансий..."
+    };
+  }
 
   // 1. Построение маршрута
   if (/маршрут|как доехать|путь до|проложи дорогу|йўналиш|бағыт|route/i.test(text)) {
@@ -79,5 +105,5 @@ function extractPlace(text: string, stopWords: string[]): string {
     const regex = new RegExp(`\\b${word}\\b`, 'gi');
     cleaned = cleaned.replace(regex, "");
   });
-  return cleaned.replace(/(?:маршрут|как доехать|путь|найди|где находится|покажи|на карте)/gi, "").trim();
+  return cleaned.replace(/(?:маршрут|как доехать|путь|найди|где находится|покажи|на карте|работу|вакансию)/gi, "").trim();
 }
