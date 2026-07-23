@@ -6,7 +6,7 @@ import { Phone, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
-import { supabase, clearSupabaseSession } from "@/integrations/supabase/client";
+import { supabase, clearSupabaseSession, logSupabaseError } from "@/integrations/supabase/client";
 import { isConfigured } from "@/lib/env";
 import { motion } from "framer-motion";
 
@@ -19,7 +19,6 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Очищаем возможные проблемы с сессией
     await clearSupabaseSession();
 
     if (!isConfigured()) {
@@ -36,87 +35,89 @@ export default function Login() {
     setLoading(true);
     
     try {
-      // Расширенное логирование
       console.log('[Login] Attempting upsert for phone:', cleanPhone);
-      console.log('[Login] Supabase client:', !!supabase);
       
-      // Сначала пробуем найти существующего пользователя
-      const { data: existingUser, error: selectError } = await supabase
+      const { data, error } = await supabase
         .from("users")
-        .select("*")
-        .eq("phone_number", cleanPhone)
-        .maybeSingle();
-
-      if (selectError) {
-        console.error('[Login] Select error:', selectError);
-      }
-
-      let userData;
-      
-      if (existingUser) {
-        // Обновляем существующего пользователя
-        const { data, error } = await supabase
-          .from("users")
-          .update({
-            last_login: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq("phone_number", cleanPhone)
-          .select()
-          .single();
-
-        if (error) throw error;
-        userData = data;
-      } else {
-        // Создаем нового пользователя
-        const { data, error } = await supabase
-          .from("users")
-          .insert({
+        .upsert(
+          {
             phone_number: cleanPhone,
             last_login: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             subscription_status: 'free',
             language_code: 'uz'
-          })
-          .select()
-          .single();
+          },
+          {
+            onConflict: 'phone_number',
+            ignoreDuplicates: false
+          }
+        )
+        .select()
+        .single();
 
-        if (error) throw error;
-        userData = data;
+      if (error) {
+        logSupabaseError(error, 'Login Upsert');
+        
+        if (error.code === '23505') {
+          toast.error("Этот номер телефона уже зарегистрирован");
+        } else if (error.code === '42501') {
+          toast.error("Ошибка доступа. Проверьте RLS политики");
+        } else if (error.code === '409') {
+          // Пробуем получить существующего пользователя
+          const { data: existingUser, error: selectError } = await supabase
+            .from("users")
+            .select("*")
+            .eq("phone_number", cleanPhone)
+            .single();
+
+          if (selectError) {
+            throw selectError;
+          }
+
+          if (existingUser) {
+            // Обновляем last_login для существующего пользователя
+            const { data: updatedUser, error: updateError } = await supabase
+              .from("users")
+              .update({
+                last_login: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .eq("phone_number", cleanPhone)
+              .select()
+              .single();
+
+            if (updateError) throw updateError;
+            handleLoginSuccess(updatedUser, cleanPhone);
+            return;
+          }
+        }
+        throw error;
       }
 
-      console.log('[Login] Upsert success:', userData);
-      
-      // Сохраняем пользователя
-      localStorage.setItem("vaxtago_auth", "true");
-      localStorage.setItem("vaxtago_user_data", JSON.stringify(userData));
-      localStorage.setItem("vaxtago_user_phone", cleanPhone);
-      
-      toast.success("Добро пожаловать!");
-      
-      // Редирект в зависимости от наличия языка
-      if (!userData.language_code || userData.language_code === 'uz') {
-        nav("/language-select", { replace: true });
-      } else {
-        localStorage.setItem("vaxtago_language", userData.language_code);
-        nav("/home", { replace: true });
-      }
+      handleLoginSuccess(data, cleanPhone);
       
     } catch (err: any) {
-      console.error('[Login] Error:', err);
-      
-      // Детальный анализ ошибки
-      if (err.code === '23505') {
-        toast.error("Этот номер телефона уже зарегистрирован");
-      } else if (err.code === '42501') {
-        toast.error("Ошибка доступа. Проверьте RLS политики");
-      } else if (err.code === '409') {
-        toast.error("Конфликт данных. Попробуйте еще раз");
-      } else {
-        toast.error(`Ошибка: ${err.message || "Неизвестная ошибка"}`);
-      }
+      console.error('[Login] Unexpected error:', err);
+      toast.error(`Ошибка регистрации: ${err.message || "Unknown error"}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLoginSuccess = (userData: any, cleanPhone: string) => {
+    console.log('[Login] Success:', userData);
+    
+    localStorage.setItem("vaxtago_auth", "true");
+    localStorage.setItem("vaxtago_user_data", JSON.stringify(userData));
+    localStorage.setItem("vaxtago_user_phone", cleanPhone);
+    
+    toast.success("Добро пожаловать!");
+    
+    if (!userData.language_code || userData.language_code === 'uz') {
+      nav("/language-select", { replace: true });
+    } else {
+      localStorage.setItem("vaxtago_language", userData.language_code);
+      nav("/home", { replace: true });
     }
   };
 
@@ -151,7 +152,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Диагностическая информация */}
         <div className="text-center">
           <button 
             onClick={() => {
