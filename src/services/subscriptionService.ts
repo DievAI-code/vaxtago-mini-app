@@ -25,6 +25,7 @@ export const subscriptionService = {
           ai_requests_limit,
           ocr_requests_used, 
           map_requests_used, 
+          map_requests_limit,
           last_limit_reset
         `)
         .eq("phone_number", userPhone)
@@ -35,15 +36,6 @@ export const subscriptionService = {
       const now = new Date();
       const status = (data.subscription_status || 'free') as 'free' | 'premium';
       
-      // Проверка на истечение premium
-      if (status === 'premium' && data.subscription_expires_at) {
-        if (new Date(data.subscription_expires_at) < now) {
-          // В реальности это должен делать триггер в БД, но для UI обновим локально
-          return { status: 'free', ai_remaining: 0, ocr_remaining: 0, map_remaining: 0 };
-        }
-      }
-
-      // Проверка на сброс ежедневных лимитов
       const lastReset = new Date(data.last_limit_reset || 0);
       const isNewDay = now.toDateString() !== lastReset.toDateString();
 
@@ -57,13 +49,6 @@ export const subscriptionService = {
             last_limit_reset: now.toISOString()
           })
           .eq("phone_number", userPhone);
-        
-        return { 
-          status, 
-          ai_remaining: data.ai_requests_limit || 10, 
-          ocr_remaining: 5, 
-          map_remaining: 5 
-        };
       }
 
       if (status === 'premium') {
@@ -74,7 +59,7 @@ export const subscriptionService = {
         status: 'free',
         ai_remaining: Math.max(0, (data.ai_requests_limit || 10) - (data.ai_requests_used || 0)),
         ocr_remaining: Math.max(0, 5 - (data.ocr_requests_used || 0)),
-        map_remaining: Math.max(0, 5 - (data.map_requests_used || 0))
+        map_remaining: Math.max(0, (data.map_requests_limit || 3) - (data.map_requests_used || 0))
       };
     } catch (e) {
       console.error("[SubscriptionService] Error:", e);

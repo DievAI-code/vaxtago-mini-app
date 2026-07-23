@@ -28,7 +28,6 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
   const initMap = async () => {
     setLoading(true);
     try {
-      // 1. Получаем координаты цели
       if (query) {
         const results = await geocodingService.searchAddress(query);
         if (results && results.length > 0) {
@@ -37,7 +36,6 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
         }
       }
 
-      // 2. Если нужен маршрут или текущее место - запрашиваем геолокацию
       if (type === "route" || type === "nearby" || !query) {
         if ("geolocation" in navigator) {
           navigator.geolocation.getCurrentPosition(
@@ -106,13 +104,6 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
       </div>
 
       <div className="p-4 bg-[#0C1F1A] border-t border-[#1A3D2E] space-y-3">
-        {type === "route" && userCoords && (
-          <div className="flex items-center justify-between text-[10px] font-black uppercase text-[#5C7A6D] px-1">
-            <div className="flex items-center gap-2"><Ruler size={14}/> <span>~4.2 км</span></div>
-            <div className="flex items-center gap-2 text-[#D4AF37]"><Clock size={14}/> <span>~12 мин</span></div>
-          </div>
-        )}
-
         <div className="grid grid-cols-2 gap-2">
           <button 
             onClick={() => window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(addressName)}`, "_blank")}

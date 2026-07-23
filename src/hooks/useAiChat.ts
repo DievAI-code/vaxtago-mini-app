@@ -28,8 +28,17 @@ export function useAiChat() {
 
     setLoading(true);
     
-    // 1. Определяем намерение (intent) локально
+    // 1. Предварительная детекция гео-запроса на фронте
     const localAction = detectAIAction(message);
+    if (localAction.action !== "GENERAL_CHAT") {
+        const canUseMap = await subscriptionService.canUse('map');
+        if (!canUseMap) {
+            toast.error(t("premium.feature_locked") || "Лимит карт исчерпан");
+            setLoading(false);
+            return null;
+        }
+        await subscriptionService.trackUsage('map');
+    }
 
     const userMsg: ChatMessage = {
       role: "user",
@@ -42,7 +51,6 @@ export function useAiChat() {
     chatHistoryRef.current = newHistory;
 
     try {
-      // 2. Вызов AI через Edge Function
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
           message: message.trim(),
@@ -62,7 +70,6 @@ export function useAiChat() {
 
       const replyText = data?.reply || "AI is busy.";
       
-      // 3. Создаем сообщение ассистента с возможным action
       const assistantMsg: ChatMessage = {
         role: "assistant",
         content: replyText,
