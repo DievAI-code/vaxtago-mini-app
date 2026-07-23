@@ -1,38 +1,41 @@
 "use client";
 
-import { supabase } from "@/integrations/supabase/client";
-import { VaqtaJob } from "../jobsAggregator";
+import { Job } from "./types";
 
-export const russiaWorkAdapter = {
-  async fetchJobs(query: string): Promise<VaqtaJob[]> {
+export const russiaWorkService = {
+  /**
+   * Поиск вакансий через открытый API Работа России (Trudvsem)
+   */
+  async search(query: string, limit = 10): Promise<Job[]> {
     try {
-      const { data, error } = await supabase.functions.invoke("jobs-proxy", {
-        body: { source: "trudvsem", query }
-      });
-
-      if (error || data?.error === "TRUDVSEM_NOT_CONFIGURED") {
-        throw new Error("TRUDVSEM_NOT_CONNECTED");
+      // Используем анонимный доступ к открытым данным
+      const url = `https://opendata.trudvsem.ru/api/v1/vacancies/any?text=${encodeURIComponent(query)}&limit=${limit}`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Trudvsem API error: ${response.status}`);
       }
-
-      return (data.results?.vacancies || []).map((v: any) => {
+      
+      const data = await response.json();
+      const vacancies = data.results?.vacancies || [];
+      
+      return vacancies.map((v: any) => {
         const item = v.vacancy;
         return {
-          id: `trud_${item.id}`,
-          source: 'trudvsem',
+          id: item.id,
+          source: "trudvsem",
           title: item['job-name'],
-          company: item.company.name,
-          salary: `${item.salary || 'Не указана'}`,
-          salary_min: parseInt(item.salary_min) || 0,
-          city: item.region.name,
-          description: item.requirement?.content || '',
+          company: item.company?.name || "Не указана",
+          salary: item.salary || "Зарплата не указана",
+          city: item.region?.name || "Россия",
+          description: item.requirement?.content || "",
           url: item.vac_url,
-          schedule: item.schedule || 'Сменный график',
-          housing: item.accommodation?.provided || false
+          schedule: item.schedule || "Сменный график"
         };
       });
-    } catch (err) {
-      console.warn("[Trudvsem Adapter] Source not connected or failed");
-      throw err;
+    } catch (error) {
+      console.error("[RussiaWork Service] Error:", error);
+      return [];
     }
   }
 };

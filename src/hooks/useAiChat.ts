@@ -3,15 +3,16 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/context/LanguageProvider";
-import { detectAIAction, AIActionResponse } from "@/services/aiActions";
+import { detectAIAction } from "@/services/aiActions";
 import { toast } from "sonner";
 import { subscriptionService } from "@/services/subscriptionService";
+import { useNavigate } from "react-router-dom";
 
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
-  action?: AIActionResponse;
+  action?: any;
 }
 
 export function useAiChat() {
@@ -19,6 +20,7 @@ export function useAiChat() {
   const { language, t } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const chatHistoryRef = useRef<ChatMessage[]>([]);
+  const navigate = useNavigate();
 
   const sendMessage = useCallback(async (message: string, image?: string): Promise<string | null> => {
     if ((!message.trim() && !image) || loading) return null;
@@ -28,18 +30,9 @@ export function useAiChat() {
 
     setLoading(true);
     
-    // 1. Предварительная детекция гео-запроса на фронте
-    const localAction = detectAIAction(message);
-    if (localAction.action !== "GENERAL_CHAT") {
-        const canUseMap = await subscriptionService.canUse('map');
-        if (!canUseMap) {
-            toast.error(t("premium.feature_locked") || "Лимит карт исчерпан");
-            setLoading(false);
-            return null;
-        }
-        await subscriptionService.trackUsage('map');
-    }
-
+    // 1. Детекция намерения поиска работы на фронте
+    const isJobSearch = /работа|вакансия|ищу|сварщик|водитель|разнорабочий|нужна|job|vacancy/i.test(message.toLowerCase());
+    
     const userMsg: ChatMessage = {
       role: "user",
       content: message,
@@ -68,13 +61,21 @@ export function useAiChat() {
         return null;
       }
 
+      // Если AI определил намерение поиска работы
+      if (isJobSearch) {
+          toast.success("Открываю раздел вакансий...");
+          setTimeout(() => {
+            navigate(`/jobs?query=${encodeURIComponent(message)}`);
+          }, 1500);
+      }
+
       const replyText = data?.reply || "AI is busy.";
       
       const assistantMsg: ChatMessage = {
         role: "assistant",
         content: replyText,
         timestamp: new Date(),
-        action: localAction.action !== "GENERAL_CHAT" ? localAction : undefined
+        action: isJobSearch ? { action: 'JOB_SEARCH', query: message } : undefined
       };
       
       const updatedHistory = [...newHistory, assistantMsg];
@@ -89,7 +90,7 @@ export function useAiChat() {
     } finally {
       setLoading(false);
     }
-  }, [language, loading, t]);
+  }, [language, loading, t, navigate]);
 
   return { sendMessage, loading, messages };
 }

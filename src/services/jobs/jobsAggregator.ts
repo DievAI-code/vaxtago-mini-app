@@ -1,29 +1,46 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Job, JobSearchParams } from "./types";
 import { hhService } from "./hh";
+import { russiaWorkService } from "./russiaWork";
 
 export const jobsAggregator = {
   async getJobs(params: JobSearchParams): Promise<{ jobs: Job[]; error?: string }> {
+    const query = params.text || "";
+    
     try {
-      // 1. Сначала ищем в кэше для скорости (если поиск текстовый)
-      if (params.text) {
+      // 1. Пытаемся взять из кэша (быстрый ответ)
+      if (query) {
         const { data: cached } = await supabase
           .from("jobs_cache")
           .select("*")
-          .ilike("title", `%${params.text}%`)
+          .ilike("title", `%${query}%`)
           .limit(10);
         
-        if (cached && cached.length > 5) {
+        if (cached && cached.length > 3) {
           return { jobs: cached as Job[] };
         }
       }
 
-      // 2. Если в кэше мало, идем в API
-      const jobs = await hhService.search(params);
+      // 2. Параллельный запрос к источникам
+      // HH может вернуть ошибку API_NOT_CONNECTED, если нет ключей
+      const [russiaWorkJobs, hhResult] = await Promise.allSettled([
+        russiaWorkService.search(query),
+        hhService.search(params)
+      ]);
 
-      // 3. Сохраняем результаты в кэш (фоном)
-      if (jobs.length > 0) {
-        const cacheEntries = jobs.map(j => ({
+      let allJobs: Job[] = [];
+      
+      if (russiaWorkJobs.status === 'fulfilled') {
+        allJobs = [...allJobs, ...russiaWorkJobs.value];
+      }
+      
+      if (hhResult.status === 'fulfilled') {
+        allJobs = [...allJobs, ...hhResult.value];
+      }
+
+      // 3. Фоновое кэширование новых результатов
+      if (allJobs.length > 0) {
+        const cacheEntries = allJobs.slice(0, 20).map(j => ({
           source: j.source,
           external_id: j.id,
           title: j.title,
@@ -38,12 +55,10 @@ export const jobsAggregator = {
         supabase.from("jobs_cache").upsert(cacheEntries, { onConflict: 'url' }).then();
       }
 
-      return { jobs };
-    } catch (err: any) {
-      return { 
-        jobs: [], 
-        error: err.message === "API_NOT_CONNECTED" ? "API_NOT_CONNECTED" : "SERVER_ERROR" 
-      };
+      return { jobs: allJobs };
+    } catch (err) {
+      console.error("[Aggregator] Critical failure:", err);
+      return { jobs: [], error: "AGGREGATOR_ERROR" };
     }
   }
 };
