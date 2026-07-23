@@ -8,14 +8,12 @@ import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
+import { MapCard } from "@/components/MapCard";
 import { toast } from "sonner";
 import { subscriptionService } from "@/services/subscriptionService";
-import { useAIAction } from "@/hooks/useAIAction";
-import { detectAIAction, AIActionResponse } from "@/services/aiActions";
 
 export default function AiAssistant() {
   const { t } = useLanguage();
-  const { handleAIAction } = useAIAction();
   const { sendMessage, loading: isTyping, messages } = useAiChat();
   const [input, setInput] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
@@ -45,17 +43,7 @@ export default function AiAssistant() {
       return;
     }
 
-    // 2. Детектируем AI действие перед отправкой
-    if (userMsg && !img) {
-      const actionRes: AIActionResponse = detectAIAction(userMsg);
-      if (actionRes.action !== "GENERAL_CHAT") {
-        toast.success(actionRes.message || "Выполняю действие...");
-        handleAIAction(actionRes);
-        return;
-      }
-    }
-
-    // 3. Стандартная отправка сообщения
+    // 2. Стандартная отправка сообщения
     await sendMessage(userMsg, img || undefined);
     await subscriptionService.decrementRequestCount();
   };
@@ -78,35 +66,48 @@ export default function AiAssistant() {
           <div className="text-center py-12 text-[#5C7A6D] space-y-2">
             <Bot size={48} className="mx-auto text-[#00A86B]" />
             <p className="text-sm font-bold text-white">{t("chat.welcome")}</p>
-            <p className="text-xs">Задайте вопрос, отправьте фото или попросите найти место на карте!</p>
+            <p className="text-xs">Задайте вопрос, отправьте фото документа или попросите найти адрес на карте!</p>
           </div>
         )}
 
-        {messages.map((m, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
-          >
-            <div
-              className={`w-9 h-9 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg ${
-                m.role === "user" ? "bg-[#1A3D2E]" : "vaqta-gradient"
-              }`}
-            >
-              {m.role === "user" ? <User size={16} /> : <Bot size={16} />}
+        {messages.map((m, i) => {
+          // Пытаемся найти адрес в ответе ассистента для показа карты
+          const hasAddress = m.role === "assistant" && (m.content.includes("Москва") || m.content.includes("адрес:") || m.content.includes("улица"));
+          
+          return (
+            <div key={i} className="space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+              >
+                <div
+                  className={`w-9 h-9 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg ${
+                    m.role === "user" ? "bg-[#1A3D2E]" : "vaqta-gradient"
+                  }`}
+                >
+                  {m.role === "user" ? <User size={16} /> : <Bot size={16} />}
+                </div>
+                <div
+                  className={`max-w-[85%] p-4 rounded-[2rem] text-sm leading-relaxed font-medium shadow-xl flex flex-col gap-3 ${
+                    m.role === "user"
+                      ? "bg-[#00A86B] text-white rounded-tr-none"
+                      : "bg-[#0C1F1A] border border-[#1A3D2E] rounded-tl-none text-slate-100"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{m.content}</p>
+                </div>
+              </motion.div>
+
+              {/* Если в тексте найден адрес, показываем MapCard */}
+              {hasAddress && (
+                <div className={`${m.role === "assistant" ? "pl-12" : "pr-12"}`}>
+                   <MapCard address={m.content.match(/(?:адрес|место):\s*([^.]+)/i)?.[1] || m.content.slice(0, 100)} />
+                </div>
+              )}
             </div>
-            <div
-              className={`max-w-[85%] p-4 rounded-[2rem] text-sm leading-relaxed font-medium shadow-xl flex flex-col gap-3 ${
-                m.role === "user"
-                  ? "bg-[#00A86B] text-white rounded-tr-none"
-                  : "bg-[#0C1F1A] border border-[#1A3D2E] rounded-tl-none text-slate-100"
-              }`}
-            >
-              <p className="whitespace-pre-wrap">{m.content}</p>
-            </div>
-          </motion.div>
-        ))}
+          );
+        })}
 
         {isTyping && (
           <div className="flex gap-3">
