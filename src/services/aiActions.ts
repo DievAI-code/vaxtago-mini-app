@@ -9,15 +9,77 @@ export type AIAction =
   | "JOB_SEARCH"
   | "EMPLOYER_CHECK";
 
+export type AIIntent = "map" | "translate" | "document" | "jobs" | "general";
+
 export interface AIActionResponse {
   action: AIAction;
+  intent?: AIIntent;
   query?: string;
   coordinates?: [number, number];
   address?: string;
   language?: string;
   message?: string;
+  success?: boolean;
+  data?: unknown;
 }
 
+/**
+ * Классификатор коротких интентов для VAQTA AI
+ */
+export function classifyIntent(message: string): AIIntent {
+  const text = message.toLowerCase();
+
+  if (
+    text.includes("карта") ||
+    text.includes("адрес") ||
+    text.includes("найди") ||
+    text.includes("где находится") ||
+    text.includes("покажи на карте") ||
+    text.includes("kartada") ||
+    text.includes("харита")
+  ) {
+    return "map";
+  }
+
+  if (
+    text.includes("переведи") ||
+    text.includes("перевод") ||
+    text.includes("translate") ||
+    text.includes("tarjima") ||
+    text.includes("таржима")
+  ) {
+    return "translate";
+  }
+
+  if (
+    text.includes("паспорт") ||
+    text.includes("документ") ||
+    text.includes("виза") ||
+    text.includes("регистрация") ||
+    text.includes("патент") ||
+    text.includes("hujjat") ||
+    text.includes("ҳуҷҷат")
+  ) {
+    return "document";
+  }
+
+  if (
+    text.includes("работа") ||
+    text.includes("вакансия") ||
+    text.includes("вахта") ||
+    text.includes("иш") ||
+    text.includes("кор") ||
+    text.includes("job")
+  ) {
+    return "jobs";
+  }
+
+  return "general";
+}
+
+/**
+ * Детектор действий AI с подробным ответом
+ */
 export function detectAIAction(message: string): AIActionResponse {
   const lowerText = message.toLowerCase().trim();
 
@@ -37,8 +99,10 @@ export function detectAIAction(message: string): AIActionResponse {
   ) {
     return {
       action: "MAP_SEARCH",
+      intent: "map",
       query: extractSearchQuery(message),
-      message: "Ищу адрес на карте..."
+      message: "Ищу адрес на карте...",
+      success: true,
     };
   }
 
@@ -55,8 +119,10 @@ export function detectAIAction(message: string): AIActionResponse {
   ) {
     return {
       action: "BUILD_ROUTE",
+      intent: "map",
       query: extractRouteQuery(message),
-      message: "Строю маршрут..."
+      message: "Строю маршрут...",
+      success: true,
     };
   }
 
@@ -70,9 +136,11 @@ export function detectAIAction(message: string): AIActionResponse {
   ) {
     return {
       action: "TRANSLATE",
+      intent: "translate",
       query: message,
       language: detectLanguage(message),
-      message: "Выполняю перевод..."
+      message: "Выполняю перевод...",
+      success: true,
     };
   }
 
@@ -89,8 +157,10 @@ export function detectAIAction(message: string): AIActionResponse {
   ) {
     return {
       action: "DOCUMENT_SCAN",
+      intent: "document",
       query: message,
-      message: "Открываю сканер документов..."
+      message: "Открываю сканер документов...",
+      success: true,
     };
   }
 
@@ -106,8 +176,10 @@ export function detectAIAction(message: string): AIActionResponse {
   ) {
     return {
       action: "JOB_SEARCH",
+      intent: "jobs",
       query: extractJobQuery(message),
-      message: "Ищу подходящие вакансии..."
+      message: "Ищу подходящие вакансии...",
+      success: true,
     };
   }
 
@@ -121,16 +193,27 @@ export function detectAIAction(message: string): AIActionResponse {
   ) {
     return {
       action: "EMPLOYER_CHECK",
+      intent: "jobs",
       query: extractCompanyQuery(message),
-      message: "Проверяю данные компании..."
+      message: "Проверяю данные компании...",
+      success: true,
     };
   }
 
   return {
     action: "GENERAL_CHAT",
+    intent: "general",
     query: message,
-    message: "Обрабатываю запрос..."
+    message: "Обрабатываю запрос...",
+    success: true,
   };
+}
+
+/**
+ * Функция detectIntent — синоним для detectAIAction, возвращающая объект AIActionResponse
+ */
+export function detectIntent(message: string): AIActionResponse {
+  return detectAIAction(message);
 }
 
 function extractSearchQuery(text: string): string {
@@ -138,7 +221,7 @@ function extractSearchQuery(text: string): string {
     /(?:покажи|найди|где|карта|покажи на карте|на карте)\s+(.+)/i,
     /(?:show|find|where|map|show on map)\s+(.+)/i,
     /(?:кўрсат|топ|қаерда|харита|картада|kartada)\s+(.+)/i,
-    /(?:нишон|дар|харита|дар харита)\s+(.+)/i
+    /(?:нишон|дар|харита|дар харита)\s+(.+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -153,7 +236,7 @@ function extractRouteQuery(text: string): string {
   const patterns = [
     /(?:построй|маршрут|как доехать до|доехать до|построй маршрут до)\s+(.+)/i,
     /(?:build|route|direction|build route to)\s+(.+)/i,
-    /(?:йўл|маршрут|йўналиш)\s+(.+)/i
+    /(?:йўл|маршрут|йўналиш)\s+(.+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -168,7 +251,7 @@ function extractJobQuery(text: string): string {
   const patterns = [
     /(?:ищу|вакансии|работа|найти работу)\s+(.+)/i,
     /(?:looking for|vacancy|job|find job)\s+(.+)/i,
-    /(?:иш|кор|вакансия)\s+(.+)/i
+    /(?:иш|кор|вакансия)\s+(.+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -183,7 +266,7 @@ function extractCompanyQuery(text: string): string {
   const patterns = [
     /(?:проверь|компания|работодатель|проверка компании)\s+(.+)/i,
     /(?:check|company|employer)\s+(.+)/i,
-    /(?:текшир|компания|корфармо)\s+(.+)/i
+    /(?:текшир|компания|корфармо)\s+(.+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -204,5 +287,12 @@ function detectLanguage(text: string): string {
 }
 
 export async function executeAIAction(actionResponse: AIActionResponse): Promise<any> {
-  return { action: actionResponse.action, query: actionResponse.query, message: actionResponse.message };
+  return {
+    action: actionResponse.action,
+    intent: actionResponse.intent,
+    query: actionResponse.query,
+    message: actionResponse.message,
+    success: actionResponse.success ?? true,
+    data: actionResponse.data,
+  };
 }
