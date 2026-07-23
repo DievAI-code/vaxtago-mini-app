@@ -3,9 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/context/LanguageProvider";
-import { detectAIAction } from "@/services/aiActions";
 import { toast } from "sonner";
-import { subscriptionService } from "@/services/subscriptionService";
 import { useNavigate } from "react-router-dom";
 
 export interface ChatMessage {
@@ -30,8 +28,9 @@ export function useAiChat() {
 
     setLoading(true);
     
-    // 1. Детекция намерения поиска работы на фронте
-    const isJobSearch = /работа|вакансия|ищу|сварщик|водитель|разнорабочий|нужна|job|vacancy/i.test(message.toLowerCase());
+    // Детекция намерения поиска работы
+    const lowerMsg = message.toLowerCase();
+    const isJobSearch = /работа|вакансия|ищу|сварщик|водитель|разнорабочий|нужна|job|vacancy|трудоустройство/i.test(lowerMsg);
     
     const userMsg: ChatMessage = {
       role: "user",
@@ -44,6 +43,28 @@ export function useAiChat() {
     chatHistoryRef.current = newHistory;
 
     try {
+      // Если пользователь ищет работу — показываем сообщение о скором запуске
+      if (isJobSearch) {
+        const waitingReply = "Мы уже готовим AI-поиск вакансий. Скоро вы сможете искать реальные вакансии через официальные источники.";
+        
+        const assistantMsg: ChatMessage = {
+          role: "assistant",
+          content: waitingReply,
+          timestamp: new Date(),
+          action: { type: "JOB_SEARCH_WAITING" }
+        };
+        
+        const updatedHistory = [...newHistory, assistantMsg];
+        setMessages(updatedHistory);
+        chatHistoryRef.current = updatedHistory;
+        
+        // Переходим на страницу вакансий через 1.5 секунды
+        setTimeout(() => navigate("/jobs"), 1500);
+        
+        setLoading(false);
+        return waitingReply;
+      }
+
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
           message: message.trim(),
@@ -61,21 +82,12 @@ export function useAiChat() {
         return null;
       }
 
-      // Если AI определил намерение поиска работы
-      if (isJobSearch) {
-          toast.success("Открываю раздел вакансий...");
-          setTimeout(() => {
-            navigate(`/jobs?query=${encodeURIComponent(message)}`);
-          }, 1500);
-      }
-
       const replyText = data?.reply || "AI is busy.";
       
       const assistantMsg: ChatMessage = {
         role: "assistant",
         content: replyText,
-        timestamp: new Date(),
-        action: isJobSearch ? { action: 'JOB_SEARCH', query: message } : undefined
+        timestamp: new Date()
       };
       
       const updatedHistory = [...newHistory, assistantMsg];

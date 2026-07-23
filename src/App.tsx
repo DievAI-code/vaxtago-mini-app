@@ -30,6 +30,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminIntegrations = lazy(() => import("./pages/AdminIntegrations"));
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                   <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+                  <Route path="/admin/integrations" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
 
                   <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
                   <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />

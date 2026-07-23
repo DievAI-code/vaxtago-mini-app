@@ -2,120 +2,279 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, Briefcase, MapPin, DollarSign, Sparkles, Building2, Clock, ExternalLink, Globe2 } from "lucide-react";
+import { 
+  Search, Rocket, Clock, Briefcase, MapPin, Calendar, 
+  CheckCircle2, Loader2, Construction, Truck, Factory, 
+  Package, Wrench, Hammer, Send, Sparkles 
+} from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { SideMenu } from "@/components/SideMenu";
 import { useLanguage } from "@/context/LanguageProvider";
-import { jobsAggregator } from "@/services/jobs/jobsAggregator";
-import { Job } from "@/services/jobs/types";
+import { jobsApiStatus, JobsApiStatus } from "@/services/jobsApiStatus";
+import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+
+const CATEGORIES = [
+  { icon: Construction, label: "Строительство", color: "text-amber-400" },
+  { icon: Truck, label: "Водители", color: "text-blue-400" },
+  { icon: Factory, label: "Производство", color: "text-purple-400" },
+  { icon: Package, label: "Склад", color: "text-orange-400" },
+  { icon: Wrench, label: "Сварщики", color: "text-cyan-400" },
+  { icon: Hammer, label: "Разнорабочие", color: "text-emerald-400" },
+];
 
 export default function Jobs() {
   const { t } = useLanguage();
   const [params] = useSearchParams();
-  const [query, setQuery] = useState(params.get("query") || "");
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [query] = useState(params.get("query") || "");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [status, setStatus] = useState<JobsApiStatus>({ hh: "pending", trudvsem: "pending" });
+  const [checking, setChecking] = useState(true);
+  
+  // Form state
+  const [profession, setProfession] = useState(query);
+  const [city, setCity] = useState("");
+  const [schedule, setSchedule] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    if (query) handleSearch();
+    checkStatus();
   }, []);
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-    setLoading(true);
-    
-    const { jobs: results } = await jobsAggregator.getJobs({ text: query });
-    setJobs(results);
-    
-    if (results.length === 0) {
-      toast.info("Ничего не найдено в данный момент");
-    }
-    setLoading(false);
+  const checkStatus = async () => {
+    setChecking(true);
+    const s = await jobsApiStatus.check();
+    setStatus(s);
+    setChecking(false);
   };
+
+  const handleSubmitInterest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profession.trim()) {
+      toast.error("Укажите профессию");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const phone = localStorage.getItem("vaxtago_user_phone");
+      if (!phone) {
+        toast.error("Требуется авторизация");
+        return;
+      }
+
+      // Получаем user_id по телефону
+      const { data: user } = await supabase
+        .from("users")
+        .select("id")
+        .eq("phone_number", phone)
+        .single();
+
+      if (!user) {
+        toast.error("Пользователь не найден");
+        return;
+      }
+
+      const { error } = await supabase.from("job_interest").insert({
+        user_id: user.id,
+        profession: profession.trim(),
+        city: city.trim() || null,
+        schedule: schedule.trim() || null
+      });
+
+      if (error) throw error;
+      
+      setSubmitted(true);
+      toast.success("Заявка сохранена! Мы сообщим о запуске.");
+    } catch (err) {
+      toast.error("Ошибка сохранения");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCategoryClick = () => {
+    toast.info("Поиск по категориям станет доступен после подключения источников вакансий");
+  };
+
+  const isConnected = jobsApiStatus.isAnyConnected(status);
+
+  // Если API подключены, показываем реальный поиск (заглушка для будущего)
+  if (isConnected) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-36">
+        <Header title="nav.jobs" onMenuClick={() => setMenuOpen(true)} />
+        <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+        <main className="p-6">
+          <div className="vaqta-glass p-8 border-[#00A86B]/30 text-center space-y-4">
+            <CheckCircle2 className="mx-auto text-[#00A86B]" size={48} />
+            <h2 className="text-xl font-black">API подключены!</h2>
+            <p className="text-xs text-[#5C7A6D]">Реальный поиск вакансий активирован.</p>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-36">
       <Header title="nav.jobs" onMenuClick={() => setMenuOpen(true)} />
       <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      <main className="p-6 space-y-6">
-        <div className="relative vaqta-glass border-[#1A3D2E] p-1 flex items-center focus-within:border-[#00A86B]/40 transition-all">
-          <Search size={18} className="text-[#5C7A6D] ml-4" />
-          <input 
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="Профессия или город..."
-            className="flex-1 bg-transparent py-4 px-3 text-sm outline-none font-bold"
-          />
-          <button onClick={handleSearch} className="p-3 bg-[#00A86B] text-white rounded-2xl mr-1 shadow-lg active:scale-95">
-             <Search size={18} />
-          </button>
+      <main className="p-6 space-y-8">
+        {/* Hero Waiting State */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-6 py-8"
+        >
+          <div className="relative inline-block">
+            <div className="w-24 h-24 rounded-[2.5rem] vaqta-gradient flex items-center justify-center mx-auto shadow-2xl vaqta-glow">
+              <Rocket size={40} className="text-white" />
+            </div>
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute inset-0 rounded-[2.5rem] bg-[#00A86B]/30 blur-xl"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-2xl font-black tracking-tight">
+              AI-поиск работы <span className="text-[#00A86B]">скоро будет доступен</span>
+            </h1>
+            <p className="text-xs text-[#5C7A6D] font-medium leading-relaxed max-w-xs mx-auto">
+              Мы подключаем официальные источники вакансий, чтобы вы получали реальные предложения от проверенных работодателей.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* API Status Cards */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-1">Статус подключения</h3>
+          
+          <div className="vaqta-glass p-5 border-[#1A3D2E] flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                <Clock size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-bold">HeadHunter</p>
+                <p className="text-[10px] text-amber-400 font-bold uppercase">Подключение выполняется</p>
+              </div>
+            </div>
+            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          </div>
+
+          <div className="vaqta-glass p-5 border-[#1A3D2E] flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                <Clock size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-bold">Работа России</p>
+                <p className="text-[10px] text-amber-400 font-bold uppercase">Подготовка источника</p>
+              </div>
+            </div>
+            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          </div>
         </div>
 
-        <div className="space-y-4">
-          <AnimatePresence mode="popLayout">
-            {jobs.map((job, idx) => (
-              <motion.div 
-                key={job.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.05 }}
-                className="vaqta-glass p-6 border-[#1A3D2E] relative overflow-hidden group hover:border-[#00A86B]/30"
+        {/* Interest Form */}
+        <AnimatePresence mode="wait">
+          {!submitted ? (
+            <motion.form
+              key="form"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onSubmit={handleSubmitInterest}
+              className="vaqta-glass p-6 border-[#00A86B]/20 space-y-4"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={16} className="text-[#00A86B]" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-[#00A86B]">Какую работу вы ищете?</h3>
+              </div>
+
+              <div className="space-y-3">
+                <div className="relative">
+                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5C7A6D]" size={16} />
+                  <input
+                    value={profession}
+                    onChange={(e) => setProfession(e.target.value)}
+                    placeholder="Профессия (например: сварщик)"
+                    className="w-full h-14 bg-[#06140F] border border-[#1A3D2E] rounded-2xl pl-12 pr-4 text-sm font-bold text-white focus:border-[#00A86B] outline-none transition-all"
+                  />
+                </div>
+
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5C7A6D]" size={16} />
+                  <input
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="Город"
+                    className="w-full h-14 bg-[#06140F] border border-[#1A3D2E] rounded-2xl pl-12 pr-4 text-sm font-bold text-white focus:border-[#00A86B] outline-none transition-all"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5C7A6D]" size={16} />
+                  <input
+                    value={schedule}
+                    onChange={(e) => setSchedule(e.target.value)}
+                    placeholder="Желаемый график (вахта, смены...)"
+                    className="w-full h-14 bg-[#06140F] border border-[#1A3D2E] rounded-2xl pl-12 pr-4 text-sm font-bold text-white focus:border-[#00A86B] outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-16 vaqta-gradient rounded-2xl font-black text-white uppercase text-xs tracking-widest shadow-xl vaqta-glow flex items-center justify-center gap-3 active:scale-95 transition-transform disabled:opacity-50"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                       <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${job.source === 'hh' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                         {job.source === 'hh' ? 'HeadHunter' : 'Работа России'}
-                       </span>
-                    </div>
-                    <h3 className="font-black text-lg leading-tight">{job.title}</h3>
-                    <p className="text-xs font-bold text-[#5C7A6D] mt-1 flex items-center gap-1">
-                       <Building2 size={12} /> {job.company}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                   <div className="bg-[#06140F] p-3 rounded-2xl border border-[#1A3D2E]">
-                      <p className="text-[8px] font-black uppercase text-[#5C7A6D]">Оплата</p>
-                      <p className="text-[10px] font-black text-[#00A86B] truncate">{job.salary}</p>
-                   </div>
-                   <div className="bg-[#06140F] p-3 rounded-2xl border border-[#1A3D2E]">
-                      <p className="text-[8px] font-black uppercase text-[#5C7A6D]">Локация</p>
-                      <p className="text-[10px] font-bold text-slate-200 truncate">{job.city}</p>
-                   </div>
-                </div>
-
-                <div className="flex items-center gap-4 text-[9px] font-black uppercase text-[#5C7A6D] mb-5">
-                   <div className="flex items-center gap-1.5"><Clock size={12} /> {job.schedule}</div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => window.open(job.url, '_blank')} className="h-12 bg-white/5 border border-white/10 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white/10">
-                    Подробнее
-                  </button>
-                  <button onClick={() => window.open(job.url, '_blank')} className="h-12 vaqta-gradient rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg">
-                    Откликнуться
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {loading && (
-            <div className="flex flex-col items-center justify-center py-10 gap-3">
-               <div className="w-10 h-10 border-2 border-[#00A86B]/20 border-t-[#00A86B] animate-spin rounded-full" />
-               <p className="text-[10px] font-black uppercase text-[#00A86B] animate-pulse">Агрегация вакансий...</p>
-            </div>
+                {submitting ? <Loader2 className="animate-spin" size={20} /> : <><Send size={18} /> Сообщить о запуске</>}
+              </button>
+            </motion.form>
+          ) : (
+            <motion.div
+              key="success"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="vaqta-glass p-8 border-[#00A86B]/30 text-center space-y-4"
+            >
+              <div className="w-16 h-16 rounded-full bg-[#00A86B]/10 flex items-center justify-center mx-auto text-[#00A86B]">
+                <CheckCircle2 size={32} />
+              </div>
+              <h3 className="text-lg font-black">Заявка принята!</h3>
+              <p className="text-xs text-[#5C7A6D]">Мы сообщим вам, как только поиск станет доступен.</p>
+            </motion.div>
           )}
+        </AnimatePresence>
+
+        {/* Categories */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-1">Популярные категории</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {CATEGORIES.map((cat, idx) => (
+              <motion.button
+                key={idx}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleCategoryClick}
+                className="vaqta-glass p-5 border-[#1A3D2E] flex flex-col items-center gap-3 text-center active:scale-95 transition-transform"
+              >
+                <cat.icon size={24} className={cat.color} />
+                <span className="text-xs font-bold text-white">{cat.label}</span>
+              </motion.button>
+            ))}
+          </div>
         </div>
       </main>
+
       <BottomNav />
     </div>
   );
