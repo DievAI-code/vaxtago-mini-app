@@ -19,7 +19,7 @@ export const subscriptionService = {
 
       const { data, error } = await supabase
         .from("users")
-        .select("subscription_status, subscription_expires, ai_requests_used")
+        .select("subscription_status, subscription_expires, ai_requests_used, ai_requests_reset_at")
         .eq("phone_number", userPhone)
         .single();
 
@@ -27,6 +27,13 @@ export const subscriptionService = {
         console.error("Subscription check error:", error);
         return this.getFreeTierInfo();
       }
+
+      // Проверка на необходимость сброса дневного лимита (если прошло более 24 часов)
+      const lastReset = new Date(data.ai_requests_reset_at || 0);
+      const now = new Date();
+      const needsReset = (now.getTime() - lastReset.getTime()) > 24 * 60 * 60 * 1000;
+
+      let currentUsed = needsReset ? 0 : (data.ai_requests_used || 0);
 
       if (data?.subscription_status === 'premium') {
         const isActive = !data.subscription_expires || new Date(data.subscription_expires) > new Date();
@@ -39,13 +46,17 @@ export const subscriptionService = {
               "unlimited_ai",
               "document_analysis", 
               "employer_checks",
-              "priority_support"
+              "priority_support",
+              "map_routes"
             ]
           };
         }
       }
 
-      return this.getFreeTierInfo();
+      return {
+        ...this.getFreeTierInfo(),
+        remaining_requests: Math.max(0, 10 - currentUsed)
+      };
 
     } catch (error) {
       console.error("Subscription service error:", error);
@@ -56,7 +67,7 @@ export const subscriptionService = {
   getFreeTierInfo(): SubscriptionInfo {
     return {
       status: 'free',
-      remaining_requests: 10, // Лимит для бесплатного тарифа
+      remaining_requests: 10,
       features: [
         "basic_ai",
         "limited_translations",
@@ -66,15 +77,14 @@ export const subscriptionService = {
   },
 
   async canUseFeature(feature: string): Promise<boolean> {
-    const subscription = await this.checkSubscription();
+    const info = await this.checkSubscription();
     
-    if (subscription.status === 'premium') {
+    if (info.status === 'premium') {
       return true;
     }
 
-    // Проверяем лимиты для бесплатного тарифа
-    if (feature === 'ai_request') {
-      return (subscription.remaining_requests || 0) > 0;
+    if (feature === 'ai_request' || feature === 'vision') {
+      return (info.remaining_requests || 0) > 0;
     }
 
     return false;
@@ -85,9 +95,21 @@ export const subscriptionService = {
     if (!userPhone) return;
 
     try {
-      await supabase.rpc('decrement_ai_requests', {
-        user_phone: userPhone
-      });
+      // Используем RPC или прямой апдейт
+      const { data: user } = await supabase
+        .from("users")
+        .select("ai_requests_used")
+        .eq("phone_number", userPhone)
+        .single();
+
+      await supabase
+        .from("users")
+        .update({ 
+          ai_requests_used: (user?.ai_requests_used || 0) + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq("phone_number", userPhone);
+        
     } catch (error) {
       console.error("Failed to decrement request count:", error);
     }

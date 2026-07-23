@@ -9,6 +9,10 @@ export interface UserProfile {
   country?: string;
   city?: string;
   role: string;
+  subscription_status: 'free' | 'premium' | 'trial';
+  subscription_expires?: string;
+  ai_requests_used: number;
+  ai_requests_reset_at?: string;
   last_login?: string;
   created_at: string;
   updated_at: string;
