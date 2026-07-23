@@ -20,6 +20,7 @@ const Maps = lazy(() => import("./pages/Maps"));
 const AiAssistant = lazy(() => import("./pages/AiAssistant"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Scanner = lazy(() => import("./pages/Scanner"));
+const OcrTranslator = lazy(() => import("./pages/OcrTranslator"));
 const Documents = lazy(() => import("./pages/Documents"));
 const Translate = lazy(() => import("./pages/Translate"));
 const History = lazy(() => import("./pages/History"));
@@ -78,6 +79,7 @@ const App = () => {
                         <Route path="/ai" element={<PrivateRoute><AiAssistant /></PrivateRoute>} />
                         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
                         <Route path="/scanner" element={<PrivateRoute><Scanner /></PrivateRoute>} />
+                        <Route path="/ocr" element={<PrivateRoute><OcrTranslator /></PrivateRoute>} />
                         <Route path="/documents" element={<PrivateRoute><Documents /></PrivateRoute>} />
                         <Route path="/translate" element={<PrivateRoute><Translate /></PrivateRoute>} />
                         <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
