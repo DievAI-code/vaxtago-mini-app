@@ -23,12 +23,44 @@ export interface AIActionResponse {
 }
 
 /**
- * Расширенная детекция намерений на стороне фронтенда (пре-процессинг)
+ * Детекция намерений на стороне фронтенда
  */
 export function detectAIAction(message: string): AIActionResponse {
   const text = message.toLowerCase().trim();
 
-  // 0. Детекция поиска работы
+  // 1. Поиск мест и адресов (ЖД вокзал, аэропорт, больница, МФЦ, и т.д.)
+  if (
+    /вокзал|аэропорт|больниц|поликлиник|мфц|метро|рынок|улиц|проспект|где находится|покажи|найди|адрес/i.test(
+      text
+    ) &&
+    !/работа|ваканси|ищу работу/i.test(text)
+  ) {
+    // Детекция построения маршрута
+    if (/маршрут|как доехать|путь до|проложи дорогу/i.test(text)) {
+      return {
+        action: "MAP_ROUTE",
+        destination: extractCleanQuery(text, ["маршрут", "как доехать", "путь до", "до", "в"]),
+        message: "Ищу маршрут на встроенной карте VAQTA AI...",
+      };
+    }
+
+    // Детекция поиска объектов рядом
+    if (/рядом|поблизости/i.test(text)) {
+      return {
+        action: "MAP_NEARBY",
+        query: extractCleanQuery(text, ["рядом", "поблизости", "найди"]),
+        message: "Ищу ближайшие объекты на карте VAQTA AI...",
+      };
+    }
+
+    return {
+      action: "MAP_SEARCH",
+      query: extractCleanQuery(text, ["покажи", "найди", "где находится", "адрес"]),
+      message: "Открываю карту VAQTA AI...",
+    };
+  }
+
+  // 2. Детекция поиска работы
   if (/работа|вакансия|ищу работу|найди работу|сварщик|водитель|разнорабочий|строитель|электрик|вахта/i.test(text)) {
     const isHousing = /жиль|вахта|проживан|квартир/i.test(text);
     let extractedCity = "";
@@ -43,67 +75,23 @@ export function detectAIAction(message: string): AIActionResponse {
 
     return {
       action: "JOB_SEARCH",
-      profession: extractPlace(text, ["найди", "работу", "вакансию", "ищу", "в", "с", "жильем"]),
+      profession: extractCleanQuery(text, ["найди", "работу", "вакансию", "ищу", "в", "с", "жильем"]),
       city: extractedCity,
       housing: isHousing,
       message: "Формирую поиск вакансий..."
     };
   }
 
-  // 1. Построение маршрута
-  if (/маршрут|как доехать|путь до|проложи дорогу|йўналиш|бағыт|route/i.test(text)) {
-    return {
-      action: "MAP_ROUTE",
-      destination: extractPlace(text, ["до", "в", "на", "to", "ga"]),
-      message: "Секунду, строю маршрут..."
-    };
-  }
-
-  // 2. Поиск ближайших мест
-  if (/рядом|поблизости|яқин|жақын|nearby|around/i.test(text)) {
-    const types = {
-      "больница": "hospital",
-      "вокзал": "station",
-      "мфц": "mfc",
-      "центр": "center",
-      "магазин": "shop"
-    };
-    let foundType = "place";
-    for (const [key, val] of Object.entries(types)) {
-      if (text.includes(key)) foundType = val;
-    }
-    return {
-      action: "MAP_NEARBY",
-      placeType: foundType,
-      message: "Ищу ближайшие объекты..."
-    };
-  }
-
-  // 3. Поиск конкретного адреса
-  if (/где находится|найди адрес|покажи на карте|картадан|map/i.test(text)) {
-    return {
-      action: "MAP_SEARCH",
-      query: extractPlace(text, ["адрес", "находится", "где", "location"]),
-      message: "Ищу местоположение на карте..."
-    };
-  }
-
-  // 4. Определение текущего местоположения
-  if (/где я|мое местоположение|менинг жойлашувим|мен қайдамын/i.test(text)) {
-    return {
-      action: "MAP_LOCATION",
-      message: "Определяю ваши координаты..."
-    };
-  }
-
   return { action: "GENERAL_CHAT", message: "" };
 }
 
-function extractPlace(text: string, stopWords: string[]): string {
+function extractCleanQuery(text: string, stopWords: string[]): string {
   let cleaned = text;
-  stopWords.forEach(word => {
-    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+  stopWords.forEach((word) => {
+    const regex = new RegExp(`\\b${word}\\b`, "gi");
     cleaned = cleaned.replace(regex, "");
   });
-  return cleaned.replace(/(?:маршрут|как доехать|путь|найди|где находится|покажи|на карте|работу|вакансию)/gi, "").trim();
+  return cleaned
+    .replace(/(?:покажи|найди|где находится|адрес|маршрут|как доехать|путь)/gi, "")
+    .trim();
 }

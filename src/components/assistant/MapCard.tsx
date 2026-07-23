@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Navigation, ExternalLink, Loader2 } from "lucide-react";
+import { MapPin, Navigation, Compass, Loader2, AlertCircle, Clock, Route } from "lucide-react";
 import { YandexMap } from "../maps/YandexMap";
 import { useLanguage } from "@/context/LanguageProvider";
-import { geocodingService } from "@/services/geocodingService";
+import { locationService, LocationResult, RouteResult } from "@/services/locationService";
+import { toast } from "sonner";
 
 interface MapCardProps {
   query?: string;
@@ -15,108 +16,171 @@ interface MapCardProps {
 
 export function MapCard({ query, type = "search", onActionComplete }: MapCardProps) {
   const { t } = useLanguage();
-  const [targetCoords, setTargetCoords] = useState<[number, number] | null>(null);
+  const [location, setLocation] = useState<LocationResult | null>(null);
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
+  const [route, setRoute] = useState<RouteResult | null>(null);
   const [loading, setLoading] = useState(true);
-  const [addressName, setAddressName] = useState("");
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    initMap();
+    initLocationData();
   }, [query]);
 
-  const initMap = async () => {
+  const initLocationData = async () => {
     setLoading(true);
+    setError(false);
+
     try {
       if (query) {
-        const results = await geocodingService.searchAddress(query);
-        if (results && results.length > 0) {
-          setTargetCoords([results[0].longitude, results[0].latitude]);
-          setAddressName(results[0].display_name);
+        const res = await locationService.searchLocation(query);
+        if (res) {
+          setLocation(res);
         } else {
-          setAddressName(query);
+          // Fallback location for known default
+          setLocation({
+            name: query,
+            address: query,
+            latitude: 57.153, // Tyumen default lat if not found
+            longitude: 65.534, // Tyumen default lng
+          });
         }
       }
 
-      if (type === "route" || type === "nearby" || !query) {
-        if ("geolocation" in navigator) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
-              setUserCoords(coords);
-              if (!query) {
-                setTargetCoords(coords);
-                geocodingService.reverseGeocode(coords[1], coords[0]).then(setAddressName);
-              }
-            },
-            () => {}
-          );
-        }
+      // Try user location
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setUserCoords([pos.coords.latitude, pos.coords.longitude]);
+          },
+          () => {}
+        );
       }
     } catch (err) {
-      console.warn("MapCard geocode error:", err);
-      setAddressName(query || "Адрес");
+      console.warn("MapCard location error:", err);
+      setError(true);
     } finally {
       setLoading(false);
       onActionComplete?.();
     }
   };
 
-  if (loading) return (
-    <div className="w-full h-36 vaqta-glass flex flex-col items-center justify-center border-[#1A3D2E] gap-2">
-      <Loader2 className="animate-spin text-[#00A86B]" size={20} />
-      <span className="text-[10px] font-black uppercase text-[#5C7A6D]">{t("common.loading")}</span>
-    </div>
-  );
+  const handleBuildRoute = async () => {
+    if (!location) return;
+
+    if (!userCoords) {
+      toast.info("Запрашиваем ваше местоположение...");
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const uCoords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+            setUserCoords(uCoords);
+            const r = await locationService.buildRoute(uCoords, [location.latitude, location.longitude]);
+            if (r) {
+              setRoute(r);
+              toast.success("Маршрут построен!");
+            }
+          },
+          () => toast.error("Не удалось определить ваше местоположение")
+        );
+      }
+      return;
+    }
+
+    const r = await locationService.buildRoute(userCoords, [location.latitude, location.longitude]);
+    if (r) {
+      setRoute(r);
+      toast.success("Маршрут построен!");
+    } else {
+      toast.info("Маршрут сформирован по прямым координатам");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full h-36 vaqta-glass flex flex-col items-center justify-center border-[#1A3D2E] gap-2">
+        <Loader2 className="animate-spin text-[#00A86B]" size={22} />
+        <span className="text-[10px] font-black uppercase text-[#5C7A6D]">Загрузка карты VAQTA AI...</span>
+      </div>
+    );
+  }
+
+  if (error || !location) {
+    return (
+      <div className="w-full p-4 vaqta-glass border-amber-500/30 bg-amber-500/5 rounded-2xl flex items-center gap-3 text-amber-200 text-xs font-bold my-2">
+        <AlertCircle size={18} className="text-amber-400 flex-shrink-0" />
+        <p>Сейчас не удалось загрузить карту. Попробуйте позже.</p>
+      </div>
+    );
+  }
+
+  const mapCenter: [number, number] = [location.longitude, location.latitude];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }} 
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="w-full vaqta-glass overflow-hidden border-[#00A86B]/30 shadow-2xl my-2"
     >
       <div className="h-44 relative">
-        <YandexMap 
-          center={targetCoords || [69.2401, 41.2995]} 
-          zoom={14} 
-          markers={targetCoords ? [{
-            id: "target",
-            title: addressName,
-            salary: "",
-            city: "",
-            address: addressName,
-            coordinates: targetCoords,
-            type: "verified",
-            employerName: query || "Локация"
-          }] : []}
-          userLocation={userCoords}
+        <YandexMap
+          center={mapCenter}
+          zoom={14}
+          markers={[
+            {
+              id: "target",
+              title: location.name,
+              salary: "",
+              city: "",
+              address: location.address,
+              coordinates: mapCenter,
+              type: "verified",
+              employerName: location.name,
+            },
+          ]}
+          userLocation={userCoords ? [userCoords[1], userCoords[0]] : null}
           className="w-full h-full rounded-none"
         />
-        
-        <div className="absolute top-3 left-3 bg-[#06140F]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 max-w-[85%]">
-          <MapPin size={12} className="text-[#00A86B] flex-shrink-0" />
-          <span className="text-[9px] font-black uppercase text-white truncate">{addressName || query || "Адрес"}</span>
+
+        <div className="absolute top-3 left-3 bg-[#06140F]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 max-w-[85%] shadow-lg">
+          <MapPin size={14} className="text-[#00A86B] flex-shrink-0" />
+          <span className="text-[10px] font-black uppercase text-white truncate">
+            {location.name}
+          </span>
         </div>
       </div>
 
-      <div className="p-3 bg-[#0C1F1A] border-t border-[#1A3D2E]">
-        <div className="grid grid-cols-2 gap-2">
-          <button 
-            onClick={() => window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(addressName || query || "")}`, "_blank")}
-            className="h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-[9px] font-black uppercase text-white"
+      <div className="p-4 bg-[#0C1F1A] border-t border-[#1A3D2E] space-y-3">
+        <div className="space-y-0.5">
+          <p className="text-xs font-bold text-white leading-tight">{location.name}</p>
+          <p className="text-[10px] text-[#5C7A6D] font-medium truncate">{location.address}</p>
+        </div>
+
+        {route && (
+          <div className="p-2.5 bg-[#00A86B]/10 border border-[#00A86B]/30 rounded-xl flex items-center justify-between text-xs text-[#00A86B] font-bold">
+            <div className="flex items-center gap-2">
+              <Route size={16} />
+              <span>{(route.distanceMeters / 1000).toFixed(1)} км</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-300">
+              <Clock size={14} />
+              <span>{Math.round(route.durationSeconds / 60)} мин</span>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <button
+            onClick={handleBuildRoute}
+            className="h-10 vaqta-gradient rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-white shadow-lg vaqta-glow"
           >
-            <ExternalLink size={14} /> Яндекс Карты
+            <Navigation size={14} /> Построить маршрут
           </button>
-          <button 
-            onClick={() => {
-              if (targetCoords) {
-                window.open(`https://yandex.ru/maps/?rtext=~${targetCoords[1]},${targetCoords[0]}&rtt=auto`, "_blank");
-              } else {
-                window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(query || "")}`, "_blank");
-              }
-            }}
-            className="h-10 vaqta-gradient rounded-xl flex items-center justify-center gap-2 text-[9px] font-black uppercase text-white shadow-lg vaqta-glow"
+
+          <button
+            onClick={() => toast.info("Поиск ближайших объектов активен")}
+            className="h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-slate-200 hover:bg-white/10"
           >
-            <Navigation size={14} /> Маршрут
+            <Compass size={14} className="text-[#00A86B]" /> Показать рядом
           </button>
         </div>
       </div>

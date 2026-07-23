@@ -5,12 +5,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { detectAIAction } from "@/services/aiActions";
 
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   action?: any;
+}
+
+/**
+ * Очищает ответы AI от некорректных рекомендаций сторонних карт
+ */
+function sanitizeAiResponse(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/я не могу показать карт[ыу]/gi, "Открываю встроенную карту VAQTA AI")
+    .replace(/воспользоваться google maps/gi, "использовать навигатор VAQTA AI")
+    .replace(/воспользуйтесь яндекс\.карти|яндекс\.картами|google maps/gi, "картой VAQTA AI");
 }
 
 export function useAiChat() {
@@ -28,10 +40,9 @@ export function useAiChat() {
 
     setLoading(true);
     
-    // Детекция намерения поиска работы
-    const lowerMsg = message.toLowerCase();
-    const isJobSearch = /работа|вакансия|ищу|сварщик|водитель|разнорабочий|нужна|job|vacancy|трудоустройство/i.test(lowerMsg);
-    
+    // Предварительная проверка намерений (локации, маршруты, работы)
+    const detectedAction = detectAIAction(message);
+
     const userMsg: ChatMessage = {
       role: "user",
       content: message,
@@ -43,28 +54,47 @@ export function useAiChat() {
     chatHistoryRef.current = newHistory;
 
     try {
-      // Если пользователь ищет работу — показываем сообщение о скором запуске
-      if (isJobSearch) {
-        const waitingReply = "Мы уже готовим AI-поиск вакансий. Скоро вы сможете искать реальные вакансии через официальные источники.";
+      // 1. Поиск мест и локаций
+      if (detectedAction.action === "MAP_SEARCH" || detectedAction.action === "MAP_ROUTE" || detectedAction.action === "MAP_NEARBY") {
+        const replyText = detectedAction.message || "Ищу местоположение на встроенной карте VAQTA AI...";
+
+        const assistantMsg: ChatMessage = {
+          role: "assistant",
+          content: replyText,
+          timestamp: new Date(),
+          action: detectedAction
+        };
+
+        const updatedHistory = [...newHistory, assistantMsg];
+        setMessages(updatedHistory);
+        chatHistoryRef.current = updatedHistory;
+
+        setLoading(false);
+        return replyText;
+      }
+
+      // 2. Детекция вакансий
+      if (detectedAction.action === "JOB_SEARCH") {
+        const waitingReply = "Формирую подборку вакансий...";
         
         const assistantMsg: ChatMessage = {
           role: "assistant",
           content: waitingReply,
           timestamp: new Date(),
-          action: { type: "JOB_SEARCH_WAITING" }
+          action: detectedAction
         };
         
         const updatedHistory = [...newHistory, assistantMsg];
         setMessages(updatedHistory);
         chatHistoryRef.current = updatedHistory;
         
-        // Переходим на страницу вакансий через 1.5 секунды
-        setTimeout(() => navigate("/jobs"), 1500);
+        setTimeout(() => navigate(`/jobs-test?query=${encodeURIComponent(detectedAction.profession || "")}`), 1200);
         
         setLoading(false);
         return waitingReply;
       }
 
+      // 3. Стандартный запрос к AI Edge Function
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
           message: message.trim(),
@@ -82,11 +112,12 @@ export function useAiChat() {
         return null;
       }
 
-      const replyText = data?.reply || "AI is busy.";
+      const rawReply = data?.reply || "AI откликнулся.";
+      const cleanReply = sanitizeAiResponse(rawReply);
       
       const assistantMsg: ChatMessage = {
         role: "assistant",
-        content: replyText,
+        content: cleanReply,
         timestamp: new Date()
       };
       
@@ -94,7 +125,7 @@ export function useAiChat() {
       setMessages(updatedHistory);
       chatHistoryRef.current = updatedHistory;
       
-      return replyText;
+      return cleanReply;
 
     } catch (err: any) {
       toast.error(t("ai.error"));
