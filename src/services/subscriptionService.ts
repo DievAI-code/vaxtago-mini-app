@@ -2,116 +2,85 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export interface SubscriptionInfo {
-  status: 'free' | 'premium' | 'trial';
-  expires_at?: string;
-  remaining_requests?: number;
-  features: string[];
+export interface UsageInfo {
+  status: 'free' | 'premium';
+  ai_remaining: number;
+  ocr_remaining: number;
+  map_remaining: number;
 }
 
-export const subscriptionService = {
-  async checkSubscription(): Promise<SubscriptionInfo> {
-    try {
-      const userPhone = localStorage.getItem("vaxtago_user_phone");
-      if (!userPhone) {
-        return this.getFreeTierInfo();
-      }
+const LIMITS = {
+  free: { ai: 10, ocr: 5, map: 5 },
+  premium: { ai: Infinity, ocr: Infinity, map: Infinity }
+};
 
+export const subscriptionService = {
+  async getUsage(): Promise<UsageInfo> {
+    const userPhone = localStorage.getItem("vaxtago_user_phone");
+    if (!userPhone) return { status: 'free', ai_remaining: 0, ocr_remaining: 0, map_remaining: 0 };
+
+    try {
       const { data, error } = await supabase
         .from("users")
-        .select("subscription_status, subscription_expires, ai_requests_used, ai_requests_reset_at")
+        .select("subscription_status, ai_requests_used, ocr_requests_used, map_requests_used, last_limit_reset")
         .eq("phone_number", userPhone)
         .single();
 
-      if (error) {
-        console.error("Subscription check error:", error);
-        return this.getFreeTierInfo();
-      }
+      if (error) throw error;
 
-      // Проверка на необходимость сброса дневного лимита (если прошло более 24 часов)
-      const lastReset = new Date(data.ai_requests_reset_at || 0);
+      // Проверка на сброс лимитов (раз в сутки)
+      const lastReset = new Date(data.last_limit_reset || 0);
       const now = new Date();
       const needsReset = (now.getTime() - lastReset.getTime()) > 24 * 60 * 60 * 1000;
 
-      let currentUsed = needsReset ? 0 : (data.ai_requests_used || 0);
+      const status = (data.subscription_status || 'free') as 'free' | 'premium';
+      const currentLimits = LIMITS[status];
 
-      if (data?.subscription_status === 'premium') {
-        const isActive = !data.subscription_expires || new Date(data.subscription_expires) > new Date();
+      if (needsReset) {
+        await supabase
+          .from("users")
+          .update({
+            ai_requests_used: 0,
+            ocr_requests_used: 0,
+            map_requests_used: 0,
+            last_limit_reset: now.toISOString()
+          })
+          .eq("phone_number", userPhone);
         
-        if (isActive) {
-          return {
-            status: 'premium',
-            expires_at: data.subscription_expires,
-            features: [
-              "unlimited_ai",
-              "document_analysis", 
-              "employer_checks",
-              "priority_support",
-              "map_routes"
-            ]
-          };
-        }
+        return { status, ai_remaining: currentLimits.ai, ocr_remaining: currentLimits.ocr, map_remaining: currentLimits.map };
       }
 
       return {
-        ...this.getFreeTierInfo(),
-        remaining_requests: Math.max(0, 10 - currentUsed)
+        status,
+        ai_remaining: Math.max(0, currentLimits.ai - (data.ai_requests_used || 0)),
+        ocr_remaining: Math.max(0, currentLimits.ocr - (data.ocr_requests_used || 0)),
+        map_remaining: Math.max(0, currentLimits.map - (data.map_requests_used || 0))
       };
-
-    } catch (error) {
-      console.error("Subscription service error:", error);
-      return this.getFreeTierInfo();
+    } catch (e) {
+      return { status: 'free', ai_remaining: 0, ocr_remaining: 0, map_remaining: 0 };
     }
   },
 
-  getFreeTierInfo(): SubscriptionInfo {
-    return {
-      status: 'free',
-      remaining_requests: 10,
-      features: [
-        "basic_ai",
-        "limited_translations",
-        "job_search"
-      ]
-    };
-  },
-
-  async canUseFeature(feature: string): Promise<boolean> {
-    const info = await this.checkSubscription();
+  async canUse(feature: 'ai' | 'ocr' | 'map'): Promise<boolean> {
+    const usage = await this.getUsage();
+    if (usage.status === 'premium') return true;
     
-    if (info.status === 'premium') {
-      return true;
-    }
-
-    if (feature === 'ai_request' || feature === 'vision') {
-      return (info.remaining_requests || 0) > 0;
-    }
-
+    if (feature === 'ai') return usage.ai_remaining > 0;
+    if (feature === 'ocr') return usage.ocr_remaining > 0;
+    if (feature === 'map') return usage.map_remaining > 0;
     return false;
   },
 
-  async decrementRequestCount(): Promise<void> {
+  async trackUsage(feature: 'ai' | 'ocr' | 'map') {
     const userPhone = localStorage.getItem("vaxtago_user_phone");
     if (!userPhone) return;
 
-    try {
-      // Используем RPC или прямой апдейт
-      const { data: user } = await supabase
-        .from("users")
-        .select("ai_requests_used")
-        .eq("phone_number", userPhone)
-        .single();
-
-      await supabase
-        .from("users")
-        .update({ 
-          ai_requests_used: (user?.ai_requests_used || 0) + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq("phone_number", userPhone);
-        
-    } catch (error) {
-      console.error("Failed to decrement request count:", error);
-    }
+    const column = `${feature}_requests_used`;
+    const { data: user } = await supabase.from("users").select(column).eq("phone_number", userPhone).single();
+    
+    await supabase
+      .from("users")
+      .update({ [column]: (user?.[column] || 0) + 1 })
+      .eq("phone_number", userPhone);
   }
 };
