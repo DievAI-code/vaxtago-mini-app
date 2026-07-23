@@ -33,6 +33,8 @@ const Login = lazy(() => import("./pages/Login"));
 const LanguageSelect = lazy(() => import("./pages/LanguageSelect"));
 const Admin = lazy(() => import("./pages/Admin"));
 const FounderDashboard = lazy(() => import("./pages/FounderDashboard"));
+const MigrationTracker = lazy(() => import("./pages/MigrationTracker"));
+const SOSLegal = lazy(() => import("./pages/SOSLegal"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -81,6 +83,8 @@ const App = () => {
                         <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
                         <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                         <Route path="/premium" element={<PrivateRoute><Premium /></PrivateRoute>} />
+                        <Route path="/tracker" element={<PrivateRoute><MigrationTracker /></PrivateRoute>} />
+                        <Route path="/sos" element={<PrivateRoute><SOSLegal /></PrivateRoute>} />
                         <Route path="/about" element={<PrivateRoute><About /></PrivateRoute>} />
                         <Route path="/contacts" element={<PrivateRoute><Contacts /></PrivateRoute>} />
                         <Route path="/privacy" element={<PrivateRoute><Privacy /></PrivateRoute>} />

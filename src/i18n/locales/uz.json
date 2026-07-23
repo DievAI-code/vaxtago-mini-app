@@ -42,7 +42,9 @@
     "about": "Loyiha haqida",
     "contacts": "Aloqa",
     "policy": "Siyosat",
-    "admin": "Admin paneli"
+    "admin": "Admin paneli",
+    "tracker": "Patent Taqvimiy",
+    "sos": "SOS Huquqiy Qalqon"
   },
   "home": {
     "hero_title": "Hayotingiz uchun\naqlli AI yordamchi",
@@ -54,7 +56,35 @@
     "search_job": "Ish qidirish",
     "scanner_desc": "Hujjatlar tarjimasi",
     "market_analysis": "Bozor tahlili",
-    "market_desc": "AI tahlillari asosida real vaqt rejimida kasblarga bo'lgan talab prognozi."
+    "market_desc": "AI tahlillari asosida real vaqt rejimida kasblarga bo'lgan talab prognozi.",
+    "tracker_title": "Patent Himoyasi",
+    "tracker_desc": "To'lov va 90 kun nazorati",
+    "sos_title": "Huquqiy SOS",
+    "sos_desc": "IIV tekshiruvida yordam"
+  },
+  "tracker": {
+    "title": "Aqlli Patent Muddati Nazorati",
+    "subtitle": "Kechikish va deportatsiyadan himoya",
+    "last_paid": "Patent oxirgi to'langan sana",
+    "region": "Ishlash mintaqasi",
+    "days_left": "To'lovgacha qolgan kunlar",
+    "safe_status": "Xavfsiz holatda",
+    "warning_status": "Tezda patentni to'lang!",
+    "calculate_90": "Qolish muddati kalkulyatori (90/180)",
+    "entry_date": "RFga kirgan sana",
+    "legal_days": "Qolishga ruxsat etilgan kunlar",
+    "monthly_tax": "Oylik avans to'lovi narxi"
+  },
+  "sos": {
+    "title": "SOS IIV Huquqiy Qalqon",
+    "subtitle": "Hujjatlar tekshiruvida huquqlarni himoya qilish",
+    "send_coords": "Yaqinlaringizga koordinata yuborish",
+    "rights_title": "RFdagi qonuniy huquqlaringiz (№ 115-FZ):",
+    "rule_1": "1. Xodim o'zini tanishtirishi va guvohnomasini ko'rsatishi shart.",
+    "rule_2": "2. Hujjatlarni tekshirish sababini bilishga haqli siz.",
+    "rule_3": "3. Pasportingiz asl nusxasini garovga olishga hech kimning haqqi yo'q.",
+    "rule_4": "4. Tarjimon va bitta telefon qo'ng'irog'iga haqingiz bor.",
+    "phrases_title": "Rus tilidagi xushmuomala iboralar:"
   },
   "jobs": {
     "placeholder": "Sizga qanday ish kerak?",

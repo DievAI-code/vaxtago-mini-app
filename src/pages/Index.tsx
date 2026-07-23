@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Camera, Sparkles, ShieldCheck, MessageSquare, Globe, ArrowRight, TrendingUp } from "lucide-react";
+import { Camera, Sparkles, ShieldCheck, MessageSquare, Globe, ArrowRight, TrendingUp, Calendar, ShieldAlert } from "lucide-react";
 import VaqtaLogo from "@/components/VaqtaLogo";
 import { BottomNav } from "@/components/BottomNav";
 import { FadeUp } from "@/components/animations";
@@ -59,12 +59,36 @@ export default function Index() {
           </div>
         </FadeUp>
 
+        {/* Уникальные Бесплатные Сервисы */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5C7A6D]">{t("home.quick_services")}</h3>
-            <span className="text-[10px] font-black text-[#00A86B]">{t("home.all_services")} →</span>
           </div>
           
+          <div className="grid grid-cols-2 gap-4">
+            <div onClick={() => nav("/tracker")} className="vaqta-glass p-5 space-y-3 cursor-pointer hover:border-[#00A86B]/40 transition-colors">
+              <div className="w-10 h-10 rounded-2xl bg-[#00A86B]/10 flex items-center justify-center text-[#00A86B]">
+                <Calendar size={20} />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-white">{t("home.tracker_title")}</h4>
+                <p className="text-[9px] text-[#5C7A6D] mt-0.5">{t("home.tracker_desc")}</p>
+              </div>
+            </div>
+
+            <div onClick={() => nav("/sos")} className="vaqta-glass p-5 space-y-3 cursor-pointer hover:border-red-500/40 transition-colors">
+              <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-400">
+                <ShieldAlert size={20} />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-white">{t("home.sos_title")}</h4>
+                <p className="text-[9px] text-[#5C7A6D] mt-0.5">{t("home.sos_desc")}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div onClick={() => nav("/jobs")} className="vaqta-glass p-6 space-y-4 cursor-pointer hover:border-[#00A86B]/40 transition-colors">
               <div className="w-12 h-12 rounded-2xl bg-[#00A86B]/10 flex items-center justify-center">
@@ -86,23 +110,6 @@ export default function Index() {
               </div>
             </div>
           </div>
-        </section>
-
-        <section className="vaqta-glass p-8 border-dashed border-[#1A3D2E] relative overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#D4AF37]/10 flex items-center justify-center text-[#D4AF37]">
-                <TrendingUp size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-[#5C7A6D] uppercase tracking-widest">{t("home.market_analysis")}</p>
-                <p className="text-sm font-bold text-white">Rossiya & BAA</p>
-              </div>
-            </div>
-          </div>
-          <p className="text-xs text-[#5C7A6D] leading-relaxed font-medium">
-            {t("home.market_desc")}
-          </p>
         </section>
       </main>
 
