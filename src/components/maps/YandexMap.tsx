@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, MapPin } from "lucide-react";
 import { loadYandexMaps } from "@/lib/yandexMaps";
 
 export interface VacancyMarkerData {
@@ -10,7 +10,7 @@ export interface VacancyMarkerData {
   salary: string;
   city: string;
   address: string;
-  coordinates: [number, number]; // [longitude, latitude] in Yandex Maps v3
+  coordinates: [number, number]; // [longitude, latitude]
   type: "employer" | "verified" | "premium";
   employerName: string;
   schedule?: string;
@@ -18,7 +18,7 @@ export interface VacancyMarkerData {
 }
 
 interface YandexMapProps {
-  center?: [number, number]; // [longitude, latitude]
+  center?: [number, number];
   zoom?: number;
   markers?: VacancyMarkerData[];
   selectedMarkerId?: string | null;
@@ -28,7 +28,7 @@ interface YandexMapProps {
 }
 
 export function YandexMap({
-  center = [69.2401, 41.2995], // Default Tashkent center
+  center = [69.2401, 41.2995],
   zoom = 12,
   markers = [],
   selectedMarkerId,
@@ -48,8 +48,12 @@ export function YandexMap({
       .then(() => {
         if (!mounted || !mapContainerRef.current) return;
 
-        const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer } =
-          window.ymaps3;
+        const ymaps = (window as any).ymaps3;
+        if (!ymaps) {
+          throw new Error("YMaps3 API unavailable");
+        }
+
+        const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer } = ymaps;
 
         if (mapInstanceRef.current) {
           try {
@@ -74,8 +78,8 @@ export function YandexMap({
       })
       .catch((err) => {
         if (mounted) {
-          console.error("[YandexMap] Error:", err);
-          setError("Yandex Maps loading error");
+          console.warn("[YandexMap] Failed to load script or API key missing:", err);
+          setError("Интерактивная карта временно недоступна.");
           setLoading(false);
         }
       });
@@ -100,23 +104,23 @@ export function YandexMap({
           duration: 300,
         });
       } catch (err) {
-        console.warn("[YandexMap] setLocation failed:", err);
+        console.warn("[YandexMap] setLocation error:", err);
       }
     }
   }, [center[0], center[1], zoom]);
 
   useEffect(() => {
-    if (!mapInstanceRef.current || !window.ymaps3) return;
+    const ymaps = (window as any).ymaps3;
+    if (!mapInstanceRef.current || !ymaps) return;
 
-    const { YMapMarker } = window.ymaps3;
+    const { YMapMarker } = ymaps;
     const map = mapInstanceRef.current;
     const markerElements: any[] = [];
 
     markers.forEach((m) => {
       const isSelected = selectedMarkerId === m.id;
       const el = document.createElement("div");
-      el.className =
-        "cursor-pointer transition-transform transform hover:scale-110 active:scale-95";
+      el.className = "cursor-pointer transition-transform transform hover:scale-110 active:scale-95";
 
       let badgeBg = "bg-red-500 text-white border-red-400";
       let icon = "🔴";
@@ -133,7 +137,7 @@ export function YandexMap({
           isSelected ? "ring-4 ring-white scale-110 z-50" : ""
         }">
           <span class="text-xs">${icon}</span>
-          <span class="text-[11px] font-black tracking-tight whitespace-nowrap">${m.salary}</span>
+          <span class="text-[11px] font-black tracking-tight whitespace-nowrap">${m.salary || m.title}</span>
         </div>
       `;
 
@@ -141,9 +145,13 @@ export function YandexMap({
         onSelectMarker?.(m);
       });
 
-      const marker = new YMapMarker({ coordinates: m.coordinates }, el);
-      map.addChild(marker);
-      markerElements.push(marker);
+      try {
+        const marker = new YMapMarker({ coordinates: m.coordinates }, el);
+        map.addChild(marker);
+        markerElements.push(marker);
+      } catch (e) {
+        console.warn("Failed to add map marker:", e);
+      }
     });
 
     if (userLocation) {
@@ -153,9 +161,11 @@ export function YandexMap({
           <div class="w-2.5 h-2.5 rounded-full bg-white"></div>
         </div>
       `;
-      const userMarker = new YMapMarker({ coordinates: userLocation }, uEl);
-      map.addChild(userMarker);
-      markerElements.push(userMarker);
+      try {
+        const userMarker = new YMapMarker({ coordinates: userLocation }, uEl);
+        map.addChild(userMarker);
+        markerElements.push(userMarker);
+      } catch (e) {}
     }
 
     return () => {
@@ -168,22 +178,21 @@ export function YandexMap({
   }, [markers, selectedMarkerId, userLocation, onSelectMarker]);
 
   return (
-    <div
-      className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}
-    >
+    <div className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}>
       {loading && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#06140F]/90 backdrop-blur-md">
           <div className="w-10 h-10 rounded-full border-4 border-[#00A86B]/20 border-t-[#00A86B] animate-spin mb-3" />
           <p className="text-xs font-bold text-[#00A86B] uppercase tracking-widest animate-pulse">
-            Загрузка Яндекс Карт v3...
+            Загрузка карты...
           </p>
         </div>
       )}
 
       {error && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#06140F] p-6 text-center">
-          <AlertCircle className="w-10 h-10 text-red-400 mb-2" />
-          <p className="text-xs font-bold text-red-300 max-w-xs">{error}</p>
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#06140F] p-6 text-center space-y-2">
+          <MapPin className="w-10 h-10 text-[#00A86B] opacity-60" />
+          <p className="text-sm font-bold text-white">Карта временно недоступна</p>
+          <p className="text-xs text-[#5C7A6D]">Навигация скоро заработает в полном объеме</p>
         </div>
       )}
 
