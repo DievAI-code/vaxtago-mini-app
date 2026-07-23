@@ -36,6 +36,7 @@
     "scanner": "Сканер",
     "jobs": "Работа",
     "profile": "Мой кабинет",
+    "cabinet": "Мой кабинет",
     "history": "История",
     "premium": "Premium",
     "settings": "Настройки",
@@ -46,20 +47,24 @@
     "tracker": "Календарь Патента",
     "sos": "SOS Правовой Щит"
   },
-  "profile": {
+  "cabinet": {
     "title": "Мой кабинет",
-    "info": "Личные данные",
-    "language": "Язык интерфейса",
+    "profile": "Личные данные",
     "subscription": "Статус подписки",
-    "usage": "Активность AI",
-    "settings": "Настройки аккаунта",
-    "admin_panel": "Панель основателя",
-    "reg_date": "Дата регистрации",
-    "ai_total": "Запросов к AI",
-    "ocr_total": "Сканирований",
-    "map_total": "Маршрутов",
+    "activity": "Моя активность",
+    "documents": "Мои документы",
+    "settings": "Настройки",
+    "admin": "Панель владельца",
+    "lang_select": "Изменить язык",
+    "ai_queries": "AI запросы",
+    "ocr_scans": "Обработка фото",
+    "routes": "Маршруты",
+    "delete_account": "Удалить аккаунт",
+    "logout": "Выйти",
+    "member_since": "В проекте с",
+    "status": "Статус",
     "expires": "Действует до",
-    "forever": "Навсегда"
+    "upgrade": "Получить Premium"
   },
   "home": {
     "hero_title": "Умный AI помощник\nдля вашей жизни",

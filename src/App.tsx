@@ -19,6 +19,7 @@ const MapPage = lazy(() => import("./pages/Map"));
 const Maps = lazy(() => import("./pages/Maps"));
 const AiAssistant = lazy(() => import("./pages/AiAssistant"));
 const Profile = lazy(() => import("./pages/Profile"));
+const MyCabinet = lazy(() => import("./pages/MyCabinet"));
 const Scanner = lazy(() => import("./pages/Scanner"));
 const OcrTranslator = lazy(() => import("./pages/OcrTranslator"));
 const Documents = lazy(() => import("./pages/Documents"));
@@ -38,7 +39,7 @@ const MigrationTracker = lazy(() => import("./pages/MigrationTracker"));
 const SOSLegal = lazy(() => import("./pages/SOSLegal"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// NEW ADMIN PAGES
+// ADMIN PAGES
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
@@ -94,7 +95,8 @@ const App = () => {
                         <Route path="/map" element={<PrivateRoute><MapPage /></PrivateRoute>} />
                         <Route path="/maps" element={<PrivateRoute><Maps /></PrivateRoute>} />
                         <Route path="/ai" element={<PrivateRoute><AiAssistant /></PrivateRoute>} />
-                        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+                        <Route path="/cabinet" element={<PrivateRoute><MyCabinet /></PrivateRoute>} />
+                        <Route path="/profile" element={<Navigate to="/cabinet" replace />} />
                         <Route path="/scanner" element={<PrivateRoute><Scanner /></PrivateRoute>} />
                         <Route path="/ocr" element={<PrivateRoute><OcrTranslator /></PrivateRoute>} />
                         <Route path="/documents" element={<PrivateRoute><Documents /></PrivateRoute>} />

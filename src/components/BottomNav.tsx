@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, Scan, Sparkles, MapPin, User } from "lucide-react";
+import { LayoutGrid, Scan, Sparkles, MapPin, UserCircle } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 
 export function BottomNav() {
@@ -15,7 +15,7 @@ export function BottomNav() {
     { path: "/ai", icon: Sparkles, label: t("nav.ai") },
     { path: "/scanner", icon: Scan, label: t("nav.scanner") },
     { path: "/map", icon: MapPin, label: t("nav.map") },
-    { path: "/profile", icon: User, label: t("nav.profile") },
+    { path: "/cabinet", icon: UserCircle, label: t("nav.cabinet") },
   ];
 
   return (

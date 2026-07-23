@@ -3,21 +3,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  X,
-  LayoutGrid,
-  Sparkles,
-  Scan,
-  MapPin,
-  User,
-  Settings,
-  Clock,
-  Info,
-  Mail,
-  ShieldCheck,
-  Calendar,
-  ShieldAlert,
-  FileSearch,
-  Key
+  X, LayoutGrid, Sparkles, Scan, MapPin, User,
+  Settings, Clock, Info, Mail, ShieldCheck,
+  Calendar, ShieldAlert, FileSearch, Key, UserCircle
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { VaqtaLogo } from "./VaqtaLogo";
@@ -55,7 +43,7 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
     { path: "/ai", icon: Sparkles, label: "nav.ai" },
     { path: "/scanner", icon: Scan, label: "nav.scanner" },
     { path: "/map", icon: MapPin, label: "nav.map" },
-    { path: "/profile", icon: User, label: "nav.profile" },
+    { path: "/cabinet", icon: UserCircle, label: "nav.cabinet" },
     { separator: true },
     { path: "/admin", icon: Key, label: "nav.admin", role: "founder" },
     { path: "/tracker", icon: Calendar, label: "nav.tracker" },
@@ -105,8 +93,6 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
             <div className="flex-1 overflow-y-auto p-3 space-y-1 no-scrollbar">
               {MENU_ITEMS.map((item, idx) => {
                 if ("separator" in item) return <div key={`sep-${idx}`} className="h-px bg-[#1A3D2E] my-3 mx-2" />;
-                
-                // Проверка прав доступа для пунктов меню
                 if (item.role === 'founder' && role !== 'founder') return null;
 
                 return (
@@ -135,5 +121,3 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
     </AnimatePresence>
   );
 }
-
-export default SideMenu;
