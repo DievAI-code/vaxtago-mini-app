@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { Phone, ChevronRight, Loader2 } from "lucide-react";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
-import { supabase, clearSupabaseSession, logSupabaseError } from "@/integrations/supabase/client";
+import { safeSupabaseUpsertUser, clearSupabaseSession } from "@/integrations/supabase/client";
 import { isConfigured } from "@/lib/env";
 import { motion } from "framer-motion";
 
@@ -35,91 +35,23 @@ export default function Login() {
     setLoading(true);
     
     try {
-      console.log('[Login] Attempting upsert for phone:', cleanPhone);
-      
-      const { data, error } = await supabase
-        .from("users")
-        .upsert(
-          {
-            phone_number: cleanPhone,
-            last_login: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            subscription_status: 'free',
-            language_code: 'uz'
-          },
-          {
-            onConflict: 'phone_number',
-            ignoreDuplicates: false
-          }
-        )
-        .select()
-        .single();
+      const { data, error } = await safeSupabaseUpsertUser(cleanPhone);
 
-      if (error) {
-        // Детальное логирование ошибки
-        logSupabaseError(error, 'Login Upsert');
-        console.error('[Login] Full error object:', error);
-        
-        if (error.code === '23505') {
-          toast.error("Этот номер телефона уже зарегистрирован");
-        } else if (error.code === '42501') {
-          toast.error("Ошибка доступа. Проверьте RLS политики");
-        } else if (error.code === '409') {
-          console.error('[Login] 409 Conflict details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint
-          });
-          
-          // Пробуем получить существующего пользователя
-          const { data: existingUser, error: selectError } = await supabase
-            .from("users")
-            .select("*")
-            .eq("phone_number", cleanPhone)
-            .single();
-
-          if (selectError) {
-            logSupabaseError(selectError, 'Login Select After Conflict');
-            throw selectError;
-          }
-
-          if (existingUser) {
-            // Обновляем last_login для существующего пользователя
-            const { data: updatedUser, error: updateError } = await supabase
-              .from("users")
-              .update({
-                last_login: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              })
-              .eq("phone_number", cleanPhone)
-              .select()
-              .single();
-
-            if (updateError) {
-              logSupabaseError(updateError, 'Login Update After Conflict');
-              throw updateError;
-            }
-            
-            handleLoginSuccess(updatedUser, cleanPhone);
-            return;
-          }
-        }
-        throw error;
+      if (error || !data) {
+        throw error || new Error("Не удалось получить данные пользователя");
       }
 
       handleLoginSuccess(data, cleanPhone);
       
     } catch (err: any) {
       console.error('[Login] Unexpected error:', err);
-      toast.error(`Ошибка регистрации: ${err.message || "Unknown error"}`);
+      toast.error(`Ошибка входа: ${err?.message || "Проверьте сетевое соединение"}`);
     } finally {
       setLoading(false);
     }
   };
 
   const handleLoginSuccess = (userData: any, cleanPhone: string) => {
-    console.log('[Login] Success:', userData);
-    
     localStorage.setItem("vaxtago_auth", "true");
     localStorage.setItem("vaxtago_user_data", JSON.stringify(userData));
     localStorage.setItem("vaxtago_user_phone", cleanPhone);
@@ -164,19 +96,6 @@ export default function Login() {
             )}
           </button>
         </form>
-
-        <div className="text-center">
-          <button 
-            onClick={() => {
-              console.log('Current Supabase client:', supabase);
-              console.log('ENV configured:', isConfigured());
-              console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-            }}
-            className="text-xs text-[#5C7A6D] hover:text-[#00A86B]"
-          >
-            Диагностика подключения
-          </button>
-        </div>
       </motion.div>
     </div>
   );
