@@ -56,13 +56,21 @@ export default function Login() {
         .single();
 
       if (error) {
+        // Детальное логирование ошибки
         logSupabaseError(error, 'Login Upsert');
+        console.error('[Login] Full error object:', error);
         
         if (error.code === '23505') {
           toast.error("Этот номер телефона уже зарегистрирован");
         } else if (error.code === '42501') {
           toast.error("Ошибка доступа. Проверьте RLS политики");
         } else if (error.code === '409') {
+          console.error('[Login] 409 Conflict details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          });
+          
           // Пробуем получить существующего пользователя
           const { data: existingUser, error: selectError } = await supabase
             .from("users")
@@ -71,6 +79,7 @@ export default function Login() {
             .single();
 
           if (selectError) {
+            logSupabaseError(selectError, 'Login Select After Conflict');
             throw selectError;
           }
 
@@ -86,7 +95,11 @@ export default function Login() {
               .select()
               .single();
 
-            if (updateError) throw updateError;
+            if (updateError) {
+              logSupabaseError(updateError, 'Login Update After Conflict');
+              throw updateError;
+            }
+            
             handleLoginSuccess(updatedUser, cleanPhone);
             return;
           }
@@ -157,6 +170,7 @@ export default function Login() {
             onClick={() => {
               console.log('Current Supabase client:', supabase);
               console.log('ENV configured:', isConfigured());
+              console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
             }}
             className="text-xs text-[#5C7A6D] hover:text-[#00A86B]"
           >

@@ -52,6 +52,18 @@ export const logSupabaseError = (error: any, context: string = '') => {
   });
 };
 
+// Функция для получения полной информации об ошибке
+export const getSupabaseErrorInfo = (error: any) => {
+  return {
+    code: error?.code,
+    message: error?.message,
+    details: error?.details,
+    hint: error?.hint,
+    status: error?.status,
+    fullError: error
+  };
+};
+
 // Проверка подключения
 export const checkSupabaseConnection = async () => {
   if (!supabase) {
