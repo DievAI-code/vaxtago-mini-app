@@ -1,16 +1,22 @@
+"use client";
+
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/context/LanguageProvider";
+import { detectIntent, executeAIAction, AIActionResponse } from "@/services/aiActions";
+import { mapsService } from "@/services/maps";
 
 interface ChatMessage {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "action";
   content: string;
   timestamp: Date;
+  action?: AIActionResponse;
 }
 
 interface AiChatOptions {
   onError?: (error: string) => void;
   onSuccess?: (message: string) => void;
+  onAction?: (action: AIActionResponse) => void;
 }
 
 export function useAiChat(options: AiChatOptions = {}) {
@@ -18,18 +24,6 @@ export function useAiChat(options: AiChatOptions = {}) {
   const { language } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const chatHistoryRef = useRef<ChatMessage[]>([]);
-
-  const detectLanguageFromText = (text: string): string => {
-    const lowerText = text.toLowerCase();
-    
-    if (/[а-яё]/i.test(text)) return "ru";
-    if (/[ўғқҳәөү]/i.test(text)) return "uz";
-    if (/[ӣӯҷҳҒҚ]/i.test(text)) return "tg";
-    if (/[өүҡң]/i.test(text)) return "ky";
-    if (/[a-z]/i.test(text)) return "en";
-    
-    return language;
-  };
 
   const sendMessage = useCallback(async (message: string, image?: string): Promise<string | null> => {
     if ((!message.trim() && !image) || loading) return null;
@@ -47,6 +41,29 @@ export function useAiChat(options: AiChatOptions = {}) {
     chatHistoryRef.current = newHistory;
 
     try {
+      // Определяем намерение пользователя
+      const intent = detectIntent(message);
+      
+      // Если это действие с картой или другое действие - выполняем
+      if (intent.action !== "GENERAL_CHAT") {
+        const actionResult = await executeAIAction(intent);
+        
+        const actionMsg: ChatMessage = {
+          role: "action",
+          content: actionResult.message || "Выполняю действие",
+          timestamp: new Date(),
+          action: intent
+        };
+        
+        const updatedHistory = [...newHistory, actionMsg];
+        setMessages(updatedHistory);
+        chatHistoryRef.current = updatedHistory;
+        
+        options.onAction?.(intent);
+        return actionResult.message || "Действие выполнено";
+      }
+      
+      // Стандартный AI запрос
       const detectedLang = detectLanguageFromText(message);
       const targetLang = detectedLang || language;
 
@@ -118,13 +135,25 @@ export function useAiChat(options: AiChatOptions = {}) {
     }
   }, [language, loading, options]);
 
+  const detectLanguageFromText = (text: string): string => {
+    const lowerText = text.toLowerCase();
+    
+    if (/[а-яё]/i.test(text)) return "ru";
+    if (/[ўғқҳәөү]/i.test(text)) return "uz";
+    if (/[ӣӯҷҳҒҚ]/i.test(text)) return "tg";
+    if (/[өүҡң]/i.test(text)) return "ky";
+    if (/[a-z]/i.test(text)) return "en";
+    
+    return language;
+  };
+
   const getFallbackResponse = (message: string, lang: string): string => {
     const responses: Record<string, string> = {
-      ru: "Извините, AI временно недоступен. Пожалуйста, попробуйте позже или обратитесь в поддержку.",
-      uz: "Kechirasiz, AI vaqtincha ishlamayapti. Iltimos, keyinroq urinib ko'ring yoki qo'llab-quvvatlash xizmatiga murojaat qiling.",
-      en: "Sorry, AI is temporarily unavailable. Please try again later or contact support.",
-      tg: "Бубахшед, AI вақтан дастнорас аст. Лутфан баъдтар кӯшиш кунед ё ба дастгирӣ муроҷиат кунед.",
-      ky: "Кечиресиз, AI убактылуу жеткиликсиз. Сураныч, кийинчерээк аракет кылыңыз же колдоо кызматына кайрылыңыз."
+      ru: "Извините, AI временно недоступен. Пожалуйста, попробуйте позже.",
+      uz: "Kechirasiz, AI vaqtincha ishlamayapti. Iltimos, keyinroq urinib ko'ring.",
+      en: "Sorry, AI is temporarily unavailable. Please try again later.",
+      tg: "Бубахшед, AI вақтан дастнорас аст. Лутфан баъдтар кӯшиш кунед.",
+      ky: "Кечиресиз, AI убактылуу жеткиликсиз. Сураныч, кийинчерээк аракет кылыңыз."
     };
     
     return responses[lang] || responses.ru;

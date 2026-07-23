@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Bot, Paperclip, X, ImageIcon, Camera } from "lucide-react";
+import { Send, User, Bot, Paperclip, X, ImageIcon, Camera, MapPin } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
@@ -10,13 +10,18 @@ import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { toast } from "sonner";
 import { subscriptionService } from "@/services/subscriptionService";
+import { MapWidget } from "@/components/MapWidget";
+import { AIActionResponse } from "@/services/aiActions";
 
 export default function AiAssistant() {
   const { t } = useLanguage();
-  const { sendMessage, loading: isTyping, messages, clearChat } = useAiChat();
+  const { sendMessage, loading: isTyping, messages, clearChat } = useAiChat({
+    onAction: handleAIAction
+  });
   const [input, setInput] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentAction, setCurrentAction] = useState<AIActionResponse | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -27,10 +32,20 @@ export default function AiAssistant() {
     }
   }, [messages, isTyping]);
 
+  function handleAIAction(action: AIActionResponse) {
+    setCurrentAction(action);
+    
+    // Показываем уведомление о действии
+    if (action.action === "MAP_SEARCH") {
+      toast.success("Нашёл местоположение на карте");
+    } else if (action.action === "MAP_ROUTE") {
+      toast.success("Построил маршрут");
+    }
+  }
+
   const handleSend = async () => {
     if ((!input.trim() && !attachedImage) || isTyping) return;
     
-    // Проверяем подписку
     const canUseAI = await subscriptionService.canUseFeature('ai_request');
     if (!canUseAI) {
       toast.error(t("premium.feature_locked") || "Эта функция доступна в Premium");
@@ -58,6 +73,10 @@ export default function AiAssistant() {
     setAttachedImage(null);
   };
 
+  const closeMap = () => {
+    setCurrentAction(null);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-[#06140F] text-white overflow-hidden">
       <Header title="nav.ai" onMenuClick={() => setIsMenuOpen(true)} />
@@ -71,11 +90,35 @@ export default function AiAssistant() {
             </div>
             <div className={`max-w-[85%] p-4 rounded-[2rem] text-sm leading-relaxed font-medium shadow-xl flex flex-col gap-3 ${m.role === "user" ? "bg-[#00A86B] text-white rounded-tr-none" : "bg-[#0C1F1A] border border-[#1A3D2E] rounded-tl-none text-slate-100"}`}>
               <p className="whitespace-pre-wrap">{m.content}</p>
+              {m.action && (
+                <div className="text-xs bg-white/10 p-2 rounded-lg">
+                  Действие: {m.action.action}
+                </div>
+              )}
             </div>
           </motion.div>
         ))}
+        
         {isTyping && <div className="flex gap-3"><div className="w-9 h-9 rounded-2xl vaqta-gradient flex items-center justify-center"><Bot size={16} /></div><div className="bg-[#0C1F1A] border border-[#1A3D2E] p-4 rounded-[1.5rem] flex gap-1.5"><motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }} className="w-2 h-2 bg-[#00A86B] rounded-full" /><motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-2 h-2 bg-[#00A86B] rounded-full" /><motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-2 h-2 bg-[#00A86B] rounded-full" /></div></div>}
       </div>
+
+      {/* Карта поверх чата */}
+      <AnimatePresence>
+        {currentAction && (
+          <motion.div
+            initial={{ opacity: 0, y: 300 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 300 }}
+            className="fixed bottom-20 left-0 right-0 z-50 p-4"
+          >
+            <MapWidget
+              query={currentAction.query}
+              coordinates={currentAction.coordinates}
+              onClose={closeMap}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="fixed bottom-24 left-0 w-full px-6 pb-2">
         {attachedImage && (
