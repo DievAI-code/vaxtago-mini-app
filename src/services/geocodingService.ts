@@ -47,11 +47,25 @@ export const geocodingService = {
       });
     } catch (error: any) {
       console.error("[GeocodingService]:", error.message);
-      if (error.message === "YANDEX_403") {
-        // Здесь можно добавить fallback на OpenStreetMap если нужно
-      }
       return [];
     }
+  },
+
+  /**
+   * Запрос с полной валидацией ввода для формы
+   */
+  async searchAddressFull(query: string): Promise<{ isTooShort: boolean; results: GeocodingResult[]; error: string | null }> {
+    const trimmed = query.trim();
+    if (trimmed.length < 3) {
+      return { isTooShort: true, results: [], error: "Введите полный адрес:\nгород + улица + дом" };
+    }
+
+    const results = await this.searchAddress(trimmed);
+    return {
+      isTooShort: false,
+      results,
+      error: results.length === 0 ? "Не удалось найти адрес. Уточните город или улицу." : null
+    };
   },
 
   /**
@@ -59,6 +73,7 @@ export const geocodingService = {
    */
   async reverseGeocode(lat: number, lng: number): Promise<string> {
     const apiKey = getYandexKey();
+    if (!apiKey) return "";
     try {
       const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${lng},${lat}&format=json&results=1`;
       const response = await fetch(url);

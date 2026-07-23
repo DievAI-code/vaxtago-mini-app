@@ -6,7 +6,7 @@ import {
   User, Phone, Crown, Zap, Scan, 
   Map as MapIcon, LogOut, 
   ArrowRight, Key, Clock, 
-  ShieldCheck, ShieldAlert, Lock, RefreshCw
+  ShieldCheck, ShieldAlert, Lock, RefreshCw, X
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";

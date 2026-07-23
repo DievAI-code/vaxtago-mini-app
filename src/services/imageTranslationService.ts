@@ -9,18 +9,23 @@ export const imageTranslationService = {
       reader.onload = async (e) => {
         const base64 = e.target?.result as string;
         try {
+          if (!supabase) {
+            throw new Error("Supabase client not initialized");
+          }
+
           const { data, error } = await supabase.functions.invoke("vision-assistant", {
             body: { image: base64, language: targetLang, request_type: "translate_full" }
           });
+          
           if (error) throw error;
           
-          // Эмуляция наложения текста (в идеале делает Edge Function, здесь логика отрисовки)
-          const translatedImage = await this.generateOverlay(base64, data.translation, data.blocks);
+          const translatedImage = await this.generateOverlay(base64, data?.translation || data?.explanation || "Перевод готов", data?.blocks);
           resolve({ original: base64, translated: translatedImage });
         } catch (err) {
           reject(err);
         }
       };
+      reader.onerror = (e) => reject(e);
       reader.readAsDataURL(file);
     });
   },
@@ -36,13 +41,14 @@ export const imageTranslationService = {
         canvas.height = img.height;
         ctx?.drawImage(img, 0, 0);
         
-        // Рисуем стильный полупрозрачный слой для перевода
-        ctx!.fillStyle = "rgba(6, 20, 15, 0.85)";
-        ctx!.fillRect(0, canvas.height - 150, canvas.width, 150);
-        
-        ctx!.fillStyle = "#FFFFFF";
-        ctx!.font = "bold 40px Inter";
-        ctx!.fillText(text.slice(0, 100), 50, canvas.height - 80);
+        if (ctx) {
+          ctx.fillStyle = "rgba(6, 20, 15, 0.85)";
+          ctx.fillRect(0, canvas.height - 150, canvas.width, 150);
+          
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "bold 40px Inter, sans-serif";
+          ctx.fillText(text.slice(0, 100), 50, canvas.height - 80);
+        }
         
         resolve(canvas.toDataURL("image/jpeg"));
       };
