@@ -3,8 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/context/LanguageProvider";
-import { detectIntent, executeAIAction, AIActionResponse } from "@/services/aiActions";
-import { mapsService } from "@/services/maps";
+import { detectIntent, executeAIAction, detectLanguage, AIActionResponse } from "@/services/aiActions";
 
 interface ChatMessage {
   role: "user" | "assistant" | "action";
@@ -41,10 +40,11 @@ export function useAiChat(options: AiChatOptions = {}) {
     chatHistoryRef.current = newHistory;
 
     try {
-      // Определяем намерение пользователя
+      // Определяем автоязык и интент
+      const detectedLang = detectLanguage(message) || language;
       const intent = detectIntent(message);
       
-      // Если это действие с картой или другое действие - выполняем
+      // Если это действие с картой или другое специфическое действие
       if (intent.action !== "GENERAL_CHAT") {
         const actionResult = await executeAIAction(intent);
         
@@ -63,61 +63,59 @@ export function useAiChat(options: AiChatOptions = {}) {
         return actionResult.message || "Действие выполнено";
       }
       
-      // Стандартный AI запрос
-      const detectedLang = detectLanguageFromText(message);
-      const targetLang = detectedLang || language;
+      // Вызов Supabase Edge Function AI
+      if (supabase) {
+        const { data, error } = await supabase.functions.invoke("ai-assistant", {
+          body: {
+            message: message.trim(),
+            image,
+            language_code: detectedLang,
+            history: newHistory.map(m => ({
+              role: m.role,
+              content: m.content
+            })),
+            has_image: !!image,
+            context: {
+              user_language: language,
+              detected_language: detectedLang,
+              timestamp: new Date().toISOString()
+            }
+          },
+        });
 
-      const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: {
-          message: message.trim(),
-          image,
-          language_code: targetLang,
-          history: newHistory.map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          has_image: !!image,
-          context: {
-            user_language: language,
-            detected_language: detectedLang,
-            timestamp: new Date().toISOString()
-          }
-        },
-      });
-
-      if (error) {
-        console.error("AI Error:", error);
-        options.onError?.(error.message);
-        
-        const fallbackResponse = getFallbackResponse(message, language);
-        const assistantMsg: ChatMessage = {
-          role: "assistant",
-          content: fallbackResponse,
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, assistantMsg]);
-        chatHistoryRef.current = [...newHistory, assistantMsg];
-        return fallbackResponse;
+        if (!error && (data?.reply || data?.message)) {
+          const reply = data.reply || data.message;
+          const assistantMsg: ChatMessage = {
+            role: "assistant",
+            content: reply,
+            timestamp: new Date()
+          };
+          
+          const updatedHistory = [...newHistory, assistantMsg];
+          setMessages(updatedHistory);
+          chatHistoryRef.current = updatedHistory;
+          
+          options.onSuccess?.(reply);
+          return reply;
+        }
       }
-      
-      const reply = data?.reply || data?.message || getFallbackResponse(message, language);
+
+      // Fallback ответ на языке сообщения
+      const fallbackResponse = getFallbackResponse(message, detectedLang);
       const assistantMsg: ChatMessage = {
         role: "assistant",
-        content: reply,
+        content: fallbackResponse,
         timestamp: new Date()
       };
       
-      const updatedHistory = [...newHistory, assistantMsg];
-      setMessages(updatedHistory);
-      chatHistoryRef.current = updatedHistory;
-      
-      options.onSuccess?.(reply);
-      return reply;
+      setMessages(prev => [...prev, assistantMsg]);
+      chatHistoryRef.current = [...newHistory, assistantMsg];
+      return fallbackResponse;
 
     } catch (err: any) {
       console.error("AI Request Failed:", err);
-      const errorMsg = getFallbackResponse(message, language);
+      const detectedLang = detectLanguage(message) || language;
+      const errorMsg = getFallbackResponse(message, detectedLang);
       
       const assistantMsg: ChatMessage = {
         role: "assistant",
@@ -135,25 +133,13 @@ export function useAiChat(options: AiChatOptions = {}) {
     }
   }, [language, loading, options]);
 
-  const detectLanguageFromText = (text: string): string => {
-    const lowerText = text.toLowerCase();
-    
-    if (/[а-яё]/i.test(text)) return "ru";
-    if (/[ўғқҳәөү]/i.test(text)) return "uz";
-    if (/[ӣӯҷҳҒҚ]/i.test(text)) return "tg";
-    if (/[өүҡң]/i.test(text)) return "ky";
-    if (/[a-z]/i.test(text)) return "en";
-    
-    return language;
-  };
-
   const getFallbackResponse = (message: string, lang: string): string => {
     const responses: Record<string, string> = {
-      ru: "Извините, AI временно недоступен. Пожалуйста, попробуйте позже.",
-      uz: "Kechirasiz, AI vaqtincha ishlamayapti. Iltimos, keyinroq urinib ko'ring.",
-      en: "Sorry, AI is temporarily unavailable. Please try again later.",
-      tg: "Бубахшед, AI вақтан дастнорас аст. Лутфан баъдтар кӯшиш кунед.",
-      ky: "Кечиресиз, AI убактылуу жеткиликсиз. Сураныч, кийинчерээк аракет кылыңыз."
+      ru: "Здравствуйте! Чем я могу помочь вам по поводу работы, документов или построения маршрута?",
+      en: "Hello! How can I assist you with jobs, documents, or building a route?",
+      kk: "Сәлеметсіз бе! Жұмыс, құжаттар немесе бағыт салу бойынша қалай көмектесе аламын?",
+      uz: "Assalomu alaykum! Ish, hujjatlar yoki yo'nalish bo'yicha qanday yordam bera olaman?",
+      tg: "Ассалому алейкум! Ман ба шумо дар бораи кор, ҳуҷҷатҳо ва хатсайр чӣ гуна кӯмак карда метавонам?"
     };
     
     return responses[lang] || responses.ru;

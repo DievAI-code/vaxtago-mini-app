@@ -25,51 +25,69 @@ export interface AIActionResponse {
 
 /**
  * Классификатор коротких интентов для VAQTA AI
+ * Поддержка трех языков: RU, EN, KK
  */
 export function classifyIntent(message: string): AIIntent {
   const text = message.toLowerCase();
 
+  // Поиск адреса/карты (RU, EN, KK, UZ, TJ)
   if (
     text.includes("карта") ||
     text.includes("адрес") ||
     text.includes("найди") ||
     text.includes("где находится") ||
     text.includes("покажи на карте") ||
-    text.includes("kartada") ||
-    text.includes("харита")
+    text.includes("map") ||
+    text.includes("location") ||
+    text.includes("route") ||
+    text.includes("карор") ||
+    text.includes("харита") ||
+    text.includes("картада")
   ) {
     return "map";
   }
 
+  // Перевод (RU, EN, KK, UZ, TJ)
   if (
     text.includes("переведи") ||
     text.includes("перевод") ||
     text.includes("translate") ||
-    text.includes("tarjima") ||
-    text.includes("таржима")
+    text.includes("translation") ||
+    text.includes("аудар") ||
+    text.includes("аудару") ||
+    text.includes("аударма") ||
+    text.includes("tarjima")
   ) {
     return "translate";
   }
 
+  // Документы (RU, EN, KK, UZ, TJ)
   if (
     text.includes("паспорт") ||
     text.includes("документ") ||
     text.includes("виза") ||
     text.includes("регистрация") ||
     text.includes("патент") ||
-    text.includes("hujjat") ||
-    text.includes("ҳуҷҷат")
+    text.includes("құжат") ||
+    text.includes("құжаттар") ||
+    text.includes("document") ||
+    text.includes("passport") ||
+    text.includes("hujjat")
   ) {
     return "document";
   }
 
+  // Вакансии и жұмыс (RU, EN, KK, UZ, TJ)
   if (
     text.includes("работа") ||
     text.includes("вакансия") ||
     text.includes("вахта") ||
-    text.includes("иш") ||
-    text.includes("кор") ||
-    text.includes("job")
+    text.includes("жұмыс") ||
+    text.includes("жұмыс іздеу") ||
+    text.includes("job") ||
+    text.includes("vacancy") ||
+    text.includes("work") ||
+    text.includes("ish")
   ) {
     return "jobs";
   }
@@ -78,30 +96,30 @@ export function classifyIntent(message: string): AIIntent {
 }
 
 /**
- * Детектор действий AI с подробным ответом
+ * Детектор действий AI с подробным ответом для RU, EN, KK
  */
 export function detectAIAction(message: string): AIActionResponse {
   const lowerText = message.toLowerCase().trim();
 
-  // Поиск на карте (RU, UZ, EN, TJ)
+  // Поиск на карте
   if (
     lowerText.includes("покажи на карте") ||
     lowerText.includes("найди адрес") ||
     lowerText.includes("где находится") ||
     lowerText.includes("карта") ||
     lowerText.includes("map") ||
-    lowerText.includes("location") ||
-    lowerText.includes("kartada") ||
-    lowerText.includes("ko'rsat") ||
+    lowerText.includes("show on map") ||
+    lowerText.includes("картадан көрсет") ||
+    lowerText.includes("мекенжайды тап") ||
+    lowerText.includes("қайда орналасқан") ||
     lowerText.includes("дар харита") ||
-    lowerText.includes("нишон деҳ") ||
-    lowerText.includes("show on map")
+    lowerText.includes("kartada")
   ) {
     return {
       action: "MAP_SEARCH",
       intent: "map",
       query: extractSearchQuery(message),
-      message: "Ищу адрес на карте...",
+      message: getLocalizedMessage("map_search", detectLanguage(message)),
       success: true,
     };
   }
@@ -111,17 +129,17 @@ export function detectAIAction(message: string): AIActionResponse {
     lowerText.includes("построй маршрут") ||
     lowerText.includes("как доехать") ||
     lowerText.includes("маршрут") ||
-    lowerText.includes("route") ||
-    lowerText.includes("direction") ||
-    lowerText.includes("йўл") ||
     lowerText.includes("build route") ||
+    lowerText.includes("route") ||
+    lowerText.includes("бағыт салу") ||
+    lowerText.includes("қалай жетуге болады") ||
     lowerText.includes("йўналиш")
   ) {
     return {
       action: "BUILD_ROUTE",
       intent: "map",
       query: extractRouteQuery(message),
-      message: "Строю маршрут...",
+      message: getLocalizedMessage("build_route", detectLanguage(message)),
       success: true,
     };
   }
@@ -130,16 +148,17 @@ export function detectAIAction(message: string): AIActionResponse {
   if (
     lowerText.includes("переведи") ||
     lowerText.includes("translate") ||
-    lowerText.includes("tarjima") ||
-    lowerText.includes("таржима") ||
-    lowerText.includes("translation")
+    lowerText.includes("аудар") ||
+    lowerText.includes("аудару") ||
+    lowerText.includes("аударма") ||
+    lowerText.includes("tarjima")
   ) {
     return {
       action: "TRANSLATE",
       intent: "translate",
       query: message,
       language: detectLanguage(message),
-      message: "Выполняю перевод...",
+      message: getLocalizedMessage("translate", detectLanguage(message)),
       success: true,
     };
   }
@@ -151,15 +170,14 @@ export function detectAIAction(message: string): AIActionResponse {
     lowerText.includes("скан") ||
     lowerText.includes("scan") ||
     lowerText.includes("документ") ||
-    lowerText.includes("ҳуҷҷат") ||
-    lowerText.includes("hujjat") ||
-    lowerText.includes("document")
+    lowerText.includes("құжат") ||
+    lowerText.includes("hujjat")
   ) {
     return {
       action: "DOCUMENT_SCAN",
       intent: "document",
       query: message,
-      message: "Открываю сканер документов...",
+      message: getLocalizedMessage("document_scan", detectLanguage(message)),
       success: true,
     };
   }
@@ -170,15 +188,17 @@ export function detectAIAction(message: string): AIActionResponse {
     lowerText.includes("вакансии") ||
     lowerText.includes("работа") ||
     lowerText.includes("job") ||
-    lowerText.includes("ish") ||
-    lowerText.includes("кор") ||
-    lowerText.includes("вакансия")
+    lowerText.includes("find job") ||
+    lowerText.includes("жұмыс") ||
+    lowerText.includes("жұмыс керек") ||
+    lowerText.includes("жұмыс іздеу") ||
+    lowerText.includes("ish")
   ) {
     return {
       action: "JOB_SEARCH",
       intent: "jobs",
       query: extractJobQuery(message),
-      message: "Ищу подходящие вакансии...",
+      message: getLocalizedMessage("job_search", detectLanguage(message)),
       success: true,
     };
   }
@@ -187,15 +207,15 @@ export function detectAIAction(message: string): AIActionResponse {
   if (
     lowerText.includes("проверь работодателя") ||
     lowerText.includes("проверка компании") ||
-    lowerText.includes("employer") ||
-    lowerText.includes("корфармо") ||
-    lowerText.includes("check employer")
+    lowerText.includes("check employer") ||
+    lowerText.includes("жұмыс берушіні тексеру") ||
+    lowerText.includes("компанияны тексеру")
   ) {
     return {
       action: "EMPLOYER_CHECK",
       intent: "jobs",
       query: extractCompanyQuery(message),
-      message: "Проверяю данные компании...",
+      message: getLocalizedMessage("employer_check", detectLanguage(message)),
       success: true,
     };
   }
@@ -204,24 +224,69 @@ export function detectAIAction(message: string): AIActionResponse {
     action: "GENERAL_CHAT",
     intent: "general",
     query: message,
-    message: "Обрабатываю запрос...",
+    message: getLocalizedMessage("general", detectLanguage(message)),
     success: true,
   };
 }
 
-/**
- * Функция detectIntent — синоним для detectAIAction, возвращающая объект AIActionResponse
- */
 export function detectIntent(message: string): AIActionResponse {
   return detectAIAction(message);
 }
 
+export function detectLanguage(text: string): string {
+  // Казахские специфические буквы: Ә, і, Ң, Ғ, Ү, Ұ, Қ, Ө, Һ
+  if (/[әіңғүұқөһжұмысқұжат]/i.test(text)) return "kk";
+  if (/[а-яё]/i.test(text)) return "ru";
+  if (/[a-z]/i.test(text)) return "en";
+  return "ru";
+}
+
+function getLocalizedMessage(type: string, lang: string): string {
+  const msgs: Record<string, Record<string, string>> = {
+    map_search: {
+      ru: "Ищу адрес на карте...",
+      en: "Searching for location on map...",
+      kk: "Картадан мекенжайды іздеудемін...",
+    },
+    build_route: {
+      ru: "Строю маршрут...",
+      en: "Building route...",
+      kk: "Бағыт салудамын...",
+    },
+    translate: {
+      ru: "Выполняю перевод...",
+      en: "Translating text...",
+      kk: "Аударма жасаудамын...",
+    },
+    document_scan: {
+      ru: "Открываю сканер документов...",
+      en: "Opening document scanner...",
+      kk: "Құжат сканерін ашудамын...",
+    },
+    job_search: {
+      ru: "Ищу подходящие вакансии...",
+      en: "Searching for relevant jobs...",
+      kk: "Сәйкес бос орындарды іздеудемін...",
+    },
+    employer_check: {
+      ru: "Проверяю данные компании...",
+      en: "Checking company details...",
+      kk: "Компания мәліметтерін тексерудемін...",
+    },
+    general: {
+      ru: "Обрабатываю запрос...",
+      en: "Processing request...",
+      kk: "Сұрауды өңдеудемін...",
+    },
+  };
+
+  return msgs[type]?.[lang] || msgs[type]?.ru || "Processing...";
+}
+
 function extractSearchQuery(text: string): string {
   const patterns = [
-    /(?:покажи|найди|где|карта|покажи на карте|на карте)\s+(.+)/i,
+    /(?:покажи|найди|где|карта|покажи на карте|на карте|картадан көрсет|мекенжайды тап)\s+(.+)/i,
     /(?:show|find|where|map|show on map)\s+(.+)/i,
-    /(?:кўрсат|топ|қаерда|харита|картада|kartada)\s+(.+)/i,
-    /(?:нишон|дар|харита|дар харита)\s+(.+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -234,9 +299,8 @@ function extractSearchQuery(text: string): string {
 
 function extractRouteQuery(text: string): string {
   const patterns = [
-    /(?:построй|маршрут|как доехать до|доехать до|построй маршрут до)\s+(.+)/i,
+    /(?:построй|маршрут|как доехать до|бағыт салу|қалай жетуге болады)\s+(.+)/i,
     /(?:build|route|direction|build route to)\s+(.+)/i,
-    /(?:йўл|маршрут|йўналиш)\s+(.+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -249,9 +313,8 @@ function extractRouteQuery(text: string): string {
 
 function extractJobQuery(text: string): string {
   const patterns = [
-    /(?:ищу|вакансии|работа|найти работу)\s+(.+)/i,
+    /(?:ищу|вакансии|работа|найти работу|жұмыс|жұмыс іздеу)\s+(.+)/i,
     /(?:looking for|vacancy|job|find job)\s+(.+)/i,
-    /(?:иш|кор|вакансия)\s+(.+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -264,9 +327,8 @@ function extractJobQuery(text: string): string {
 
 function extractCompanyQuery(text: string): string {
   const patterns = [
-    /(?:проверь|компания|работодатель|проверка компании)\s+(.+)/i,
+    /(?:проверь|компания|работодатель|проверка компании|жұмыс берушіні тексеру)\s+(.+)/i,
     /(?:check|company|employer)\s+(.+)/i,
-    /(?:текшир|компания|корфармо)\s+(.+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -275,15 +337,6 @@ function extractCompanyQuery(text: string): string {
   }
 
   return text;
-}
-
-function detectLanguage(text: string): string {
-  if (/[а-яё]/i.test(text)) return "ru";
-  if (/[ўғқҳәөү]/i.test(text)) return "uz";
-  if (/[ӣӯҷҳҒҚ]/i.test(text)) return "tg";
-  if (/[өүҡң]/i.test(text)) return "ky";
-  if (/[a-z]/i.test(text)) return "en";
-  return "ru";
 }
 
 export async function executeAIAction(actionResponse: AIActionResponse): Promise<any> {

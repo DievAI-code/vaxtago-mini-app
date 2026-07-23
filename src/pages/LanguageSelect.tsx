@@ -5,15 +5,13 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/context/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
-import { Globe, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Lang } from "@/i18n";
 
 const LANGUAGES: { code: Lang; native: string; flag: string }[] = [
-  { code: "uz", native: "O'zbekcha", flag: "🇺🇿" },
   { code: "ru", native: "Русский", flag: "🇷🇺" },
-  { code: "tg", native: "Тоҷикӣ", flag: "🇹🇯" },
-  { code: "ky", native: "Кыргызча", flag: "🇰🇬" },
   { code: "en", native: "English", flag: "🇬🇧" },
+  { code: "kk", native: "Қазақша", flag: "🇰🇿" },
 ];
 
 export default function LanguageSelect() {
@@ -22,8 +20,9 @@ export default function LanguageSelect() {
 
   const handleSelect = async (code: Lang) => {
     try {
+      localStorage.setItem("vaxtago_language", code);
       const phone = localStorage.getItem("vaxtago_user_phone");
-      if (phone) {
+      if (phone && supabase) {
         await supabase
           .from("users")
           .update({ language_code: code })
@@ -40,7 +39,9 @@ export default function LanguageSelect() {
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white p-8 items-center justify-center">
       <VaqtaLogo size={64} animated className="mb-8" />
-      <h2 className="text-2xl font-black mb-10 tracking-tight uppercase">Выберите язык / Tilni tanlang</h2>
+      <h2 className="text-xl font-black mb-10 tracking-tight uppercase text-center">
+        Select Language / Выберите язык / Тілді таңдаңыз
+      </h2>
       
       <div className="w-full max-w-xs space-y-3">
         {LANGUAGES.map((lang, idx) => (
