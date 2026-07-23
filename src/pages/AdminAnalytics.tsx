@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Activity, Bot, Scan, Languages, TrendingUp, ArrowLeft, ShieldAlert } from "lucide-react";
+import { Users, Activity, Bot, Scan, Languages, TrendingUp, ArrowLeft, ShieldAlert, User } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
-import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useNavigate } from "react-router-dom";
 
@@ -30,7 +29,7 @@ export default function AdminAnalytics() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white">
-      <Header title="admin.title" showBack />
+      <Header title="nav.admin" showBack />
 
       <main className="p-6 space-y-8 pb-32">
         <div className="flex items-center gap-4 bg-red-500/10 border border-red-500/20 p-4 rounded-2xl">

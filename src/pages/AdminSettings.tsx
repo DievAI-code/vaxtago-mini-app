@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
-import { Zap, Scan, Map as MapIcon, Database, Save, Loader2 } from "lucide-center";
+import { Zap, Scan, Map as MapIcon, Database, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminSettings() {
@@ -24,7 +24,7 @@ export default function AdminSettings() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-32">
-      <Header title="Project Settings" showBack />
+      <Header title="nav.settings" showBack />
 
       <main className="p-6 space-y-8">
         <section className="space-y-4">
