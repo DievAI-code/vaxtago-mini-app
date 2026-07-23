@@ -24,7 +24,8 @@
     "settings": "Настройки",
     "about": "О проекте",
     "contacts": "Контакты",
-    "policy": "Политика"
+    "policy": "Политика",
+    "admin": "Админ-панель"
   },
   "home": {
     "hero_title": "Умный AI помощник\nдля вашей жизни",
@@ -72,7 +73,9 @@
     "done": "Готово",
     "more": "Подробнее",
     "save": "Сохранить",
-    "share": "Поделиться"
+    "share": "Поделиться",
+    "cancel": "Отмена",
+    "search": "Поиск"
   },
   "settings_lang": "Язык",
   "maps": {
@@ -93,12 +96,22 @@
     "logout": "Выйти из аккаунта"
   },
   "admin": {
-    "title": "Панель администратора",
+    "title": "Кабинет Администратора",
+    "login_title": "Вход в Админ-панель",
+    "enter_pass": "Введите пароль доступа",
+    "invalid_pass": "Неверный пароль администратора",
+    "users_tab": "Пользователи",
+    "features_tab": "Функции & Доступ",
     "stats_users": "Всего пользователей",
     "stats_new": "Новые сегодня",
     "stats_ai": "Запросы к AI",
     "stats_scans": "Сканирования",
-    "stats_trans": "Переводы"
+    "stats_trans": "Переводы",
+    "activate_premium": "Активировать Premium",
+    "deactivate_premium": "Отключить Premium",
+    "search_user": "Поиск по телефону или имени...",
+    "premium_until": "Действует до",
+    "permissions": "Разрешения"
   },
   "ai": {
     "thinking": "Думаю...",

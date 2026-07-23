@@ -31,6 +31,7 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Login = lazy(() => import("./pages/Login"));
 const LanguageSelect = lazy(() => import("./pages/LanguageSelect"));
+const Admin = lazy(() => import("./pages/Admin"));
 const FounderDashboard = lazy(() => import("./pages/FounderDashboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -66,6 +67,7 @@ const App = () => {
                       <Routes>
                         <Route path="/login" element={<Login />} />
                         <Route path="/language-select" element={<LanguageSelect />} />
+                        <Route path="/admin" element={<Admin />} />
                         <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
                         <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
                         <Route path="/jobs" element={<PrivateRoute><Jobs /></PrivateRoute>} />

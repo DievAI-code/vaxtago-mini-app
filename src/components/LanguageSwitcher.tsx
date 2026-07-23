@@ -7,12 +7,11 @@ import { Lang } from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
-const LANGUAGES = [
+const LANGUAGES: { code: Lang; name: string; flag: string }[] = [
   { code: "ru" as Lang, name: "Русский", flag: "🇷🇺" },
-  { code: "en" as Lang, name: "English", flag: "🇬🇧" },
-  { code: "kk" as Lang, name: "Қазақша", flag: "🇰🇿" },
-  { code: "uz" as Lang, name: "O'zbek", flag: "🇺🇿" },
+  { code: "uz" as Lang, name: "O'zbekcha", flag: "🇺🇿" },
   { code: "tg" as Lang, name: "Тоҷикӣ", flag: "🇹🇯" },
+  { code: "kk" as Lang, name: "Қазақша", flag: "🇰🇿" },
 ];
 
 export function LanguageSwitcher() {
