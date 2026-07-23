@@ -7,12 +7,8 @@ export interface UsageInfo {
   ai_remaining: number;
   ocr_remaining: number;
   map_remaining: number;
+  expires_at?: string;
 }
-
-const LIMITS = {
-  free: { ai: 10, ocr: 5, map: 5 },
-  premium: { ai: Infinity, ocr: Infinity, map: Infinity }
-};
 
 export const subscriptionService = {
   async getUsage(): Promise<UsageInfo> {
@@ -22,21 +18,36 @@ export const subscriptionService = {
     try {
       const { data, error } = await supabase
         .from("users")
-        .select("subscription_status, ai_requests_used, ocr_requests_used, map_requests_used, last_limit_reset")
+        .select(`
+          subscription_status, 
+          subscription_expires_at,
+          ai_requests_used, 
+          ai_requests_limit,
+          ocr_requests_used, 
+          map_requests_used, 
+          last_limit_reset
+        `)
         .eq("phone_number", userPhone)
         .single();
 
       if (error) throw error;
 
-      // Проверка на сброс лимитов (раз в сутки)
-      const lastReset = new Date(data.last_limit_reset || 0);
       const now = new Date();
-      const needsReset = (now.getTime() - lastReset.getTime()) > 24 * 60 * 60 * 1000;
-
       const status = (data.subscription_status || 'free') as 'free' | 'premium';
-      const currentLimits = LIMITS[status];
+      
+      // Проверка на истечение premium
+      if (status === 'premium' && data.subscription_expires_at) {
+        if (new Date(data.subscription_expires_at) < now) {
+          // В реальности это должен делать триггер в БД, но для UI обновим локально
+          return { status: 'free', ai_remaining: 0, ocr_remaining: 0, map_remaining: 0 };
+        }
+      }
 
-      if (needsReset) {
+      // Проверка на сброс ежедневных лимитов
+      const lastReset = new Date(data.last_limit_reset || 0);
+      const isNewDay = now.toDateString() !== lastReset.toDateString();
+
+      if (isNewDay && status === 'free') {
         await supabase
           .from("users")
           .update({
@@ -47,16 +58,26 @@ export const subscriptionService = {
           })
           .eq("phone_number", userPhone);
         
-        return { status, ai_remaining: currentLimits.ai, ocr_remaining: currentLimits.ocr, map_remaining: currentLimits.map };
+        return { 
+          status, 
+          ai_remaining: data.ai_requests_limit || 10, 
+          ocr_remaining: 5, 
+          map_remaining: 5 
+        };
+      }
+
+      if (status === 'premium') {
+        return { status: 'premium', ai_remaining: Infinity, ocr_remaining: Infinity, map_remaining: Infinity, expires_at: data.subscription_expires_at };
       }
 
       return {
-        status,
-        ai_remaining: Math.max(0, currentLimits.ai - (data.ai_requests_used || 0)),
-        ocr_remaining: Math.max(0, currentLimits.ocr - (data.ocr_requests_used || 0)),
-        map_remaining: Math.max(0, currentLimits.map - (data.map_requests_used || 0))
+        status: 'free',
+        ai_remaining: Math.max(0, (data.ai_requests_limit || 10) - (data.ai_requests_used || 0)),
+        ocr_remaining: Math.max(0, 5 - (data.ocr_requests_used || 0)),
+        map_remaining: Math.max(0, 5 - (data.map_requests_used || 0))
       };
     } catch (e) {
+      console.error("[SubscriptionService] Error:", e);
       return { status: 'free', ai_remaining: 0, ocr_remaining: 0, map_remaining: 0 };
     }
   },
@@ -80,7 +101,10 @@ export const subscriptionService = {
     
     await supabase
       .from("users")
-      .update({ [column]: (user?.[column] || 0) + 1 })
+      .update({ 
+        [column]: (user?.[column] || 0) + 1,
+        updated_at: new Date().toISOString()
+      })
       .eq("phone_number", userPhone);
   }
 };

@@ -16,18 +16,33 @@ export default function AdminLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     setLoading(true);
-    // Имитация задержки для безопасности
-    await new Promise(r => setTimeout(r, 500));
 
-    if (code === "31975") {
-      localStorage.setItem("vaqta_admin_token", "true");
-      localStorage.setItem("vaqta_admin_role", "founder");
-      toast.success("Доступ подтвержден. Добро пожаловать, Founder!");
-      nav("/admin");
-    } else {
-      toast.error("Неверный код доступа");
+    // Единственный код доступа
+    const ACCESS_CODE = "31975";
+
+    try {
+      await new Promise(r => setTimeout(r, 800)); // Безопасная задержка
+
+      if (code === ACCESS_CODE) {
+        const adminSession = {
+          authenticated: true,
+          role: "founder",
+          createdAt: Date.now()
+        };
+        
+        localStorage.setItem("vaqta_admin_session", JSON.stringify(adminSession));
+        // Для обратной совместимости с AdminRoute в App.tsx (временно пока не обновим его)
+        localStorage.setItem("vaqta_admin_token", "true");
+        
+        toast.success("Доступ подтвержден. Добро пожаловать, Founder!");
+        nav("/admin");
+      } else {
+        toast.error("Неверный код доступа");
+        setLoading(false);
+      }
+    } catch (err) {
+      toast.error("Ошибка авторизации");
       setLoading(false);
     }
   };
@@ -42,7 +57,7 @@ export default function AdminLogin() {
         <div className="space-y-4">
           <VaqtaLogo size={80} animated glow />
           <h1 className="text-3xl font-black tracking-tight uppercase">Founder <span className="text-[#00A86B]">Access</span></h1>
-          <p className="text-xs text-[#5C7A6D] font-bold uppercase tracking-[0.3em]">System Control Unit</p>
+          <p className="text-xs text-[#5C7A6D] font-bold uppercase tracking-[0.3em]">VAQTA AI Control Unit</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -52,7 +67,7 @@ export default function AdminLogin() {
               type="password" 
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="•••••"
+              placeholder="Код доступа"
               className="w-full h-16 bg-[#0C1F1A] border border-[#1A3D2E] rounded-[2rem] text-center text-2xl tracking-[0.6em] font-mono focus:border-[#00A86B] outline-none transition-all"
             />
           </div>
@@ -61,11 +76,11 @@ export default function AdminLogin() {
             disabled={loading}
             className="w-full h-16 vaqta-gradient rounded-[2rem] font-black text-white shadow-xl vaqta-glow flex items-center justify-center gap-3 uppercase tracking-widest"
           >
-            {loading ? <Loader2 className="animate-spin" /> : <><ShieldCheck size={20} /> Verify & Enter</>}
+            {loading ? <Loader2 className="animate-spin" /> : <><ShieldCheck size={20} /> Подтвердить вход</>}
           </button>
         </form>
 
-        <p className="text-[10px] text-[#5C7A6D] uppercase font-bold tracking-widest">Authorized personnel only</p>
+        <p className="text-[10px] text-[#5C7A6D] uppercase font-bold tracking-widest">Только для авторизованного персонала</p>
       </motion.div>
     </div>
   );
