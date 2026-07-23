@@ -10,7 +10,7 @@ import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { MapCard } from "@/components/assistant/MapCard";
 import { toast } from "sonner";
-import { subscriptionService } from "@/services/subscriptionService";
+import { subscription } from "@/services/subscription";
 
 export default function AiAssistant() {
   const { t } = useLanguage();
@@ -31,9 +31,9 @@ export default function AiAssistant() {
   const handleSend = async () => {
     if ((!input.trim() && !attachedImage) || isTyping) return;
 
-    const canUseAI = await subscriptionService.canUse("ai");
-    if (!canUseAI) {
-      toast.error(t("premium.feature_locked") || "Лимит AI исчерпан");
+    const access = await subscription.checkUserAccess("ai");
+    if (!access.allowed) {
+      toast.error(t("premium.feature_locked") || "Лимит AI запросов исчерпан. Оформите Premium.");
       return;
     }
 
@@ -43,7 +43,7 @@ export default function AiAssistant() {
     setAttachedImage(null);
 
     await sendMessage(userMsg, img || undefined);
-    await subscriptionService.trackUsage("ai");
+    await subscription.trackUsage("ai");
   };
 
   return (
@@ -77,7 +77,6 @@ export default function AiAssistant() {
               </div>
             </motion.div>
 
-            {/* Встраиваемая карта если есть соответствующий экшен */}
             {m.role === "assistant" && m.action && (
               <div className="pl-12">
                 <MapCard 

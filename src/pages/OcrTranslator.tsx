@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Camera, Image as ImageIcon, Loader2, Copy, Check, ChevronRight, Globe, AlertCircle, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { Camera, Loader2, Copy, Check, Globe, RefreshCw } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { subscription } from "@/services/subscription";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -29,6 +30,12 @@ export default function OcrTranslator() {
     const userPhone = localStorage.getItem("vaxtago_user_phone");
     if (!userPhone) return toast.error("Please login");
 
+    const access = await subscription.checkUserAccess("ocr");
+    if (!access.allowed) {
+      toast.error(t("premium.feature_locked") || "Лимит OCR распознавания исчерпан.");
+      return;
+    }
+
     setLoading(true);
     setResult(null);
 
@@ -38,14 +45,13 @@ export default function OcrTranslator() {
       setPreview(base64);
 
       try {
-        const { data, error } = await supabase.functions.invoke("ocr-translator", {
+        const { data } = await supabase.functions.invoke("ocr-translator", {
           body: { image: base64, target_lang: targetLang, user_phone: userPhone }
         });
 
-        if (data?.error === "LIMIT_REACHED") {
-          toast.error(t("premium.feature_locked") + " (5/5 Free Limit)");
-        } else if (data?.success) {
+        if (data?.success) {
           setResult({ original: data.original, translated: data.translated });
+          await subscription.trackUsage("ocr");
           toast.success(t("scanner.result_ready"));
         } else {
           throw new Error("AI error");

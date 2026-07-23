@@ -3,31 +3,28 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  User, Phone, Globe, Crown, Zap, Scan, 
-  Map as MapIcon, Settings, LogOut, Trash2,
-  ChevronRight, ArrowRight, Key, Clock, 
-  ShieldCheck, Activity, FileText, Bell, Check,
-  ShieldAlert, Lock, X, RefreshCw
+  User, Phone, Crown, Zap, Scan, 
+  Map as MapIcon, LogOut, 
+  ArrowRight, Key, Clock, 
+  ShieldCheck, ShieldAlert, Lock, RefreshCw
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { subscriptionService, UsageInfo } from "@/services/subscriptionService";
+import { subscription } from "@/services/subscription";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Lang } from "@/i18n";
 
 export default function MyCabinet() {
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   const nav = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userData, setUserData] = useState<any>(null);
-  const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [usage, setUsage] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
-  // Admin Session State
   const [adminModal, setAdminModal] = useState(false);
   const [adminCode, setAdminCode] = useState("");
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -44,10 +41,22 @@ export default function MyCabinet() {
     if (!phone) return nav("/login");
 
     try {
-      const { data } = await supabase.from("users").select("*").eq("phone_number", phone).single();
+      const { data } = await supabase.from("users").select("*").eq("phone_number", phone).maybeSingle();
       setUserData(data);
-      const usageInfo = await subscriptionService.getUsage();
-      setUsage(usageInfo);
+
+      const aiAccess = await subscription.checkUserAccess("ai");
+      const ocrAccess = await subscription.checkUserAccess("ocr");
+      const mapAccess = await subscription.checkUserAccess("maps");
+
+      const isUnlimited = aiAccess.isPremium || aiAccess.mode === "all";
+
+      setUsage({
+        status: isUnlimited ? "premium" : "free",
+        mode: aiAccess.mode,
+        ai_remaining: aiAccess.remaining,
+        ocr_remaining: ocrAccess.remaining,
+        map_remaining: mapAccess.remaining,
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -65,7 +74,7 @@ export default function MyCabinet() {
     if (adminCode === "31975") {
       const session = { authenticated: true, role: "founder", createdAt: Date.now() };
       localStorage.setItem("vaqta_admin_session", JSON.stringify(session));
-      localStorage.setItem("vaqta_admin_token", "true"); // Fallback
+      localStorage.setItem("vaqta_admin_token", "true");
       setIsAdmin(true);
       setAdminModal(false);
       toast.success("Режим Основателя активирован");
@@ -96,7 +105,6 @@ export default function MyCabinet() {
       <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <main className="p-6 space-y-6">
-        {/* FOUNDER CARD */}
         {isAdmin && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
@@ -115,7 +123,6 @@ export default function MyCabinet() {
           </motion.div>
         )}
 
-        {/* PROFILE CARD */}
         <section className="vaqta-glass p-6 border-[#1A3D2E] relative overflow-hidden">
           <div className="flex items-center gap-5 relative z-10">
             <div className="w-16 h-16 rounded-[1.8rem] vaqta-gradient flex items-center justify-center shadow-2xl">
@@ -146,7 +153,6 @@ export default function MyCabinet() {
           </div>
         </section>
 
-        {/* ADMIN ACCESS */}
         <motion.button 
           whileTap={{ scale: 0.98 }}
           onClick={handleAdminAuth}
@@ -162,7 +168,6 @@ export default function MyCabinet() {
           <ArrowRight size={20} className="text-[#5C7A6D] group-hover:translate-x-1 transition-transform" />
         </motion.button>
 
-        {/* SUBSCRIPTION */}
         <section className={`vaqta-glass p-6 border ${usage?.status === 'premium' ? 'border-[#D4AF37]/40 shadow-[0_0_40px_rgba(212,175,55,0.1)]' : 'border-[#1A3D2E]'}`}>
           <div className="flex justify-between items-start mb-5">
             <div>
@@ -182,15 +187,14 @@ export default function MyCabinet() {
             <Clock size={14} className={usage?.status === 'premium' ? "text-[#D4AF37]" : "text-[#5C7A6D]"} />
             <span>
               {usage?.status === 'premium' 
-                ? `Действует до: ${usage.expires_at ? new Date(usage.expires_at).toLocaleDateString() : '—'}` 
-                : 'Лимитированный доступ'}
+                ? (usage.mode === 'all' ? 'Безлимитный доступ (ALL USERS Mode)' : 'Premium активен') 
+                : 'Лимитированный бесплатный доступ'}
             </span>
           </div>
         </section>
 
-        {/* USAGE STATS */}
         <section className="space-y-4">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">Активность (24ч)</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">Остаток лимитов на сегодня</h3>
           <div className="grid grid-cols-3 gap-3">
             <div className="vaqta-glass p-4 border-[#1A3D2E] text-center space-y-2">
               <Zap size={18} className="mx-auto text-[#00A86B]" />
@@ -208,12 +212,8 @@ export default function MyCabinet() {
               <p className="text-[8px] uppercase font-black text-[#5C7A6D]">Карты</p>
             </div>
           </div>
-          <p className="text-[10px] text-[#5C7A6D] text-center font-bold">
-            Последний вход: {userData?.last_login ? new Date(userData.last_login).toLocaleString() : '—'}
-          </p>
         </section>
 
-        {/* LOGOUT & CACHE */}
         <div className="space-y-2">
            <button 
               onClick={() => { localStorage.clear(); toast.success("Кеш очищен"); window.location.reload(); }}
@@ -233,7 +233,6 @@ export default function MyCabinet() {
         </div>
       </main>
 
-      {/* ADMIN LOGIN MODAL */}
       <AnimatePresence>
         {adminModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center px-6">

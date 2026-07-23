@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Camera, Image as ImageIcon, Loader2, Sparkles, Check, ChevronRight, Download, Globe } from "lucide-react";
+import { useState } from "react";
+import { Camera, Loader2, Globe, ChevronRight } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { imageTranslationService } from "@/services/imageTranslationService";
-import { subscriptionService } from "@/services/subscriptionService";
+import { subscription } from "@/services/subscription";
 import { useLanguage } from "@/context/LanguageProvider";
 import { Lang } from "@/i18n";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
 
 const TARGET_LANGS: { code: Lang; label: string; flag: string }[] = [
   { code: "ru", label: "Русский", flag: "🇷🇺" },
@@ -24,12 +23,11 @@ export default function Scanner() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [targetLang, setTargetLang] = useState<Lang>(language);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleUpload = async (file: File) => {
-    const canUse = await subscriptionService.canUseFeature("vision");
-    if (!canUse) {
-      toast.error(t("premium.feature_locked"));
+    const access = await subscription.checkUserAccess("ocr");
+    if (!access.allowed) {
+      toast.error(t("premium.feature_locked") || "Лимит сканирования исчерпан.");
       return;
     }
 
@@ -38,8 +36,9 @@ export default function Scanner() {
     reader.onload = async (e) => {
       const base64 = e.target?.result as string;
       try {
-        const data = await imageTranslationService.translateImage(base64, targetLang);
+        const data = await imageTranslationService.processImage(file, targetLang);
         setResult(data);
+        await subscription.trackUsage("ocr");
         toast.success(t("scanner.result_ready"));
       } catch (err) {
         toast.error(t("scanner.error_ai"));
@@ -55,7 +54,6 @@ export default function Scanner() {
       <Header title="nav.scanner" showBack />
       
       <main className="p-6 space-y-6">
-        {/* Выбор языка перевода */}
         <div className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-bold text-[#5C7A6D]">
             <Globe size={16} className="text-[#00A86B]" />
@@ -104,11 +102,11 @@ export default function Scanner() {
           <div className="space-y-6">
              <div className="vaqta-glass p-6 border-[#00A86B]/30">
                 <h3 className="text-[10px] font-black uppercase text-[#00A86B] mb-2">{t("scanner.original_text")}</h3>
-                <p className="text-sm text-slate-300 italic">{result.ocr_text || t("scanner.error_ocr")}</p>
+                <img src={result.original} className="w-full rounded-2xl max-h-48 object-cover mb-3" alt="Original" />
              </div>
              <div className="vaqta-glass p-6 border-[#D4AF37]/30">
                 <h3 className="text-[10px] font-black uppercase text-[#D4AF37] mb-2">{t("scanner.translation")} ({targetLang.toUpperCase()})</h3>
-                <p className="text-lg font-bold text-white">{result.translation}</p>
+                <img src={result.translated} className="w-full rounded-2xl max-h-48 object-cover mb-3" alt="Translated" />
              </div>
              <button onClick={() => setResult(null)} className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl font-black uppercase text-xs tracking-wider">
                {t("scanner.new_scan")}

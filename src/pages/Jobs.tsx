@@ -12,6 +12,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { SideMenu } from "@/components/SideMenu";
 import { useLanguage } from "@/context/LanguageProvider";
 import { jobsApiStatus, JobsApiStatus } from "@/services/jobsApiStatus";
+import { subscription } from "@/services/subscription";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -31,7 +32,6 @@ export default function Jobs() {
   const [query] = useState(params.get("query") || "");
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState<JobsApiStatus>({ hh: "pending", trudvsem: "pending" });
-  const [checking, setChecking] = useState(true);
   
   // Form state
   const [profession, setProfession] = useState(query);
@@ -45,16 +45,20 @@ export default function Jobs() {
   }, []);
 
   const checkStatus = async () => {
-    setChecking(true);
     const s = await jobsApiStatus.check();
     setStatus(s);
-    setChecking(false);
   };
 
   const handleSubmitInterest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profession.trim()) {
       toast.error("Укажите профессию");
+      return;
+    }
+
+    const access = await subscription.checkUserAccess("jobs");
+    if (!access.allowed) {
+      toast.error("Дневной лимит поиска вакансий исчерпан.");
       return;
     }
 
@@ -66,12 +70,11 @@ export default function Jobs() {
         return;
       }
 
-      // Получаем user_id по телефону
       const { data: user } = await supabase
         .from("users")
         .select("id")
         .eq("phone_number", phone)
-        .single();
+        .maybeSingle();
 
       if (!user) {
         toast.error("Пользователь не найден");
@@ -87,6 +90,7 @@ export default function Jobs() {
 
       if (error) throw error;
       
+      await subscription.trackUsage("jobs");
       setSubmitted(true);
       toast.success("Заявка сохранена! Мы сообщим о запуске.");
     } catch (err) {
@@ -102,7 +106,6 @@ export default function Jobs() {
 
   const isConnected = jobsApiStatus.isAnyConnected(status);
 
-  // Если API подключены, показываем реальный поиск (заглушка для будущего)
   if (isConnected) {
     return (
       <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-36">
@@ -126,7 +129,6 @@ export default function Jobs() {
       <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <main className="p-6 space-y-8">
-        {/* Hero Waiting State */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -153,7 +155,6 @@ export default function Jobs() {
           </div>
         </motion.div>
 
-        {/* API Status Cards */}
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-1">Статус подключения</h3>
           
@@ -184,7 +185,6 @@ export default function Jobs() {
           </div>
         </div>
 
-        {/* Interest Form */}
         <AnimatePresence mode="wait">
           {!submitted ? (
             <motion.form
@@ -256,7 +256,6 @@ export default function Jobs() {
           )}
         </AnimatePresence>
 
-        {/* Categories */}
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-1">Популярные категории</h3>
           <div className="grid grid-cols-2 gap-3">
