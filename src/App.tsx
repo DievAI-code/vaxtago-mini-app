@@ -38,6 +38,12 @@ const MigrationTracker = lazy(() => import("./pages/MigrationTracker"));
 const SOSLegal = lazy(() => import("./pages/SOSLegal"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// NEW ADMIN PAGES
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: false },
@@ -47,6 +53,11 @@ const queryClient = new QueryClient({
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthed = localStorage.getItem("vaxtago_auth") === "true";
   return isAuthed ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAdmin = localStorage.getItem("vaqta_admin_token") !== null;
+  return isAdmin ? <>{children}</> : <Navigate to="/admin/login" replace />;
 };
 
 const LoadingScreen = () => (
@@ -70,7 +81,13 @@ const App = () => {
                       <Routes>
                         <Route path="/login" element={<Login />} />
                         <Route path="/language-select" element={<LanguageSelect />} />
-                        <Route path="/admin" element={<Admin />} />
+                        
+                        {/* ADMIN ROUTES */}
+                        <Route path="/admin/login" element={<AdminLogin />} />
+                        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                        <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+                        <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+
                         <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
                         <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
                         <Route path="/jobs" element={<PrivateRoute><Jobs /></PrivateRoute>} />
