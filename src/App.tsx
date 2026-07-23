@@ -8,7 +8,6 @@ import { AppProvider } from "@/lib/theme";
 import { LanguageProvider } from "@/context/LanguageProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NavStackProvider } from "@/components/NavigationStack";
-import { AnimatePresence } from "framer-motion";
 import "@/i18n";
 
 // Lazy loading компонентов страниц
@@ -28,13 +27,9 @@ const MigrationTracker = lazy(() => import("./pages/MigrationTracker"));
 const SOSLegal = lazy(() => import("./pages/SOSLegal"));
 const Login = lazy(() => import("./pages/Login"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-
-// ADMIN PAGES
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
-const AdminSettings = lazy(() => import("./pages/AdminSettings"));
-const AdminIntegrations = lazy(() => import("./pages/AdminIntegrations"));
 
 const queryClient = new QueryClient();
 
@@ -49,12 +44,6 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return isAdmin ? <>{children}</> : <Navigate to="/admin/login" replace />;
 };
 
-const LoadingScreen = () => (
-  <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[#06140F]">
-    <div className="w-12 h-12 rounded-full border-4 border-[#00A86B]/20 border-t-[#00A86B] animate-spin" />
-  </div>
-);
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
@@ -62,16 +51,12 @@ const App = () => (
         <TooltipProvider>
           <NavStackProvider>
             <ErrorBoundary>
-              <Suspense fallback={<LoadingScreen />}>
+              <Suspense fallback={<div className="min-h-screen bg-[#06140F]" />}>
                 <Routes>
                   <Route path="/login" element={<Login />} />
                   <Route path="/admin/login" element={<AdminLogin />} />
-                  
-                  {/* ADMIN ROUTES */}
                   <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                   <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-                  <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
-                  <Route path="/admin/integrations" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
 
                   <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
                   <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />

@@ -1,26 +1,23 @@
--- Таблица кэша вакансий
+-- Таблица кэша вакансий для оптимизации запросов к внешним API
 CREATE TABLE IF NOT EXISTS jobs_cache (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    source text NOT NULL, -- 'hh' or 'trudvsem'
+    source text NOT NULL, -- 'hh'
     external_id text NOT NULL,
     title text NOT NULL,
     company text,
     salary text,
-    salary_min integer,
     city text,
     description text,
     url text UNIQUE,
     schedule text,
-    housing boolean DEFAULT false,
     created_at timestamp with time zone DEFAULT now()
 );
 
--- Добавляем колонки лимитов поиска работы в таблицу пользователей
+-- Обновление таблицы пользователей для учета лимитов поиска работы
 ALTER TABLE users 
 ADD COLUMN IF NOT EXISTS job_searches_used integer DEFAULT 0,
-ADD COLUMN IF NOT EXISTS job_searches_limit integer DEFAULT 5;
+ADD COLUMN IF NOT EXISTS job_searches_reset_at timestamp with time zone DEFAULT now();
 
--- Индексы для быстрого поиска
-CREATE INDEX IF NOT EXISTS idx_jobs_city ON jobs_cache(city);
-CREATE INDEX IF NOT EXISTS idx_jobs_source ON jobs_cache(source);
-CREATE INDEX IF NOT EXISTS idx_jobs_salary ON jobs_cache(salary_min);
+-- Индексы для ускорения поиска по кэшу
+CREATE INDEX IF NOT EXISTS idx_jobs_cache_title ON jobs_cache USING gin (to_tsvector('russian', title));
+CREATE INDEX IF NOT EXISTS idx_jobs_cache_city ON jobs_cache(city);
