@@ -185,6 +185,7 @@ export function detectLanguage(text: string): string {
   if (/[әіңғүұқөһ]/i.test(text)) return "kk";
   if (/[ғқҳҷӯӣ]/i.test(text)) return "tg";
   if (/[ўғқҳ]/i.test(text) || /\bish\b|\bmenga\b|\byordam\b/i.test(text)) return "uz";
+  if (/\bhello\b|\bjob\b|\bhelp\b|\btranslate\b|\bwhere\b/i.test(text)) return "en";
   if (/[а-яё]/i.test(text)) return "ru";
   return "ru";
 }
@@ -196,36 +197,42 @@ function getLocalizedMessage(type: string, lang: string): string {
       uz: "Xaritadan manzilni qidiryapman...",
       tg: "Ҷустуҷӯи нишонӣ дар харита...",
       kk: "Картадан мекенжайды іздеудемін...",
+      en: "Searching location on map...",
     },
     build_route: {
       ru: "Строю маршрут...",
       uz: "Yo'nalish tuzilyapti...",
       tg: "Сохтани хатсайр...",
       kk: "Бағыт салудамын...",
+      en: "Building route...",
     },
     translate: {
       ru: "Выполняю перевод...",
       uz: "Tarjima qilinmoqda...",
       tg: "Тарҷума шуда истодааст...",
       kk: "Аударма жасаудамын...",
+      en: "Translating...",
     },
     document_scan: {
       ru: "Открываю сканер...",
       uz: "Skaner ochilmoqda...",
       tg: "Кушодани сканер...",
       kk: "Құжат сканерін ашудамын...",
+      en: "Opening scanner...",
     },
     job_search: {
       ru: "Ищу вакансии...",
       uz: "Ish o'rinlari qidirilmoqda...",
       tg: "Ҷустуҷӯи кор...",
       kk: "Бос орындарды іздеудемін...",
+      en: "Searching vacancies...",
     },
     general: {
       ru: "Обрабатываю...",
       uz: "Ishlanmoqda...",
       tg: "Коркард...",
       kk: "Өңделуде...",
+      en: "Processing...",
     },
   };
 

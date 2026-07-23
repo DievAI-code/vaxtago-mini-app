@@ -5,12 +5,29 @@
   "btn_chat": "Ask AI",
   "search_job": "Job Search",
   "all_services": "All",
+  "welcome": "Welcome to VAQTA AI",
+  "login": "Login",
+  "phone": "Phone Number",
+  "continue": "Continue",
+  "profile": "Profile",
+  "assistant": "AI Assistant",
+  "translator": "Translator",
+  "documents": "Documents",
+  "jobs": "Jobs",
+  "maps": "Maps",
+  "premium": "Premium",
+  "settings": "Settings",
+  "logout": "Log Out",
+  "errors": "An error occurred",
   "auth": {
     "subtitle": "AI assistant for work, documents, and translations",
     "phone_label": "Phone Number",
     "phone_placeholder": "+1 (___) ___ ____",
+    "phone_prompt": "Enter your phone number",
     "privacy_note": "By continuing you accept terms of service and privacy policy",
-    "select_lang": "Select Language"
+    "select_lang": "Select Language",
+    "welcome": "Welcome",
+    "login_title": "Account Login"
   },
   "nav": {
     "home": "Home",
@@ -24,7 +41,8 @@
     "settings": "Settings",
     "about": "About",
     "contacts": "Contacts",
-    "policy": "Policy"
+    "policy": "Policy",
+    "admin": "Admin Panel"
   },
   "home": {
     "hero_title": "Smart AI Assistant\nfor your life",
@@ -52,10 +70,12 @@
     "step_translate": "Translating...",
     "step_analyze": "AI Analysis...",
     "result_ready": "Result is ready",
+    "original_text": "Original Text",
     "translation": "Translation",
     "explanation": "Explanation",
     "risks": "Risk Analysis",
     "new_scan": "New Scan",
+    "take_photo": "Take Photo",
     "error_ocr": "Could not recognize text",
     "error_ai": "AI is temporarily unavailable",
     "error_unsupported": "Unsupported file format"
@@ -63,7 +83,8 @@
   "chat": {
     "welcome": "Hello! How can I help you today? I understand documents, photos, and translations.",
     "placeholder": "Type your question...",
-    "premium_badge": "Premium AI"
+    "premium_badge": "Premium AI",
+    "sub_hint": "Ask a question, upload a photo or search a location on the map!"
   },
   "common": {
     "continue": "Continue",
@@ -72,7 +93,10 @@
     "done": "Done",
     "more": "Details",
     "save": "Save",
-    "share": "Share"
+    "share": "Share",
+    "cancel": "Cancel",
+    "search": "Search",
+    "clear": "Clear"
   },
   "settings_lang": "Language",
   "maps": {
@@ -81,7 +105,10 @@
     "copy": "Copy Address",
     "found_address": "Address Found",
     "confidence": "Confidence",
-    "job_location": "Job Location"
+    "job_location": "Job Location",
+    "build_route": "Build Route",
+    "search_ph": "Enter address (e.g. Moscow, Lenin Ave 25)...",
+    "retry": "Try Again"
   },
   "profile": {
     "user_info": "User Info",
@@ -90,15 +117,26 @@
     "user_lang": "Interface Language",
     "ai_activity": "AI Activity",
     "ai_requests": "AI Requests",
-    "logout": "Log Out"
+    "logout": "Log Out",
+    "places_history": "Location History"
   },
   "admin": {
     "title": "Admin Panel",
+    "login_title": "Admin Login",
+    "enter_pass": "Enter access password",
+    "invalid_pass": "Invalid admin password",
+    "users_tab": "Users",
+    "features_tab": "Features & Access",
     "stats_users": "Total Users",
     "stats_new": "New Today",
     "stats_ai": "AI Requests",
     "stats_scans": "Scans",
-    "stats_trans": "Translations"
+    "stats_trans": "Translations",
+    "activate_premium": "Activate Premium",
+    "deactivate_premium": "Disable Premium",
+    "search_user": "Search by phone or name...",
+    "premium_until": "Valid until",
+    "permissions": "Permissions"
   },
   "ai": {
     "thinking": "Thinking...",
@@ -111,9 +149,12 @@
   },
   "premium": {
     "title": "Premium Subscription",
-    "features": "Premium Features",
+    "subtitle": "Maximum protection and speed",
+    "features": "Subscription Benefits",
     "buy": "Get Premium",
     "active": "Premium Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "per_month": "month",
+    "feature_locked": "This feature is available in Premium"
   }
 }

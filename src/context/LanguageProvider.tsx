@@ -20,7 +20,7 @@ function getNestedValue(obj: any, path: string): string | undefined {
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const { t: i18nT } = useTranslation();
   const [language, setLangState] = useState<Lang>(() => {
-    const saved = localStorage.getItem("vaxtago_language") as Lang;
+    const saved = (localStorage.getItem("vaxtago_language") || localStorage.getItem("vaqta_language")) as Lang;
     return saved || (i18n.language as Lang) || "ru";
   });
 
@@ -35,13 +35,12 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     setI18nLang(lang);
     setLangState(lang);
     localStorage.setItem("vaxtago_language", lang);
+    localStorage.setItem("vaqta_language", lang);
   };
 
-  // Безопасный метод перевода с каскадным fallback на русский язык
   const safeT = (key: string): string => {
     if (!key) return "";
     const translated = i18nT(key);
-    // Если результат перевода равен самому ключу, пробуем найти в румынском/русском словаре напрямую
     if (translated === key) {
       const ruValue = getNestedValue(ruLocale, key);
       if (ruValue && typeof ruValue === "string") {

@@ -5,12 +5,29 @@
   "btn_chat": "AI-дан сұрау",
   "search_job": "Жұмыс іздеу",
   "all_services": "Барлығы",
+  "welcome": "VAQTA AI-ға қош келдіңіз",
+  "login": "Кіру",
+  "phone": "Телефон нөмірі",
+  "continue": "Жалғастыру",
+  "profile": "Профиль",
+  "assistant": "AI Көмекші",
+  "translator": "Аудармашы",
+  "documents": "Құжаттар",
+  "jobs": "Жұмыс",
+  "maps": "Карта",
+  "premium": "Premium",
+  "settings": "Баптаулар",
+  "logout": "Тіркелгіден шығу",
+  "errors": "Қателік орын алды",
   "auth": {
     "subtitle": "Жұмыс, құжаттар және аудармаларға арналған AI көмекші",
     "phone_label": "Телефон нөмірі",
     "phone_placeholder": "+7 (___) ___ __ __",
+    "phone_prompt": "Телефон нөміріңізді енгізіңіз",
     "privacy_note": "Жалғастыру арқылы сіз пайдалану шарттарын және құпиялылық саясатын қабылдайсыз",
-    "select_lang": "Тілді таңдаңыз"
+    "select_lang": "Тілді таңдаңыз",
+    "welcome": "Қош келдіңіз",
+    "login_title": "Тіркелгіге кіру"
   },
   "nav": {
     "home": "Басты бет",
@@ -24,7 +41,8 @@
     "settings": "Баптаулар",
     "about": "Жоба туралы",
     "contacts": "Байланыс",
-    "policy": "Саясат"
+    "policy": "Саясат",
+    "admin": "Админ панелі"
   },
   "home": {
     "hero_title": "Сіздің өміріңізге арналған\nақылды AI көмекші",
@@ -52,10 +70,12 @@
     "step_translate": "Аударылуда...",
     "step_analyze": "AI талдауы...",
     "result_ready": "Нәтиже дайын",
+    "original_text": "Түпнұсқа",
     "translation": "Аударма",
     "explanation": "Түсіндірме",
     "risks": "Тәуекелдерді талдау",
     "new_scan": "Жаңа скан",
+    "take_photo": "Суретке түсіру",
     "error_ocr": "Мәтінді тану мүмкін болмады",
     "error_ai": "AI уақытша қолжетімсіз",
     "error_unsupported": "Қолдау көрсетілмейтін файл форматы"
@@ -63,7 +83,8 @@
   "chat": {
     "welcome": "Сәлеметсіз бе! Бүгін сізге қалай көмектесе аламын? Мен құжаттарды, фотоларды және аудармаларды түсінемін.",
     "placeholder": "Сұрағыңызды жазыңыз...",
-    "premium_badge": "Premium AI"
+    "premium_badge": "Premium AI",
+    "sub_hint": "Сұрақ қойыңыз, фото жіберіңіз немесе картадан орын табыңыз!"
   },
   "common": {
     "continue": "Жалғастыру",
@@ -71,8 +92,11 @@
     "error": "Қателік",
     "done": "Дайын",
     "more": "Толығырақ",
-    "save": "Saqtaý",
-    "share": "Бөлісу"
+    "save": "Сақтау",
+    "share": "Бөлісу",
+    "cancel": "Бас тарту",
+    "search": "Іздеу",
+    "clear": "Тазалау"
   },
   "settings_lang": "Тіл",
   "maps": {
@@ -81,7 +105,10 @@
     "copy": "Мекенжайды көшіру",
     "found_address": "Мекенжай табылды",
     "confidence": "Сеніімділік",
-    "job_location": "Жұмыс орны"
+    "job_location": "Жұмыс орны",
+    "build_route": "Бағыт салу",
+    "search_ph": "Мекенжайды енгізіңіз...",
+    "retry": "Қайтадан байқау"
   },
   "profile": {
     "user_info": "Пайдаланушы туралы ақпарат",
@@ -90,15 +117,26 @@
     "user_lang": "Интерфейс тілі",
     "ai_activity": "AI белсенділігі",
     "ai_requests": "AI сұраулары",
-    "logout": "Тіркелгіден шығу"
+    "logout": "Тіркелгіден шығу",
+    "places_history": "Орындар тарихы"
   },
   "admin": {
     "title": "Администратор панелі",
+    "login_title": "Админ панеліне кіру",
+    "enter_pass": "Құпия сөзді енгізіңіз",
+    "invalid_pass": "Жарамсыз құпия сөз",
+    "users_tab": "Пайдаланушылар",
+    "features_tab": "Функциялар мен рұқсаттар",
     "stats_users": "Барлық пайдаланушылар",
     "stats_new": "Бүгінгі жаңалар",
     "stats_ai": "AI сұраулары",
     "stats_scans": "Сканерлеулер",
-    "stats_trans": "Аудармалар"
+    "stats_trans": "Аудармалар",
+    "activate_premium": "Premium белсендіру",
+    "deactivate_premium": "Premium өшіру",
+    "search_user": "Іздеу...",
+    "premium_until": "Мерзімі",
+    "permissions": "Рұқсаттар"
   },
   "ai": {
     "thinking": "Ойланудамын...",
@@ -111,9 +149,12 @@
   },
   "premium": {
     "title": "Premium жазылым",
-    "features": "Премиум функциялар",
+    "subtitle": "Максималды қорғаныс пен жылдамдық",
+    "features": "Премиум мүмкіндіктер",
     "buy": "Premium сатып алу",
     "active": "Premium белсенді",
-    "inactive": "Белсенді емес"
+    "inactive": "Белсенді емес",
+    "per_month": "ай",
+    "feature_locked": "Бұл функция Premium-де қолжетімді"
   }
 }
