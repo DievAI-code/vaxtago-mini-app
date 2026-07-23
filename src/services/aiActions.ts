@@ -1,13 +1,13 @@
 "use client";
 
-export type AIAction = 
-  | "MAP_SEARCH" 
-  | "MAP_ROUTE"
+export type AIAction =
+  | "GENERAL_CHAT"
+  | "MAP_SEARCH"
+  | "BUILD_ROUTE"
   | "TRANSLATE"
   | "DOCUMENT_SCAN"
   | "JOB_SEARCH"
-  | "EMPLOYER_CHECK"
-  | "GENERAL_CHAT";
+  | "EMPLOYER_CHECK";
 
 export interface AIActionResponse {
   action: AIAction;
@@ -18,8 +18,8 @@ export interface AIActionResponse {
   message?: string;
 }
 
-export function detectIntent(text: string): AIActionResponse {
-  const lowerText = text.toLowerCase().trim();
+export function detectAIAction(message: string): AIActionResponse {
+  const lowerText = message.toLowerCase().trim();
   
   // Поиск на карте
   if (lowerText.includes("покажи на карте") || 
@@ -27,22 +27,30 @@ export function detectIntent(text: string): AIActionResponse {
       lowerText.includes("где находится") ||
       lowerText.includes("карта") ||
       lowerText.includes("map") ||
-      lowerText.includes("location")) {
+      lowerText.includes("location") ||
+      lowerText.includes("kartada") ||
+      lowerText.includes("дар харита") ||
+      lowerText.includes("show on map")) {
     return {
       action: "MAP_SEARCH",
-      query: extractLocationQuery(text)
+      query: extractSearchQuery(message),
+      message: "Нашёл адрес на карте"
     };
   }
   
   // Построение маршрута
-  if (lowerText.includes("построить маршрут") ||
+  if (lowerText.includes("построй маршрут") ||
       lowerText.includes("как доехать") ||
       lowerText.includes("маршрут") ||
       lowerText.includes("route") ||
-      lowerText.includes("direction")) {
+      lowerText.includes("direction") ||
+      lowerText.includes("йўл") ||
+      lowerText.includes("маршрут") ||
+      lowerText.includes("build route")) {
     return {
-      action: "MAP_ROUTE", 
-      query: extractLocationQuery(text)
+      action: "BUILD_ROUTE", 
+      query: extractRouteQuery(message),
+      message: "Строю маршрут"
     };
   }
   
@@ -50,11 +58,13 @@ export function detectIntent(text: string): AIActionResponse {
   if (lowerText.includes("переведи") ||
       lowerText.includes("translate") ||
       lowerText.includes("tarjima") ||
-      lowerText.includes("таржима")) {
+      lowerText.includes("таржима") ||
+      lowerText.includes("translation")) {
     return {
       action: "TRANSLATE",
-      query: text,
-      language: detectLanguage(text)
+      query: message,
+      language: detectLanguage(message),
+      message: "Перевожу текст"
     };
   }
   
@@ -63,10 +73,13 @@ export function detectIntent(text: string): AIActionResponse {
       lowerText.includes("распознай") ||
       lowerText.includes("скан") ||
       lowerText.includes("scan") ||
-      lowerText.includes("документ")) {
+      lowerText.includes("документ") ||
+      lowerText.includes("ҳуҷҷат") ||
+      lowerText.includes("document")) {
     return {
       action: "DOCUMENT_SCAN",
-      query: text
+      query: message,
+      message: "Сканирую документ"
     };
   }
   
@@ -75,10 +88,13 @@ export function detectIntent(text: string): AIActionResponse {
       lowerText.includes("вакансии") ||
       lowerText.includes("работа") ||
       lowerText.includes("job") ||
-      lowerText.includes("ish")) {
+      lowerText.includes("ish") ||
+      lowerText.includes("кор") ||
+      lowerText.includes("вакансия")) {
     return {
       action: "JOB_SEARCH",
-      query: extractJobQuery(text)
+      query: extractJobQuery(message),
+      message: "Ищу вакансии"
     };
   }
   
@@ -86,25 +102,44 @@ export function detectIntent(text: string): AIActionResponse {
   if (lowerText.includes("проверь работодателя") ||
       lowerText.includes("проверка компании") ||
       lowerText.includes("employer") ||
-      lowerText.includes("корфармо")) {
+      lowerText.includes("корфармо") ||
+      lowerText.includes("check employer")) {
     return {
       action: "EMPLOYER_CHECK",
-      query: extractCompanyQuery(text)
+      query: extractCompanyQuery(message),
+      message: "Проверяю работодателя"
     };
   }
   
   // Общий чат по умолчанию
   return {
     action: "GENERAL_CHAT",
-    query: text
+    query: message,
+    message: "Отвечаю на вопрос"
   };
 }
 
-function extractLocationQuery(text: string): string {
+function extractSearchQuery(text: string): string {
   const patterns = [
-    /(?:покажи|найди|где|маршрут|карта)\s+(.+)/i,
-    /(?:show|find|where|route|map)\s+(.+)/i,
-    /(?:кўрсат|топ|қаерда|маршрут)\s+(.+)/i
+    /(?:покажи|найди|где|карта)\s+(.+)/i,
+    /(?:show|find|where|map)\s+(.+)/i,
+    /(?:кўрсат|топ|қаерда|харита)\s+(.+)/i,
+    /(?:нишон|дар|харита)\s+(.+)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return match[1].trim();
+  }
+  
+  return text;
+}
+
+function extractRouteQuery(text: string): string {
+  const patterns = [
+    /(?:построй|маршрут|доехать)\s+(.+)/i,
+    /(?:build|route|direction)\s+(.+)/i,
+    /(?:йўл|маршрут)\s+(.+)/i
   ];
   
   for (const pattern of patterns) {
@@ -119,7 +154,7 @@ function extractJobQuery(text: string): string {
   const patterns = [
     /(?:ищу|вакансии|работа)\s+(.+)/i,
     /(?:looking|vacancy|job)\s+(.+)/i,
-    /(?:ишлайман|вакансия|иш)\s+(.+)/i
+    /(?:иш|кор|вакансия)\s+(.+)/i
   ];
   
   for (const pattern of patterns) {
@@ -149,17 +184,17 @@ function detectLanguage(text: string): string {
   if (/[а-яё]/i.test(text)) return "ru";
   if (/[ўғқҳәөү]/i.test(text)) return "uz";
   if (/[ӣӯҷҳҒҚ]/i.test(text)) return "tg";
+  if (/[өүҡң]/i.test(text)) return "ky";
   if (/[a-z]/i.test(text)) return "en";
   return "ru";
 }
 
-// Функция для выполнения действий
 export async function executeAIAction(actionResponse: AIActionResponse): Promise<any> {
   switch (actionResponse.action) {
     case "MAP_SEARCH":
       return await handleMapSearch(actionResponse.query);
-    case "MAP_ROUTE":
-      return await handleMapRoute(actionResponse.query);
+    case "BUILD_ROUTE":
+      return await handleBuildRoute(actionResponse.query);
     case "TRANSLATE":
       return await handleTranslate(actionResponse.query, actionResponse.language);
     default:
@@ -187,20 +222,20 @@ async function handleMapSearch(query: string | undefined) {
   }
 }
 
-async function handleMapRoute(query: string | undefined) {
+async function handleBuildRoute(query: string | undefined) {
   if (!query) return { error: "No route query" };
   
   try {
     const coordinates = await geocodeAddress(query);
     return {
-      action: "MAP_ROUTE",
+      action: "BUILD_ROUTE",
       query,
       coordinates,
       message: `Построил маршрут до: ${query}`
     };
   } catch (error) {
     return {
-      action: "MAP_ROUTE",
+      action: "BUILD_ROUTE",
       query,
       error: "Не удалось построить маршрут"
     };
@@ -218,7 +253,7 @@ async function handleTranslate(query: string | undefined, language: string = "ru
   };
 }
 
-// Заглушка для геокодинга (реализация в maps.ts)
+// Заглушка для геокодинга
 async function geocodeAddress(address: string): Promise<[number, number]> {
   // Реализация будет в maps.ts
   return [0, 0];
