@@ -1,34 +1,19 @@
 "use client";
 
-export interface VaqtaJob {
-  id: string;
-  source: 'hh' | 'trudvsem';
-  title: string;
-  company: string;
-  salary: string;
-  salary_min: number;
-  city: string;
-  description: string;
-  url: string;
-  schedule: string;
-  housing: boolean;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { VaqtaJob } from "../jobsAggregator";
 
 export const hhAdapter = {
-  async fetchJobs(query: string, city?: string): Promise<VaqtaJob[]> {
+  async fetchJobs(query: string): Promise<VaqtaJob[]> {
     try {
-      const params = new URLSearchParams({
-        text: query,
-        per_page: '10',
-        order_by: 'relevance'
+      const { data, error } = await supabase.functions.invoke("jobs-proxy", {
+        body: { source: "hh", query }
       });
-      if (city) params.append('area', '1'); // Simplified: mapping city to area ID would be better
 
-      const response = await fetch(`https://api.hh.ru/vacancies?${params.toString()}`, {
-        headers: { 'User-Agent': 'VaqtaAI/1.0 (dievds@gmail.com)' }
-      });
-      
-      const data = await response.json();
+      if (error || data?.error === "HH_NOT_CONFIGURED") {
+        throw new Error("HH_NOT_CONNECTED");
+      }
+
       return (data.items || []).map((item: any) => ({
         id: `hh_${item.id}`,
         source: 'hh',
@@ -43,8 +28,8 @@ export const hhAdapter = {
         housing: item.description?.toLowerCase().includes('проживание') || false
       }));
     } catch (err) {
-      console.error("[HH Adapter] Error:", err);
-      return [];
+      console.warn("[HH Adapter] Source not connected or failed");
+      throw err;
     }
   },
 

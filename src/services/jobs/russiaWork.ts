@@ -1,13 +1,19 @@
 "use client";
-import { VaqtaJob } from "./hh";
+
+import { supabase } from "@/integrations/supabase/client";
+import { VaqtaJob } from "../jobsAggregator";
 
 export const russiaWorkAdapter = {
   async fetchJobs(query: string): Promise<VaqtaJob[]> {
     try {
-      const url = `https://opendata.trudvsem.ru/api/v1/vacancies/any?text=${encodeURIComponent(query)}&limit=10`;
-      const response = await fetch(url);
-      const data = await response.json();
-      
+      const { data, error } = await supabase.functions.invoke("jobs-proxy", {
+        body: { source: "trudvsem", query }
+      });
+
+      if (error || data?.error === "TRUDVSEM_NOT_CONFIGURED") {
+        throw new Error("TRUDVSEM_NOT_CONNECTED");
+      }
+
       return (data.results?.vacancies || []).map((v: any) => {
         const item = v.vacancy;
         return {
@@ -25,8 +31,8 @@ export const russiaWorkAdapter = {
         };
       });
     } catch (err) {
-      console.error("[Trudvsem Adapter] Error:", err);
-      return [];
+      console.warn("[Trudvsem Adapter] Source not connected or failed");
+      throw err;
     }
   }
 };
