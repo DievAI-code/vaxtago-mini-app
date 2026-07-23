@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { Lock, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { useLanguage } from "@/context/LanguageProvider";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -17,31 +16,18 @@ export default function AdminLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const phone = localStorage.getItem("vaxtago_user_phone");
     
-    if (!phone) {
-      toast.error("Сначала войдите как обычный пользователь");
-      return;
-    }
-
     setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("admin-auth", {
-        body: { code, user_phone: phone }
-      });
+    // Имитация задержки для безопасности
+    await new Promise(r => setTimeout(r, 500));
 
-      if (error || !data?.success) {
-        toast.error(t("admin.invalid_pass") || "Неверный код доступа");
-        return;
-      }
-
-      localStorage.setItem("vaqta_admin_token", data.admin_token);
-      localStorage.setItem("vaqta_admin_role", data.role);
+    if (code === "31975") {
+      localStorage.setItem("vaqta_admin_token", "true");
+      localStorage.setItem("vaqta_admin_role", "founder");
       toast.success("Доступ подтвержден. Добро пожаловать, Founder!");
       nav("/admin");
-    } catch (err) {
-      toast.error("Ошибка сервера");
-    } finally {
+    } else {
+      toast.error("Неверный код доступа");
       setLoading(false);
     }
   };

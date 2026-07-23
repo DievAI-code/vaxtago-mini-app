@@ -18,7 +18,6 @@ const Jobs = lazy(() => import("./pages/Jobs"));
 const MapPage = lazy(() => import("./pages/Map"));
 const Maps = lazy(() => import("./pages/Maps"));
 const AiAssistant = lazy(() => import("./pages/AiAssistant"));
-const Profile = lazy(() => import("./pages/Profile"));
 const MyCabinet = lazy(() => import("./pages/MyCabinet"));
 const Scanner = lazy(() => import("./pages/Scanner"));
 const OcrTranslator = lazy(() => import("./pages/OcrTranslator"));
@@ -33,7 +32,6 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Login = lazy(() => import("./pages/Login"));
 const LanguageSelect = lazy(() => import("./pages/LanguageSelect"));
-const Admin = lazy(() => import("./pages/Admin"));
 const FounderDashboard = lazy(() => import("./pages/FounderDashboard"));
 const MigrationTracker = lazy(() => import("./pages/MigrationTracker"));
 const SOSLegal = lazy(() => import("./pages/SOSLegal"));
@@ -57,7 +55,7 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAdmin = localStorage.getItem("vaqta_admin_token") !== null;
+  const isAdmin = localStorage.getItem("vaqta_admin_token") === "true";
   return isAdmin ? <>{children}</> : <Navigate to="/admin/login" replace />;
 };
 

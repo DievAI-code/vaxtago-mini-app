@@ -82,7 +82,7 @@ export default function MyCabinet() {
   };
 
   const handleAdminAuth = () => {
-    if (isAdmin) {
+    if (localStorage.getItem("vaqta_admin_token") === "true") {
       nav("/admin");
       return;
     }
@@ -93,6 +93,7 @@ export default function MyCabinet() {
     e.preventDefault();
     if (adminCode === "31975") {
       localStorage.setItem("vaqta_admin_token", "true");
+      localStorage.setItem("vaqta_admin_role", "founder");
       setIsAdmin(true);
       setAdminModal(false);
       toast.success("Доступ администратора подтвержден");
@@ -112,7 +113,9 @@ export default function MyCabinet() {
   const handleLogout = () => {
     localStorage.removeItem("vaxtago_auth");
     localStorage.removeItem("vaxtago_user_phone");
+    localStorage.removeItem("vaxtago_user_data");
     localStorage.removeItem("vaqta_admin_token");
+    localStorage.removeItem("vaqta_admin_role");
     nav("/login");
   };
 
