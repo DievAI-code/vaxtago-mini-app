@@ -11,30 +11,28 @@ export function useAIAction() {
       case "MAP_SEARCH":
         navigate(`/maps?search=${encodeURIComponent(action.query || "")}`);
         break;
-      
+
       case "BUILD_ROUTE":
         navigate(`/maps?route=${encodeURIComponent(action.query || "")}`);
         break;
-      
+
       case "TRANSLATE":
-        // Можно открыть страницу перевода
         navigate(`/translate?text=${encodeURIComponent(action.query || "")}`);
         break;
-      
+
       case "DOCUMENT_SCAN":
         navigate("/scanner");
         break;
-      
+
       case "JOB_SEARCH":
         navigate(`/jobs?query=${encodeURIComponent(action.query || "")}`);
         break;
-      
+
       case "EMPLOYER_CHECK":
-        navigate(`/employer?query=${encodeURIComponent(action.query || "")}`);
+        navigate(`/jobs?query=${encodeURIComponent(action.query || "")}`);
         break;
-      
+
       default:
-        // Для GENERAL_CHAT ничего не делаем
         break;
     }
   };

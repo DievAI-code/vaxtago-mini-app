@@ -16,6 +16,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Home = lazy(() => import("./pages/Home"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const MapPage = lazy(() => import("./pages/Map"));
+const Maps = lazy(() => import("./pages/Maps"));
 const AiAssistant = lazy(() => import("./pages/AiAssistant"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Scanner = lazy(() => import("./pages/Scanner"));
@@ -69,6 +70,7 @@ const App = () => {
                         <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
                         <Route path="/jobs" element={<PrivateRoute><Jobs /></PrivateRoute>} />
                         <Route path="/map" element={<PrivateRoute><MapPage /></PrivateRoute>} />
+                        <Route path="/maps" element={<PrivateRoute><Maps /></PrivateRoute>} />
                         <Route path="/ai" element={<PrivateRoute><AiAssistant /></PrivateRoute>} />
                         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
                         <Route path="/scanner" element={<PrivateRoute><Scanner /></PrivateRoute>} />
