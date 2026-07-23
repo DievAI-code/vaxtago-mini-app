@@ -64,7 +64,6 @@
   100% { background-position: 200% 0; }
 }
 
-/* Fix for buttons visibility */
 button, a {
   @apply relative z-10;
 }

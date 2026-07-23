@@ -22,30 +22,17 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
   const nav = useNavigate();
   const loc = useLocation();
   const { t } = useLanguage();
-  const [role, setRole] = useState<string>('user');
-
-  useEffect(() => {
-    const fetchRole = async () => {
-      const phone = localStorage.getItem("vaxtago_user_phone");
-      if (phone && supabase) {
-        const { data } = await supabase.from("users").select("role").eq("phone_number", phone).single();
-        if (data) setRole(data.role);
-      }
-    };
-    if (isOpen) fetchRole();
-  }, [isOpen]);
 
   const MENU_ITEMS: Array<
-    | { path: string; icon: any; label: string; role?: string }
+    | { path: string; icon: any; label: string }
     | { separator: true }
   > = [
     { path: "/home", icon: LayoutGrid, label: "nav.home" },
     { path: "/ai", icon: Sparkles, label: "nav.ai" },
     { path: "/scanner", icon: Scan, label: "nav.scanner" },
     { path: "/map", icon: MapPin, label: "nav.map" },
-    { path: "/cabinet", icon: UserCircle, label: "nav.cabinet" },
+    { path: "/admin/login", icon: Key, label: "nav.admin" },
     { separator: true },
-    { path: "/admin", icon: Key, label: "nav.admin", role: "founder" },
     { path: "/tracker", icon: Calendar, label: "nav.tracker" },
     { path: "/sos", icon: ShieldAlert, label: "nav.sos" },
     { path: "/contract-audit", icon: FileSearch, label: "nav.contract" },
@@ -93,7 +80,6 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
             <div className="flex-1 overflow-y-auto p-3 space-y-1 no-scrollbar">
               {MENU_ITEMS.map((item, idx) => {
                 if ("separator" in item) return <div key={`sep-${idx}`} className="h-px bg-[#1A3D2E] my-3 mx-2" />;
-                if (item.role === 'founder' && role !== 'founder') return null;
 
                 return (
                   <button

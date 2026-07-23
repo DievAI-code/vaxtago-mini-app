@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
-import { Zap, Scan, Map as MapIcon, Database, Save, Loader2 } from "lucide-react";
+import { Zap, Scan, Map as MapIcon, Database, Save, Loader2 } from "lucide-center";
 import { toast } from "sonner";
 
 export default function AdminSettings() {
@@ -16,6 +16,7 @@ export default function AdminSettings() {
 
   const handleSave = async () => {
     setSaving(true);
+    // В реальности: вызов Edge Function для обновления конфига в БД
     await new Promise(r => setTimeout(r, 1000));
     setSaving(false);
     toast.success("Settings updated successfully");
