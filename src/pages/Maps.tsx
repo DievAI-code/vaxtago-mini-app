@@ -1,207 +1,103 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Search, Crosshair, Navigation, Loader2, MapPin, 
-  ArrowRightLeft, AlertCircle, RefreshCw, Mic, MicOff,
-  Footprints, Car
-} from "lucide-react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
-import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { Map } from "@/components/Map";
-import { geocodingService, GeocodingResult } from "@/services/geocodingService";
-import { routeService, RouteResult, TravelMode } from "@/services/maps/routeService";
-import { detectNavigationIntent } from "@/services/aiCommands";
-import { RoutePanel } from "@/components/maps/RoutePanel";
-import { useVoiceAssistant } from "@/hooks/useVoiceAssistant";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { Search, Navigation, Crosshair, MapPin, Bus, Car, Loader2 } from "lucide-react";
+import { geocodingService } from "@/services/geocodingService";
+import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
 
 export default function Maps() {
-  const [searchParams] = useSearchParams();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-
-  // Locations
-  const [origin, setOrigin] = useState<GeocodingResult | null>(null);
-  const [destination, setDestination] = useState<GeocodingResult | null>(null);
-  const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
-  
-  // Navigation State
-  const [route, setRoute] = useState<RouteResult | null>(null);
-  const [mode, setMode] = useState<TravelMode>("car");
+  const { t } = useLanguage();
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [coords, setCoords] = useState<[number, number]>([41.2995, 69.2401]);
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
 
-  const handleLocateMe = useCallback(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setUserCoords(coords);
-        setOrigin({
-          latitude: coords[0],
-          longitude: coords[1],
-          display_name: "Моё местоположение",
-          name: "Моё местоположение"
-        });
-      });
-    }
-  }, []);
-
-  const calculateRoute = async (from: GeocodingResult, to: GeocodingResult, travelMode: TravelMode) => {
+  const handleSearch = async () => {
+    if (!query.trim()) return;
     setLoading(true);
     try {
-      const res = await routeService.buildRoute(
-        [from.latitude, from.longitude],
-        [to.latitude, to.longitude],
-        travelMode
-      );
-      if (res) setRoute(res);
-      else toast.error("Не удалось построить маршрут");
+      const results = await geocodingService.searchAddress(query);
+      if (results.length > 0) {
+        setCoords([results[0].latitude, results[0].longitude]);
+        toast.success("Место найдено");
+      } else {
+        toast.error("Ничего не найдено");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const executeCommand = async (text: string) => {
-    setSearchQuery(text);
-    const result = detectNavigationIntent(text);
-    
-    if (result.intent === "route") {
-      setLoading(true);
-      try {
-        // 1. Resolve Destination
-        const toResults = await geocodingService.searchAddress(result.to || "");
-        if (toResults.length === 0) return toast.error("Место назначения не найдено");
-        const to = toResults[0];
-        setDestination(to);
-
-        // 2. Resolve Origin
-        let from: GeocodingResult | null = null;
-        if (result.from) {
-          const fromResults = await geocodingService.searchAddress(result.from);
-          if (fromResults.length > 0) from = fromResults[0];
-        } else {
-          // If no "from" provided, use user GPS
-          if (userCoords) {
-            from = {
-              latitude: userCoords[0],
-              longitude: userCoords[1],
-              display_name: "Я",
-              name: "Я"
-            };
-          } else {
-            handleLocateMe();
-          }
-        }
-        
-        if (from) {
-          setOrigin(from);
-          const travelMode = (result.mode as any === "transport") ? "transit" : (result.mode || "car");
-          await calculateRoute(from, to, travelMode as TravelMode);
-          setMode(travelMode as TravelMode);
-        } else {
-          toast.info("Геолокация недоступна. Поиск точки отправления...");
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // General search
-      setLoading(true);
-      try {
-        const results = await geocodingService.searchAddress(result.to || text);
-        if (results.length > 0) {
-          setDestination(results[0]);
-          setRoute(null);
-        } else {
-          toast.error("Ничего не найдено");
-        }
-      } finally {
-        setLoading(false);
-      }
+  const locateUser = () => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const up: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserPos(up);
+        setCoords(up);
+        toast.success("Местоположение определено");
+      });
     }
   };
 
-  const { isListening, toggleListening } = useVoiceAssistant(executeCommand);
-
-  useEffect(() => {
-    if (searchParams.get("search")) executeCommand(searchParams.get("search")!);
-    handleLocateMe();
-  }, []);
-
   return (
-    <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-36">
-      <Header title="nav.map" onMenuClick={() => setIsMenuOpen(true)} showBack />
-      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+    <div className="flex flex-col h-screen-dynamic bg-[#06140F] text-white overflow-hidden relative">
+      <Header title="nav.map" showBack />
 
-      <main className="flex-1 p-4 space-y-4 flex flex-col relative">
-        {/* Smart AI Input */}
-        <div className="vaqta-glass p-2 border-[#1A3D2E] shadow-xl relative z-20">
-          <div className="flex items-center gap-2 px-2">
-            <button onClick={toggleListening} className={`p-2 rounded-xl transition-all ${isListening ? "bg-red-500 text-white animate-pulse" : "bg-[#06140F] text-[#00A86B]"}`}>
-              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-            </button>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && executeCommand(searchQuery)}
-              placeholder="Куда едем? (напр: от вокзала до ЕПРС)"
-              className="flex-1 bg-transparent py-2.5 text-xs text-white outline-none font-bold"
-            />
-            <button onClick={() => executeCommand(searchQuery)} className="bg-[#00A86B] text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg">
-              {loading ? <Loader2 className="animate-spin" size={14} /> : "Путь"}
-            </button>
+      <div className="absolute inset-0 z-0 pt-16">
+        <Map
+          center={coords}
+          zoom={14}
+          userLocation={userPos}
+          className="w-full h-full rounded-none"
+          markers={userPos ? [{ id: 'user', title: 'Я', coordinates: userPos }] : []}
+        />
+      </div>
+
+      {/* Floating Controls */}
+      <div className="absolute top-24 right-4 flex flex-col gap-3 z-10">
+        <button onClick={locateUser} className="p-4 liquid-glass rounded-2xl text-[#00A86B] shadow-2xl active:scale-90 transition-all">
+          <Crosshair size={22} />
+        </button>
+      </div>
+
+      {/* Bottom Control Sheet */}
+      <div className="absolute bottom-24 left-0 right-0 px-4 z-20">
+        <GlassCard className="p-4 rounded-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] border-white/5 space-y-4">
+          <div className="flex items-center gap-3 liquid-glass !bg-white/5 px-4 py-1.5 rounded-2xl border-none">
+             <Search size={18} className="text-[#5C7A6D]" />
+             <input 
+               value={query}
+               onChange={(e) => setQuery(e.target.value)}
+               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+               placeholder={t("maps.search_ph") || "Поиск адреса..."}
+               className="flex-1 bg-transparent py-3 text-sm font-bold text-white outline-none"
+             />
+             {loading ? <Loader2 className="animate-spin text-[#00A86B]" size={18} /> : (
+               <button onClick={handleSearch} className="text-[#00A86B] font-black text-xs uppercase tracking-widest">Найти</button>
+             )}
           </div>
-        </div>
 
-        {/* Map Engine */}
-        <div className="relative flex-1 min-h-[350px] rounded-[2.5rem] overflow-hidden border border-[#1A3D2E] shadow-2xl z-10">
-          <Map
-            center={destination ? [destination.latitude, destination.longitude] : [41.2995, 69.2401]}
-            zoom={route ? 12 : 14}
-            markers={destination ? [{
-              id: "dest",
-              title: destination.name || destination.display_name,
-              coordinates: [destination.latitude, destination.longitude]
-            }] : []}
-            userLocation={userCoords}
-          />
-          <button onClick={handleLocateMe} className="absolute bottom-6 right-6 p-4 bg-[#06140F]/90 backdrop-blur-xl border border-white/10 rounded-2xl text-[#00A86B] shadow-2xl active:scale-95 transition-all z-[1000]">
-            <Crosshair size={22} />
-          </button>
-        </div>
-
-        {/* Route Panel Overlay */}
-        <AnimatePresence mode="wait">
-          {route && origin && destination ? (
-            <RoutePanel 
-              route={route} 
-              mode={mode} 
-              fromName={origin.name || "Место отправления"}
-              toName={destination.name || "Пункт назначения"}
-              onModeChange={(m) => { setMode(m); calculateRoute(origin!, destination!, m); }}
-              onStart={() => toast.success("Маршрут запущен! Следуйте инструкциям.")}
-            />
-          ) : destination && (
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="vaqta-glass p-5 border-[#00A86B]/30 space-y-3">
-              <div className="space-y-1">
-                 <p className="text-[9px] font-black uppercase text-[#00A86B]">Пункт назначения</p>
-                 <h3 className="font-extrabold text-base leading-snug text-white">{destination.name || destination.display_name.split(',')[0]}</h3>
-                 <p className="text-xs text-slate-300 font-medium truncate">{destination.address || destination.display_name}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                 <button onClick={() => { setMode("walking"); calculateRoute(origin || { latitude: userCoords![0], longitude: userCoords![1], display_name: "Я", name: "Я" }, destination, "walking"); }} className="h-12 bg-white/5 border border-white/10 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2"><Footprints size={14} /> Пешком</button>
-                 <button onClick={() => { setMode("car"); calculateRoute(origin || { latitude: userCoords![0], longitude: userCoords![1], display_name: "Я", name: "Я" }, destination, "car"); }} className="h-12 vaqta-gradient rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2"><Car size={14} /> На машине</button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+          <div className="grid grid-cols-3 gap-2">
+             <button className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-[#00A86B]/30 transition-all">
+                <Navigation size={20} className="text-[#00A86B]" />
+                <span className="text-[9px] font-black uppercase tracking-wider">Маршрут</span>
+             </button>
+             <button className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all">
+                <Car size={20} className="text-blue-500" />
+                <span className="text-[9px] font-black uppercase tracking-wider">Такси</span>
+             </button>
+             <button className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-purple-500/30 transition-all">
+                <Bus size={20} className="text-purple-500" />
+                <span className="text-[9px] font-black uppercase tracking-wider">Автобус</span>
+             </button>
+          </div>
+        </GlassCard>
+      </div>
 
       <BottomNav />
     </div>

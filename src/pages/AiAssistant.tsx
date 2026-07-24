@@ -2,31 +2,20 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Send, User, Bot, X, ImageIcon, Camera, Mic, 
-  Briefcase, MapPin, FileText, Sparkles, Languages 
-} from "lucide-react";
+import { Send, User, Bot, X, ImageIcon, Camera, Mic, ChevronLeft } from "lucide-react";
+import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
-import { Header } from "@/components/Header";
-import { SideMenu } from "@/components/SideMenu";
-import { MapCard } from "@/components/assistant/MapCard";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 export default function AiAssistant() {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
+  const nav = useNavigate();
   const { sendMessage, loading: isTyping, messages } = useAiChat();
   const [input, setInput] = useState("");
-  const [attachedImage, setAttachedImage] = useState<string | null>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const nav = useNavigate();
-
   const scrollRef = useRef<HTMLDivElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -34,180 +23,87 @@ export default function AiAssistant() {
     }
   }, [messages, isTyping]);
 
-  const handleSend = async (overrideText?: string) => {
-    const textToSend = overrideText !== undefined ? overrideText : input;
-    if ((!textToSend.trim() && !attachedImage) || isTyping) return;
-
+  const handleSend = async () => {
+    if (!input.trim() || isTyping) return;
+    const msg = input;
     setInput("");
-    const img = attachedImage;
-    setAttachedImage(null);
-
-    await sendMessage(textToSend.trim(), img || undefined);
+    await sendMessage(msg);
   };
-
-  const getGreeting = () => {
-    if (language === "uz_cyr") {
-      return "Сизга иш, ҳужжатлар, таржима ва манзиллар бўйича ёрдам бераман";
-    }
-    if (language === "uz") {
-      return "Sizga ish, hujjatlar, tarjima va manzillar bo'yicha yordam beraman";
-    }
-    if (language === "en") {
-      return "Hello! I am VAQTA AI Assistant.\nI help with jobs, documents, translation, and addresses.";
-    }
-    return "Здравствуйте! Я VAQTA AI помощник.\nПомогаю с работой, документами, переводом и адресами.";
-  };
-
-  const TOP_QUICK_BUTTONS = [
-    { label: language.startsWith("uz") ? "🤖 Савол бериш" : "🤖 Задать вопрос", action: () => setInput(language.startsWith("uz") ? "Патент муддати қанча?" : "Сколько стоит патент?") },
-    { label: language.startsWith("uz") ? "📷 Расм таржима" : "📷 Фото перевод", action: () => nav("/scanner") },
-    { label: language.startsWith("uz") ? "💼 Иш топиш" : "💼 Поиск работы", action: () => handleSend(language.startsWith("uz") ? "иш керак" : "нужна работа") },
-    { label: language.startsWith("uz") ? "📍 Манзил топиш" : "📍 Найти адрес", action: () => setInput(language.startsWith("uz") ? "Тюмень вокзал" : "Вокзал Тюмень") },
-    { label: language.startsWith("uz") ? "📄 Ҳужжатлар" : "📄 Документы", action: () => handleSend(language.startsWith("uz") ? "патент керак" : "помощь с патентом") },
-  ];
 
   return (
-    <div className="flex flex-col h-screen-dynamic bg-[#06140F] text-white overflow-hidden">
-      <Header title="nav.ai" onMenuClick={() => setIsMenuOpen(true)} />
-      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+    <div className="flex flex-col h-screen-dynamic bg-[#06140F] text-white overflow-hidden pb-safe">
+      <Header title="nav.ai" showBack />
 
-      {/* Quick horizontal action bar */}
-      <div className="px-3 py-2 bg-[#0C1F1A] border-b border-[#1A3D2E] flex gap-2 overflow-x-auto no-scrollbar flex-shrink-0">
-        {TOP_QUICK_BUTTONS.map((btn, idx) => (
-          <button
-            key={idx}
-            onClick={btn.action}
-            className="px-3 py-1.5 bg-[#06140F] border border-[#1A3D2E] rounded-xl text-xs font-bold text-white whitespace-nowrap active:scale-95 transition-all hover:border-[#00A86B]"
-          >
-            {btn.label}
-          </button>
-        ))}
-      </div>
-
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar smooth-scroll pb-36">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-6 no-scrollbar smooth-scroll pb-40">
         {messages.length === 0 && (
-          <div className="text-center py-8 text-[#5C7A6D] space-y-4">
-            <div className="w-20 h-20 rounded-full vaqta-gradient flex items-center justify-center mx-auto shadow-2xl vaqta-glow">
-              <Bot size={40} className="text-white" />
-            </div>
-            <div className="space-y-2 max-w-xs mx-auto">
-              <p className="text-sm font-black text-white whitespace-pre-line leading-relaxed">
-                {getGreeting()}
-              </p>
-              <p className="text-[10px] uppercase font-bold text-[#5C7A6D] tracking-widest pt-2">
-                {t("chat.sub_hint")}
-              </p>
-            </div>
+          <div className="text-center py-20 space-y-4 opacity-50">
+            <Bot size={64} className="mx-auto text-[#00A86B]" />
+            <p className="text-sm font-bold uppercase tracking-[0.2em]">{t("chat.welcome")}</p>
           </div>
         )}
 
         {messages.map((m, i) => (
-          <div key={i} className="space-y-2">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex gap-2.5 ${m.role === "user" ? "flex-row-reverse" : ""}`}
-            >
-              <div className={`w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg ${m.role === "user" ? "bg-[#1A3D2E]" : "vaqta-gradient"}`}>
-                {m.role === "user" ? <User size={14} /> : <Bot size={14} />}
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
+          >
+            <div className="flex items-end gap-2 max-w-[85%]">
+              {m.role === "assistant" && (
+                <div className="w-6 h-6 rounded-full vaqta-gradient flex items-center justify-center flex-shrink-0 mb-1">
+                  <Bot size={12} />
+                </div>
+              )}
+              
+              <div className={cn(
+                "px-4 py-3 text-sm font-bold leading-relaxed",
+                m.role === "user" ? "message-user" : "message-ai"
+              )}>
+                {m.content}
               </div>
-              <div className={`max-w-[85%] p-3.5 rounded-2xl text-xs leading-relaxed font-bold shadow-xl ${m.role === "user" ? "bg-[#00A86B] text-white rounded-tr-none" : "bg-[#0C1F1A] border border-[#1A3D2E] rounded-tl-none text-slate-100"}`}>
-                <p className="whitespace-pre-wrap">{m.content}</p>
-              </div>
-            </motion.div>
-
-            {/* Interactive response chips */}
-            {m.role === "assistant" && m.chips && m.chips.length > 0 && (
-              <div className="pl-10 flex flex-wrap gap-2 pt-1">
-                {m.chips.map((chip, cIdx) => (
-                  <button
-                    key={cIdx}
-                    onClick={() => handleSend(chip.value)}
-                    className="px-3 py-2 bg-[#00A86B]/15 border border-[#00A86B]/40 text-[#00A86B] hover:bg-[#00A86B] hover:text-white rounded-xl text-xs font-black transition-all active:scale-95 shadow-md"
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {m.role === "assistant" && m.action && (
-              <div className="pl-10">
-                <MapCard 
-                  query={m.action.query || m.action.destination} 
-                  type={m.action.action === "MAP_ROUTE" ? "route" : m.action.action === "MAP_NEARBY" ? "nearby" : "search"} 
-                />
-              </div>
-            )}
-          </div>
+            </div>
+            <span className="text-[9px] font-black uppercase text-[#5C7A6D] mt-1.5 px-2">
+              {m.role === "user" ? "You" : "VAQTA AI"}
+            </span>
+          </motion.div>
         ))}
 
         {isTyping && (
-          <div className="flex gap-2.5">
-            <div className="w-8 h-8 rounded-xl vaqta-gradient flex items-center justify-center">
-              <Bot size={14} />
-            </div>
-            <div className="bg-[#0C1F1A] border border-[#1A3D2E] p-3 rounded-2xl flex gap-1.5 items-center">
-              <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 bg-[#00A86B] rounded-full" />
-              <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#00A86B] rounded-full" />
-              <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#00A86B] rounded-full" />
-            </div>
+          <div className="flex items-center gap-3">
+             <div className="w-6 h-6 rounded-full vaqta-gradient flex items-center justify-center"><Bot size={12} /></div>
+             <div className="liquid-glass px-4 py-3 rounded-2xl rounded-tl-none flex gap-1.5 items-center">
+                <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 bg-[#00A86B] rounded-full" />
+                <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#00A86B] rounded-full" />
+                <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#00A86B] rounded-full" />
+             </div>
           </div>
         )}
       </div>
 
-      {/* Input bar */}
-      <div className="fixed bottom-20 left-0 w-full px-3 pb-2 z-50">
-        <AnimatePresence>
-          {attachedImage && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="relative mb-2 inline-block">
-              <img src={attachedImage} alt="Attached" className="w-16 h-16 rounded-xl object-cover border-2 border-[#00A86B] shadow-2xl" />
-              <button onClick={() => setAttachedImage(null)} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white border-2 border-[#06140F]">
-                <X size={10} />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="relative vaqta-glass border-[#1A3D2E] focus-within:border-[#00A86B]/50 transition-all p-2 pr-3 flex items-center gap-2 shadow-2xl">
-          <div className="flex items-center gap-0.5">
-            <button onClick={() => fileRef.current?.click()} className="p-2 text-[#5C7A6D] hover:text-[#00A86B] active:scale-90 transition-transform"><ImageIcon size={18} /></button>
-            <button onClick={() => cameraRef.current?.click()} className="p-2 text-[#5C7A6D] hover:text-[#00A86B] active:scale-90 transition-transform"><Camera size={18} /></button>
-            <button onClick={() => { setIsRecording(!isRecording); if (!isRecording) toast.info(language.startsWith("uz") ? "Овозли хабар ёзилмоқда..." : "Запись голоса..."); }} className={`p-2 transition-transform active:scale-90 ${isRecording ? "text-red-500 animate-pulse" : "text-[#5C7A6D]"}`}>
-              <Mic size={18} />
-            </button>
-          </div>
-
-          <textarea
+      {/* Input Panel */}
+      <div className="fixed bottom-24 left-0 right-0 px-4 z-50">
+        <div className="max-w-2xl mx-auto liquid-glass p-2 flex items-center gap-2 shadow-2xl rounded-[2rem]">
+          <button className="p-3 text-[#5C7A6D] hover:text-[#00A86B] transition-colors">
+            <Mic size={20} />
+          </button>
+          
+          <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
-            placeholder={t("chat.placeholder")}
-            className="flex-1 bg-transparent py-2 text-xs text-white focus:outline-none resize-none max-h-28 min-h-[36px] no-scrollbar font-bold"
-            rows={1}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            placeholder={t("chat.placeholder") || "Напишите что-нибудь..."}
+            className="flex-1 bg-transparent py-3 text-sm font-bold text-white outline-none placeholder-[#5C7A6D]"
           />
 
-          <button onClick={() => handleSend()} disabled={!input.trim() && !attachedImage} className="p-2.5 bg-[#00A86B] text-white rounded-xl disabled:opacity-20 transition-all shadow-lg active:scale-95 vaqta-glow">
-            <Send size={16} />
+          <button 
+            onClick={handleSend}
+            disabled={!input.trim() || isTyping}
+            className="p-3 vaqta-gradient text-white rounded-full shadow-lg disabled:opacity-30 active:scale-95 transition-all"
+          >
+            <Send size={18} />
           </button>
         </div>
-
-        <input type="file" ref={fileRef} accept="image/*" className="hidden" onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const r = new FileReader();
-            r.onload = (ev) => setAttachedImage(ev.target?.result as string);
-            r.readAsDataURL(file);
-          }
-        }} />
-        <input type="file" ref={cameraRef} accept="image/*" capture="environment" className="hidden" onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const r = new FileReader();
-            r.onload = (ev) => setAttachedImage(ev.target?.result as string);
-            r.readAsDataURL(file);
-          }
-        }} />
       </div>
 
       <BottomNav />

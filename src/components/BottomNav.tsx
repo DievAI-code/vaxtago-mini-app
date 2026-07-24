@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Bot, Camera, Briefcase, MapPin, User } from "lucide-react";
+import { Home, Bot, MapPin, User, Camera } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 
 export function BottomNav() {
@@ -11,16 +11,16 @@ export function BottomNav() {
   const { t } = useLanguage();
 
   const ITEMS = [
-    { path: "/home", icon: Bot, label: t("buttons.ai") || "🤖 AI" },
-    { path: "/scanner", icon: Camera, label: t("buttons.scanner") || "📷 Фото" },
-    { path: "/jobs-test", icon: Briefcase, label: t("buttons.jobs") || "💼 Работа" },
-    { path: "/maps", icon: MapPin, label: t("buttons.maps") || "📍 Карта" },
-    { path: "/cabinet", icon: User, label: t("nav.profile") || "Профиль" },
+    { path: "/home", icon: Home, label: t("nav.home") || "Home" },
+    { path: "/ai", icon: Bot, label: t("nav.ai") || "AI" },
+    { path: "/scanner", icon: Camera, label: t("nav.scanner") || "Scanner" },
+    { path: "/maps", icon: MapPin, label: t("nav.map") || "Maps" },
+    { path: "/cabinet", icon: User, label: t("nav.profile") || "Profile" },
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-2 z-[100] pointer-events-none pb-safe">
-      <nav className="mx-auto flex items-center justify-around px-2 py-2 bg-[#0C1F1A]/95 backdrop-blur-3xl border border-[#1A3D2E] rounded-[2.2rem] w-full max-w-md pointer-events-auto shadow-[0_-10px_40px_rgba(0,0,0,0.6)]">
+    <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-2 z-[100] pointer-events-none pb-safe">
+      <nav className="mx-auto flex items-center justify-around px-2 py-3 liquid-glass rounded-full w-full max-w-md pointer-events-auto shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
         {ITEMS.map((item) => {
           const active = loc.pathname === item.path || (item.path === "/home" && loc.pathname === "/");
           const Icon = item.icon;
@@ -30,27 +30,29 @@ export function BottomNav() {
               key={item.path}
               type="button"
               onClick={() => nav(item.path)}
-              className="relative flex flex-col items-center gap-1 transition-all duration-300 min-w-[56px] outline-none active:scale-90"
+              className="relative flex flex-col items-center justify-center p-2 min-w-[64px] outline-none group"
             >
               {active && (
                 <motion.div
-                  layoutId="nav-glow-active"
-                  className="absolute -inset-1 bg-[#00A86B]/20 rounded-2xl blur-md"
+                  layoutId="active-nav-bg"
+                  className="absolute inset-0 bg-[#00A86B]/15 rounded-2xl blur-sm"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
               )}
               <motion.div
                 animate={{
-                  scale: active ? 1.15 : 1,
-                  color: active ? "#00A86B" : "#5C7A6D",
+                  scale: active ? 1.1 : 1,
+                  color: active ? "#00A86B" : "#8E8E93",
                 }}
-                className="relative z-10"
+                className="relative z-10 mb-1"
               >
-                <Icon size={20} strokeWidth={active ? 2.8 : 2} />
+                <Icon size={22} strokeWidth={active ? 2.5 : 2} />
               </motion.div>
               <span
-                className={`text-[9px] font-black uppercase tracking-tight transition-colors relative z-10 text-center truncate max-w-[64px] ${
-                  active ? "text-[#00A86B]" : "text-[#5C7A6D]"
-                }`}
+                className={cn(
+                  "text-[10px] font-bold tracking-tight relative z-10 transition-colors duration-300",
+                  active ? "text-[#00A86B]" : "text-[#8E8E93]"
+                )}
               >
                 {item.label}
               </span>

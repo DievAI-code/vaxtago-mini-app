@@ -4,14 +4,14 @@
 
 @layer base {
   :root {
-    --background: 160 54% 5%;
+    --background: 160 54% 5%; /* #06140F */
     --foreground: 0 0% 100%;
-    --card: 160 54% 8%;
+    --card: 0 0% 100% / 0.08;
     --card-foreground: 0 0% 100%;
-    --primary: 158 100% 33%;
-    --primary-foreground: 0 0% 100%;
-    --accent: 160 100% 42%;
-    --border: 160 20% 15%;
+    --primary: 158 100% 33%; /* #00A86B */
+    --secondary: 221 83% 53%; /* #2563EB */
+    --ai-accent: 263 90% 66%; /* #8B5CF6 */
+    --border: 0 0% 100% / 0.15;
     --radius: 1.5rem;
   }
 }
@@ -23,66 +23,65 @@
     color: #FFFFFF;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
+    font-family: 'Inter', sans-serif;
   }
 
   body {
     @apply antialiased selection:bg-[#00A86B]/30;
-    font-family: 'Inter', sans-serif;
     overflow: hidden;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-black uppercase;
+  }
 }
 
 @layer utilities {
+  .glass-effect {
+    @apply backdrop-blur-[20px] bg-white/5 border border-white/10 shadow-2xl;
+  }
+  
+  .liquid-glass {
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 100%);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  }
+
   .h-screen-dynamic {
     height: 100vh;
     height: 100dvh;
   }
   
-  .min-h-screen-dynamic {
-    min-height: 100vh;
-    min-height: 100dvh;
-  }
-
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pt-safe { padding-top: env(safe-area-inset-top); }
   
-  .pt-safe {
-    padding-top: env(safe-area-inset-top);
-  }
-
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-.vaqta-glass {
-  @apply bg-[#0C1F1A]/85 backdrop-blur-xl border border-[#1A3D2E] rounded-[2.2rem] shadow-2xl;
+.vaqta-gradient {
+  background: linear-gradient(135deg, #00A86B 0%, #2563EB 100%);
 }
 
-/* Uzbekistan 🇺🇿 + Russia 🇷🇺 Friendship Gradient */
-.vaqta-gradient {
-  background: linear-gradient(135deg, #00A86B 0%, #00A3E0 50%, #2563EB 100%);
+.ai-gradient {
+  background: linear-gradient(135deg, #8B5CF6 0%, #2563EB 100%);
 }
 
 .vaqta-glow {
-  box-shadow: 0 0 35px rgba(0, 168, 107, 0.25), 0 0 15px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 40px rgba(0, 168, 107, 0.2), 0 0 20px rgba(37, 99, 235, 0.1);
 }
 
-.vaqta-gold-text {
-  background: linear-gradient(135deg, #D4AF37 0%, #F4D03F 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+.message-ai {
+  @apply liquid-glass rounded-2xl rounded-tl-none;
 }
 
-/* Smooth scrolling */
-.smooth-scroll {
-  scroll-behavior: smooth;
+.message-user {
+  @apply vaqta-gradient rounded-2xl rounded-tr-none shadow-lg shadow-black/20;
 }
 
-button, a {
-  @apply relative z-10;
-  touch-action: manipulation;
+.bottom-tab-bar {
+  @apply fixed bottom-0 left-0 right-0 glass-effect pb-safe px-6 py-3 flex justify-between items-center z-[100] rounded-t-[2.5rem] border-t border-white/10;
 }

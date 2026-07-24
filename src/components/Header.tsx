@@ -1,9 +1,8 @@
 "use client";
 
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Menu, Bell } from "lucide-react";
+import { ChevronLeft, Menu, Bell, User } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
-import { motion } from "framer-motion";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 interface HeaderProps {
@@ -17,31 +16,36 @@ export function Header({ title, showBack = false, onMenuClick }: HeaderProps) {
   const { t } = useLanguage();
 
   return (
-    <header className="p-4 flex items-center justify-between sticky top-0 bg-[#06140F]/80 backdrop-blur-md z-50 safe-top border-b border-[#1A3D2E]">
+    <header className="p-4 flex items-center justify-between sticky top-0 bg-[#06140F]/60 backdrop-blur-xl z-[90] pt-safe border-b border-white/5">
       <div className="flex items-center gap-3">
         {showBack ? (
           <button 
             onClick={() => nav(-1)}
-            className="p-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-xl text-[#5C7A6D] active:scale-90 transition-transform"
+            className="p-2.5 liquid-glass rounded-xl text-slate-300 active:scale-90 transition-transform"
           >
             <ChevronLeft size={20} />
           </button>
         ) : (
           <button 
             onClick={onMenuClick}
-            className="p-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-xl text-[#00A86B] active:scale-90 transition-transform"
+            className="p-2.5 liquid-glass rounded-xl text-[#00A86B] active:scale-90 transition-transform"
           >
             <Menu size={20} />
           </button>
         )}
-        <h1 className="text-lg font-black tracking-tight text-white uppercase">{t(title)}</h1>
+        <h1 className="text-sm font-black tracking-[0.1em] text-white uppercase ml-1">
+          {title.includes('.') ? t(title) : title}
+        </h1>
       </div>
       
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <LanguageSwitcher />
-        <button className="p-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-xl text-[#5C7A6D] relative">
-          <Bell size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-[#00A86B] rounded-full border border-[#06140F]" />
+        <button 
+          onClick={() => nav("/cabinet")}
+          className="p-2.5 liquid-glass rounded-xl text-slate-400 relative active:scale-90 transition-all"
+        >
+          <User size={20} />
+          <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-[#00A86B] rounded-full border-2 border-[#06140F]" />
         </button>
       </div>
     </header>
