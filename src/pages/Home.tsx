@@ -2,7 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Bot, X, ImageIcon, Camera, Mic, Briefcase, MapPin, Sparkles, Languages } from "lucide-react";
+import { 
+  Send, User, Bot, X, ImageIcon, Camera, Mic, 
+  Briefcase, MapPin, FileText, Sparkles, Languages, Heart 
+} from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
@@ -38,7 +41,7 @@ export default function Home() {
 
     const access = await subscription.checkUserAccess("ai");
     if (!access.allowed) {
-      toast.error(t("premium.feature_locked") || "AI лимит тугади.");
+      toast.error(t("premium.feature_locked") || "AI limit tugadi.");
       return;
     }
 
@@ -51,43 +54,37 @@ export default function Home() {
     await subscription.trackUsage("ai");
   };
 
-  const getGreeting = () => {
-    if (language === "uz_cyr") {
-      return "Сизга иш, ҳужжатлар, таржима ва манзиллар бўйича ёрдам бераман";
-    }
-    if (language === "uz") {
-      return "Sizga ish, hujjatlar, tarjima va manzillar bo'yicha yordam beraman";
-    }
-    if (language === "en") {
-      return "I can help you with jobs, documents, translation, and addresses.";
-    }
-    return "Помогаю с работой, документами, переводом и адресами.";
-  };
-
-  const QUICK_ACTION_BUTTONS = [
+  // Requested Action Cards
+  const ACTION_CARDS = [
     { 
-      label: language === "uz" ? "AI yordamchi" : "AI ёрдамчи", 
-      icon: Bot, 
+      label: language === "uz_cyr" ? "🤖 AI ёрдамчи" : "🤖 AI yordamchi", 
+      desc: language === "uz_cyr" ? "Савол ва исталган ёрдам" : "Savol va istalgan yordam",
       color: "from-[#00A86B] to-[#00D4A8]",
       action: () => nav("/ai") 
     },
     { 
-      label: language === "uz" ? "Rasm tarjima" : "Расм таржима", 
-      icon: Camera, 
-      color: "from-purple-600 to-indigo-500",
+      label: language === "uz_cyr" ? "📷 Расмдан таржима" : "📷 Rasmdan tarjima", 
+      desc: language === "uz_cyr" ? "Ҳужжат ва чек фотоси" : "Hujjat va chek fotosi",
+      color: "from-[#00A3E0] to-[#2563EB]",
       action: () => nav("/scanner") 
     },
     { 
-      label: language === "uz" ? "Ish qidirish" : "Иш қидириш", 
-      icon: Briefcase, 
+      label: language === "uz_cyr" ? "💼 Иш топиш" : "💼 Ish topish", 
+      desc: language === "uz_cyr" ? "Текширилган вакансиялар" : "Tekshirilgan vakansiyalar",
       color: "from-emerald-600 to-teal-500",
       action: () => nav("/jobs-test") 
     },
     { 
-      label: language === "uz" ? "Manzil topish" : "Манзил топиш", 
-      icon: MapPin, 
-      color: "from-amber-500 to-orange-500",
-      action: () => { setInput(language === "uz" ? "Toshkent vokzali" : "Вокзал Тюмень"); } 
+      label: language === "uz_cyr" ? "📍 Манзил топиш" : "📍 Manzil topish", 
+      desc: language === "uz_cyr" ? "2ГИС харита ва маршрут" : "2GIS xarita va marshrut",
+      color: "from-blue-600 to-indigo-600",
+      action: () => { setInput(language.startsWith("uz") ? "Toshkent vokzali" : "Вокзал Тюмень"); } 
+    },
+    { 
+      label: language === "uz_cyr" ? "📄 Ҳужжат ёрдам" : "📄 Hujjat yordam", 
+      desc: language === "uz_cyr" ? "Патент ва шартнома" : "Patent va shartnoma",
+      color: "from-purple-600 to-pink-600",
+      action: () => nav("/contract-audit") 
     },
   ];
 
@@ -97,44 +94,69 @@ export default function Home() {
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-5 no-scrollbar smooth-scroll pb-36 pt-safe">
-        {/* Main Banner Greeting */}
+        
+        {/* Uzbekistan 🇺🇿 ⇄ 🇷🇺 Russia Friendship Welcome Banner */}
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="vaqta-glass p-5 border-[#00A86B]/30 bg-gradient-to-br from-[#00A86B]/15 via-[#0C1F1A] to-[#06140F] space-y-3 shadow-2xl"
+          className="vaqta-glass p-5 border-[#00A86B]/30 bg-gradient-to-br from-[#00A86B]/15 via-[#0C1F1A] to-[#1E40AF]/15 space-y-4 shadow-2xl relative overflow-hidden"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl vaqta-gradient flex items-center justify-center text-white shadow-xl vaqta-glow flex-shrink-0">
-              <Bot size={28} />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full vaqta-friendship-badge">
+              <span className="text-sm">🇺🇿</span>
+              <span className="text-[10px] font-black text-[#00D4A8] uppercase tracking-wider">
+                {language === "uz_cyr" ? "Ўзбекистондан" : "O'zbekistondan"}
+              </span>
+              <span className="text-xs text-slate-400">⇄</span>
+              <span className="text-sm">🇷🇺</span>
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">
+                {language === "uz_cyr" ? "Россияда ёрдамчи" : "Rossiyada yordamchi"}
+              </span>
             </div>
-            <div>
-              <span className="font-black text-white text-lg tracking-tight">VAQTA <span className="text-[#00A86B]">AI</span></span>
-              <p className="text-[10px] text-[#00A86B] font-black uppercase tracking-widest">Digital Assistant</p>
+            <div className="w-8 h-8 rounded-full vaqta-gradient flex items-center justify-center text-white shadow-md">
+              <Bot size={18} />
             </div>
           </div>
-          <h2 className="text-sm font-extrabold text-slate-100 leading-relaxed">
-            {getGreeting()}
-          </h2>
+
+          <div>
+            <h1 className="text-2xl font-black text-white tracking-tight">VAQTA <span className="text-[#00A86B]">AI</span></h1>
+            <p className="text-xs text-slate-300 font-bold mt-1 leading-relaxed">
+              {language === "uz_cyr" 
+                ? "AI ёрдамчи сизга қуйидагилар бўйича ёрдам беради:" 
+                : "AI yordamchi sizga quyidagilar bo'yicha yordam beradi:"}
+            </p>
+            <div className="grid grid-cols-2 gap-2 mt-3 text-[11px] font-bold text-slate-200">
+              <div className="flex items-center gap-1.5"><span className="text-[#00A86B]">•</span> {language.startsWith("uz") ? "Ish qidirish" : "Поиск работы"}</div>
+              <div className="flex items-center gap-1.5"><span className="text-[#00A3E0]">•</span> {language.startsWith("uz") ? "Hujjatlar" : "Документы"}</div>
+              <div className="flex items-center gap-1.5"><span className="text-blue-400">•</span> {language.startsWith("uz") ? "Tarjimalar" : "Переводы"}</div>
+              <div className="flex items-center gap-1.5"><span className="text-emerald-400">•</span> {language.startsWith("uz") ? "2GIS Manzil" : "Поиск адресов"}</div>
+            </div>
+          </div>
         </motion.div>
 
-        {/* 4 Large Action Buttons */}
+        {/* Feature Cards Grid */}
         <div className="grid grid-cols-2 gap-3">
-          {QUICK_ACTION_BUTTONS.map((btn, idx) => (
+          {ACTION_CARDS.map((card, idx) => (
             <motion.button
               key={idx}
               whileTap={{ scale: 0.95 }}
-              onClick={btn.action}
-              className="vaqta-glass p-4 border-[#1A3D2E] flex flex-col items-center gap-2 text-center active:scale-95 transition-all shadow-lg hover:border-[#00A86B]/50"
+              onClick={card.action}
+              className={`vaqta-glass p-4 border-[#1A3D2E] flex flex-col items-start gap-2 text-left active:scale-95 transition-all shadow-lg hover:border-[#00A86B]/50 ${idx === 4 ? "col-span-2 flex-row items-center justify-between" : ""}`}
             >
-              <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${btn.color} flex items-center justify-center text-white shadow-md`}>
-                <btn.icon size={22} />
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${card.color} flex items-center justify-center text-white shadow-md flex-shrink-0`}>
+                  <span className="text-base">{card.label.split(" ")[0]}</span>
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-white leading-tight uppercase tracking-wider">{card.label.slice(2)}</h3>
+                  <p className="text-[10px] text-[#5C7A6D] font-bold">{card.desc}</p>
+                </div>
               </div>
-              <span className="text-xs font-black text-white leading-tight uppercase tracking-wider">{btn.label}</span>
             </motion.button>
           ))}
         </div>
 
-        {/* Dynamic AI Messages */}
+        {/* Dynamic Chat Stream */}
         {messages.map((m, i) => (
           <div key={i} className="space-y-3">
             <motion.div

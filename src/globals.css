@@ -28,7 +28,7 @@
   body {
     @apply antialiased selection:bg-[#00A86B]/30;
     font-family: 'Inter', sans-serif;
-    overflow: hidden; /* Prevent body scroll, app containers handle it */
+    overflow: hidden;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
@@ -58,15 +58,20 @@
 }
 
 .vaqta-glass {
-  @apply bg-[#0C1F1A]/80 backdrop-blur-xl border border-[#1A3D2E] rounded-[2.5rem] shadow-2xl;
+  @apply bg-[#0C1F1A]/85 backdrop-blur-xl border border-[#1A3D2E] rounded-[2.2rem] shadow-2xl;
 }
 
+/* Uzbekistan 🇺🇿 + Russia 🇷🇺 Friendship Gradient */
 .vaqta-gradient {
-  background: linear-gradient(135deg, #00A86B 0%, #00D4A8 100%);
+  background: linear-gradient(135deg, #00A86B 0%, #00A3E0 50%, #2563EB 100%);
+}
+
+.vaqta-gradient-border {
+  border-image: linear-gradient(135deg, #00A86B, #00A3E0, #2563EB) 1;
 }
 
 .vaqta-glow {
-  box-shadow: 0 0 30px rgba(0, 168, 107, 0.25);
+  box-shadow: 0 0 35px rgba(0, 168, 107, 0.25), 0 0 15px rgba(37, 99, 235, 0.15);
 }
 
 .vaqta-gold-text {
@@ -76,21 +81,15 @@
   -webkit-text-fill-color: transparent;
 }
 
+.vaqta-friendship-badge {
+  background: linear-gradient(135deg, rgba(0, 168, 107, 0.15), rgba(37, 99, 235, 0.15));
+  border: 1px solid rgba(0, 212, 168, 0.3);
+}
+
 .text-tiny { font-size: 0.7rem; line-height: 1rem; font-weight: 700; letter-spacing: 0.05em; }
 .text-caption { font-size: 0.8rem; line-height: 1.1rem; font-weight: 500; }
 
-.ai-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(0, 212, 168, 0.1), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-/* Smooth scrolling for chat containers */
+/* Smooth scrolling */
 .smooth-scroll {
   scroll-behavior: smooth;
 }
