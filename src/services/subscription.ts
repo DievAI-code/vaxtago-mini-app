@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhone } from "@/lib/normalizePhone";
 
 export type FeatureType = "ai" | "ocr" | "maps" | "routes" | "jobs";
 export type PremiumMode = "off" | "selected" | "all";
@@ -25,12 +26,9 @@ export interface AccessResult {
 
 let cachedSettings: AppSettings | null = null;
 let lastSettingsFetch = 0;
-const CACHE_TTL_MS = 15000; // 15 sec cache
+const CACHE_TTL_MS = 15000;
 
 export const subscription = {
-  /**
-   * Получить текущие настройки системы (с кратковременным кэшированием)
-   */
   async getSettings(forceRefresh = false): Promise<AppSettings> {
     const now = Date.now();
     if (!forceRefresh && cachedSettings && now - lastSettingsFetch < CACHE_TTL_MS) {
@@ -69,24 +67,20 @@ export const subscription = {
     }
   },
 
-  /**
-   * Единственная функция проверки доступа к сервисам
-   */
   async checkUserAccess(feature: FeatureType): Promise<AccessResult> {
     const settings = await this.getSettings();
     const mode = settings.premium_mode;
 
-    // 1. Если включен режим ALL USERS — доступ без ограничений всем
     if (mode === "all") {
-      return {
-        allowed: true,
-        isPremium: true,
-        remaining: Infinity,
-        mode: "all"
-      };
+      return { allowed: true, isPremium: true, remaining: Infinity, mode: "all" };
     }
 
-    const phone = localStorage.getItem("vaxtago_user_phone");
+    const rawPhone = localStorage.getItem("vaxtago_user_phone");
+    if (!rawPhone) {
+      return { allowed: true, isPremium: false, remaining: 5, mode };
+    }
+
+    const phone = normalizePhone(rawPhone);
     if (!phone) {
       return { allowed: true, isPremium: false, remaining: 5, mode };
     }
@@ -106,23 +100,17 @@ export const subscription = {
 
       const isUserPremium = user.subscription_status === "premium" || user.is_premium === true;
 
-      // 2. Если режим SELECTED USERS
-      if (mode === "selected") {
-        if (isUserPremium) {
-          return { allowed: true, isPremium: true, remaining: Infinity, mode: "selected" };
-        }
+      if (mode === "selected" && isUserPremium) {
+        return { allowed: true, isPremium: true, remaining: Infinity, mode: "selected" };
       }
 
-      // Если пользователь имеет статус premium — всегда безлимит
       if (isUserPremium) {
         return { allowed: true, isPremium: true, remaining: Infinity, mode };
       }
 
-      // 3. Режим OFF или пользователь FREE — проверяем лимиты по дням
       const lastReset = new Date(user.last_limit_reset || 0);
       const todayStr = new Date().toDateString();
 
-      // Сброс лимитов, если наступил новый день
       if (lastReset.toDateString() !== todayStr) {
         await supabase
           .from("users")
@@ -177,12 +165,12 @@ export const subscription = {
     }
   },
 
-  /**
-   * Учет использования функции
-   */
   async trackUsage(feature: FeatureType): Promise<void> {
-    const phone = localStorage.getItem("vaxtago_user_phone");
-    if (!phone || !supabase) return;
+    const rawPhone = localStorage.getItem("vaxtago_user_phone");
+    if (!rawPhone || !supabase) return;
+    
+    const phone = normalizePhone(rawPhone);
+    if (!phone) return;
 
     const columnMap: Record<FeatureType, string> = {
       ai: "ai_requests_used",
@@ -215,9 +203,6 @@ export const subscription = {
     }
   },
 
-  /**
-   * Обновить настройки и записать лог
-   */
   async updateSettings(newSettings: Partial<AppSettings>, actionLogMessage: string): Promise<boolean> {
     try {
       if (!supabase) return false;

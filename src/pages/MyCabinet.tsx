@@ -13,6 +13,7 @@ import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhone } from "@/lib/normalizePhone";
 import { subscription } from "@/services/subscription";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -37,12 +38,19 @@ export default function MyCabinet() {
   }, []);
 
   const loadData = async () => {
-    const phone = localStorage.getItem("vaxtago_user_phone");
+    const rawPhone = localStorage.getItem("vaxtago_user_phone");
+    if (!rawPhone) return nav("/login");
+
+    const phone = normalizePhone(rawPhone);
     if (!phone) return nav("/login");
 
     try {
-      const { data } = await supabase.from("users").select("*").eq("phone_number", phone).maybeSingle();
-      setUserData(data);
+      const { data, error } = await supabase.from("users").select("*").eq("phone_number", phone).maybeSingle();
+      if (error) {
+        toast.error("Не удалось загрузить профиль");
+      } else {
+        setUserData(data);
+      }
 
       const aiAccess = await subscription.checkUserAccess("ai");
       const ocrAccess = await subscription.checkUserAccess("ocr");
@@ -59,6 +67,7 @@ export default function MyCabinet() {
       });
     } catch (err) {
       console.error(err);
+      toast.error("Не удалось загрузить данные профиля");
     } finally {
       setLoading(false);
     }

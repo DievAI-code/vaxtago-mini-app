@@ -8,6 +8,7 @@ import { Shield, Bell, ChevronRight, Check } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { Lang } from "@/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhone } from "@/lib/normalizePhone";
 
 const LANGUAGES: { code: Lang; name: string; flag: string }[] = [
   { code: "ru", name: "Русский", flag: "🇷🇺" },
@@ -23,15 +24,18 @@ export default function Settings() {
     setLanguage(code);
     localStorage.setItem("vaxtago_language", code);
 
-    const userPhone = localStorage.getItem("vaxtago_user_phone");
-    if (userPhone && supabase) {
-      try {
-        await supabase
-          .from("users")
-          .update({ language_code: code, updated_at: new Date().toISOString() })
-          .eq("phone_number", userPhone);
-      } catch (err) {
-        console.error("Supabase language update failed:", err);
+    const rawPhone = localStorage.getItem("vaxtago_user_phone");
+    if (rawPhone) {
+      const phone = normalizePhone(rawPhone);
+      if (supabase) {
+        try {
+          await supabase
+            .from("users")
+            .update({ language_code: code, updated_at: new Date().toISOString() })
+            .eq("phone_number", phone);
+        } catch (err) {
+          console.error("Supabase language update failed:", err);
+        }
       }
     }
   };

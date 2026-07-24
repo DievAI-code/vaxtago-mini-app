@@ -13,6 +13,7 @@ import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhone } from "@/lib/normalizePhone";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -28,7 +29,13 @@ export default function Profile() {
   }, []);
 
   const loadUserData = async () => {
-    const phone = localStorage.getItem("vaxtago_user_phone");
+    const rawPhone = localStorage.getItem("vaxtago_user_phone");
+    if (!rawPhone) {
+      nav("/login");
+      return;
+    }
+    
+    const phone = normalizePhone(rawPhone);
     if (!phone) {
       nav("/login");
       return;
@@ -39,12 +46,34 @@ export default function Profile() {
         .from("users")
         .select("*")
         .eq("phone_number", phone)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      setUserData(data);
+      if (error) {
+        toast.error("Не удалось загрузить профиль");
+        console.error("Profile load error:", error);
+      } else if (data) {
+        setUserData(data);
+      } else {
+        // Если профиль не найден, создаем его
+        const { data: newUserData, error: insertError } = await supabase
+          .from("users")
+          .insert({
+            phone_number: phone,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .maybeSingle();
+          
+        if (insertError) {
+          toast.error("Не удалось создать профиль");
+        } else {
+          setUserData(newUserData);
+        }
+      }
     } catch (err) {
-      console.error(err);
+      toast.error("Не удалось загрузить профиль");
+      console.error("Profile load exception:", err);
     } finally {
       setLoading(false);
     }

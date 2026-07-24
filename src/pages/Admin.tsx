@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { useLanguage } from "@/context/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhone } from "@/lib/normalizePhone";
 import { toast } from "sonner";
 
 interface DBUser {
@@ -83,11 +84,10 @@ export default function Admin() {
       setUsers(data as DBUser[] || []);
     } catch (err) {
       console.warn("[Admin] Supabase user load error, using mockup fallback", err);
-      // Fallback demo dataset
       setUsers([
         {
           id: "u1",
-          phone_number: "+998901234567",
+          phone_number: "998901234567",
           first_name: "Анвар",
           language_code: "uz",
           is_premium: true,
@@ -96,7 +96,7 @@ export default function Admin() {
         },
         {
           id: "u2",
-          phone_number: "+79991112233",
+          phone_number: "79991112233",
           first_name: "Дмитрий",
           language_code: "ru",
           is_premium: false,
@@ -223,7 +223,6 @@ export default function Admin() {
           </button>
         </div>
 
-        {/* Поиск пользователей */}
         <div className="relative vaqta-glass p-2 border-[#1A3D2E]">
           <div className="flex items-center gap-3 px-3">
             <Search size={18} className="text-[#5C7A6D]" />
@@ -237,7 +236,6 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Список пользователей */}
         <div className="space-y-3">
           <h3 className="text-[10px] font-black uppercase text-[#5C7A6D] tracking-widest ml-1">
             Пользователи ({filteredUsers.length})
@@ -284,7 +282,6 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Карточка управления выбранным пользователем */}
         {selectedUser && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="vaqta-glass p-6 border-[#00A86B]/40 space-y-4">
             <div className="flex justify-between items-start">

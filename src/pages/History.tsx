@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Clock, FileText, MapPin, Trash2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhone } from "@/lib/normalizePhone";
 
 export default function History() {
   const { t } = useLanguage();
@@ -19,8 +20,9 @@ export default function History() {
 
   const loadHistory = async () => {
     try {
-      const phone = localStorage.getItem("vaxtago_user_phone");
-      if (phone) {
+      const rawPhone = localStorage.getItem("vaxtago_user_phone");
+      if (rawPhone) {
+        const phone = normalizePhone(rawPhone);
         const { data: user } = await supabase
           .from("users")
           .select("id")
@@ -45,8 +47,9 @@ export default function History() {
 
   const clearHistory = async () => {
     try {
-      const phone = localStorage.getItem("vaxtago_user_phone");
-      if (phone) {
+      const rawPhone = localStorage.getItem("vaxtago_user_phone");
+      if (rawPhone) {
+        const phone = normalizePhone(rawPhone);
         const { data: user } = await supabase.from("users").select("id").eq("phone_number", phone).maybeSingle();
         if (user) {
           await supabase.from("ocr_history").delete().eq("user_id", user.id);

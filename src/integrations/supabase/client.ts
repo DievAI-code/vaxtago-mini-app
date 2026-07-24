@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseUrl, getSupabaseAnonKey } from '@/lib/env';
+import { normalizePhone } from '@/lib/normalizePhone';
 
-// Singleton клиент с защитой от повторного создания
+// Singleton клиент
 let supabaseInstance: any = null;
 
 export const getSupabaseClient = () => {
@@ -33,7 +34,6 @@ export const getSupabaseClient = () => {
 
 export const supabase = getSupabaseClient();
 
-// Очистка сессии
 export const clearSupabaseSession = async () => {
   if (supabase) {
     await supabase.auth.signOut();
@@ -41,7 +41,6 @@ export const clearSupabaseSession = async () => {
   }
 };
 
-// Логирование ошибок Supabase
 export const logSupabaseError = (error: any, context: string = '') => {
   console.error(`[Supabase Error] ${context}`, {
     code: error?.code,
@@ -53,11 +52,14 @@ export const logSupabaseError = (error: any, context: string = '') => {
 };
 
 /**
- * Безопасный upsert пользователя с повторными попытками (до 3 раз) и фоллбэком
+ * Безопасный upsert пользователя с повторными попытками и фоллбэком
  */
 export const safeSupabaseUpsertUser = async (phone: string, extraData: Record<string, any> = {}) => {
   const client = getSupabaseClient();
   if (!client) throw new Error("Supabase client not initialized");
+
+  const cleanPhone = normalizePhone(phone);
+  if (!cleanPhone) throw new Error("Invalid phone number");
 
   const maxAttempts = 3;
   let lastError: any = null;
@@ -68,7 +70,7 @@ export const safeSupabaseUpsertUser = async (phone: string, extraData: Record<st
         .from("users")
         .upsert(
           {
-            phone_number: phone,
+            phone_number: cleanPhone,
             last_login: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             subscription_status: 'free',
@@ -81,7 +83,7 @@ export const safeSupabaseUpsertUser = async (phone: string, extraData: Record<st
           }
         )
         .select()
-        .single();
+        .maybeSingle();
 
       if (!response.error) {
         return { data: response.data, error: null };
@@ -102,23 +104,22 @@ export const safeSupabaseUpsertUser = async (phone: string, extraData: Record<st
     }
   }
 
-  // Запасной план: если upsert вернул ошибку, пробуем запросить уже существующую запись
+  // Фолбэк: пробуем получить существующую запись
   try {
     const { data: existingUser, error: selectErr } = await client
       .from("users")
       .select("*")
-      .eq("phone_number", phone)
+      .eq("phone_number", cleanPhone)
       .maybeSingle();
 
     if (existingUser && !selectErr) {
-      // Обновляем last_login
       await client
         .from("users")
         .update({
           last_login: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
-        .eq("phone_number", phone);
+        .eq("phone_number", cleanPhone);
 
       return { data: existingUser, error: null };
     }
@@ -129,7 +130,6 @@ export const safeSupabaseUpsertUser = async (phone: string, extraData: Record<st
   return { data: null, error: lastError };
 };
 
-// Проверка подключения
 export const checkSupabaseConnection = async () => {
   if (!supabase) return false;
   

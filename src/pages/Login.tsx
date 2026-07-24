@@ -9,6 +9,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { toast } from "sonner";
 import { safeSupabaseUpsertUser, clearSupabaseSession } from "@/integrations/supabase/client";
 import { isConfigured } from "@/lib/env";
+import { normalizePhone } from "@/lib/normalizePhone";
 import { motion } from "framer-motion";
 
 export default function Login() {
@@ -27,7 +28,7 @@ export default function Login() {
       return;
     }
 
-    const cleanPhone = phone.replace(/\D/g, "");
+    const cleanPhone = normalizePhone(phone);
     if (cleanPhone.length < 10) {
       toast.error(t("auth.phone_prompt"));
       return;
@@ -46,7 +47,7 @@ export default function Login() {
       
     } catch (err: any) {
       console.error('[Login] Unexpected error:', err);
-      toast.error(`${t("common.error")}: ${err?.message || "Check connection"}`);
+      toast.error("Не удалось загрузить профиль. Проверьте подключение.");
     } finally {
       setLoading(false);
     }
