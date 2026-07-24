@@ -4,9 +4,8 @@ import ru from "./locales/ru.json";
 import en from "./locales/en.json";
 import kk from "./locales/kk.json";
 import uz from "./locales/uz.json";
-import tg from "./locales/tg.json";
 
-export const SUPPORTED_LANGS = ["ru", "uz", "tg", "kk", "en"] as const;
+export const SUPPORTED_LANGS = ["ru", "uz", "kk", "en"] as const;
 export type Lang = (typeof SUPPORTED_LANGS)[number];
 
 const savedLang = (localStorage.getItem("vaxtago_language") || localStorage.getItem("vaqta_language")) as Lang;
@@ -16,7 +15,6 @@ i18n.use(initReactI18next).init({
   resources: {
     ru: { translation: ru },
     uz: { translation: uz },
-    tg: { translation: tg },
     kk: { translation: kk },
     en: { translation: en },
   },

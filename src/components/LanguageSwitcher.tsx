@@ -9,8 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const LANGUAGES: { code: Lang; name: string; flag: string }[] = [
   { code: "ru", name: "Русский", flag: "🇷🇺" },
-  { code: "uz", name: "O'zbekcha", flag: "🇺🇿" },
-  { code: "tg", name: "Тоҷикӣ", flag: "🇹🇯" },
+  { code: "uz", name: "Ўзбекча", flag: "🇺🇿" },
   { code: "kk", name: "Қазақша", flag: "🇰🇿" },
   { code: "en", name: "English", flag: "🇬🇧" },
 ];

@@ -2,45 +2,54 @@
 
 import { useNavigate } from "react-router-dom";
 import { 
-  Search, 
-  TrendingUp, 
-  Clock, 
-  MapPin,
-  ChevronRight,
-  Sparkles,
-  Heart,
-  ShieldCheck
+  Briefcase, FileText, Camera, MapPin, Bot, 
+  ChevronRight, Calendar, ShieldAlert
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { FadeUp } from "@/components/animations";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Vacancy } from "@/types/database";
+import { useState } from "react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { motion } from "framer-motion";
-
-const CATEGORIES = [
-  { name: "Сварка", icon: "👨‍🏭" },
-  { name: "Вождение", icon: "🚛" },
-  { name: "Стройка", icon: "🏗️" },
-  { name: "Электрика", icon: "⚡" },
-];
 
 export default function Home() {
   const nav = useNavigate();
   const { t } = useLanguage();
-  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase.from("vacancies").select("*, employers(name, rating)").limit(4);
-      if (data) setVacancies(data as Vacancy[]);
-    };
-    load().catch(console.error);
-  }, []);
+  const mainActions = [
+    {
+      title: t("home.find_job"),
+      icon: Briefcase,
+      path: "/jobs-test",
+      color: "from-emerald-500 to-[#00A86B]",
+    },
+    {
+      title: t("home.check_doc"),
+      icon: FileText,
+      path: "/contract-audit",
+      color: "from-blue-600 to-cyan-500",
+    },
+    {
+      title: t("home.translate_photo"),
+      icon: Camera,
+      path: "/scanner",
+      color: "from-purple-600 to-indigo-500",
+    },
+    {
+      title: t("home.find_address"),
+      icon: MapPin,
+      path: "/maps",
+      color: "from-amber-500 to-orange-500",
+    },
+    {
+      title: t("home.ask_ai"),
+      icon: Bot,
+      path: "/ai",
+      color: "from-[#00A86B] to-teal-400",
+    },
+  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] pb-40 safe-top">
@@ -48,121 +57,83 @@ export default function Home() {
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
       <main className="px-6 space-y-6 mt-4">
+        {/* Main Greeting Banner */}
         <FadeUp>
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-500">
-              <Search size={20} />
+          <div className="p-6 rounded-[2.5rem] vaqta-glass border-[#00A86B]/30 relative overflow-hidden bg-gradient-to-br from-[#00A86B]/10 via-transparent to-transparent space-y-3">
+            <div className="flex items-center gap-2">
+              <Bot className="text-[#00A86B]" size={28} />
+              <span className="font-black text-white text-lg tracking-tight">VAQTA AI</span>
             </div>
-            <input 
-              type="text"
-              readOnly
-              placeholder={t("jobs.placeholder")}
-              className="w-full bg-[#0C1F1A] border border-[#1A3D2E] rounded-2xl py-4 pl-12 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 transition-all cursor-pointer font-medium"
-              onClick={() => nav("/jobs")}
-            />
+            <h2 className="text-2xl font-black text-white leading-snug">
+              {t("greeting")}
+            </h2>
           </div>
         </FadeUp>
 
-        <FadeUp>
-          <div 
-            onClick={() => nav("/ai")}
-            className="p-6 rounded-[2.5rem] vaqta-gradient relative overflow-hidden cursor-pointer group shadow-2xl vaqta-glow"
-          >
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={16} className="text-white" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-white/80">{t('chat.premium_badge')}</span>
-              </div>
-              <h2 className="text-2xl font-black text-white mb-4 leading-tight">{t('home.hero_title')}</h2>
-              <div className="flex items-center gap-2 text-white/90 text-xs font-bold uppercase tracking-widest">
-                {t('home.btn_chat')} <ChevronRight size={14} />
-              </div>
-            </div>
-            <div className="absolute -right-10 -bottom-10 opacity-20 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-               <Sparkles size={180} />
-            </div>
-          </div>
-        </FadeUp>
-
+        {/* 5 Main Buttons requested */}
         <section className="space-y-3">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5C7A6D] ml-2">{t('home.quick_services')}</h3>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-            {CATEGORIES.map((cat) => (
-              <motion.div
-                key={cat.name}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => nav("/jobs")}
-                className="flex-shrink-0 p-4 w-28 vaqta-glass text-center space-y-2 cursor-pointer border-[#1A3D2E]"
-              >
-                <span className="text-2xl">{cat.icon}</span>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white">{cat.name}</p>
-              </motion.div>
-            ))}
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5C7A6D] ml-2">
+            {t("home.quick_services")}
+          </h3>
+
+          <div className="space-y-2.5">
+            {mainActions.map((action, i) => {
+              const Icon = action.icon;
+              return (
+                <motion.button
+                  key={i}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => nav(action.path)}
+                  className="w-full vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between group hover:border-[#00A86B]/50 transition-all shadow-xl"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${action.color} flex items-center justify-center text-white shadow-lg`}>
+                      <Icon size={22} />
+                    </div>
+                    <span className="font-extrabold text-base text-white text-left">
+                      {action.title}
+                    </span>
+                  </div>
+                  <ChevronRight size={20} className="text-[#5C7A6D] group-hover:text-[#00A86B] group-hover:translate-x-1 transition-all" />
+                </motion.button>
+              );
+            })}
           </div>
         </section>
 
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-2">
-              <TrendingUp size={16} className="text-[#00A86B]" />
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5C7A6D]">{t('jobs.found_count')}</h3>
+        {/* Extra Legal & Patent Controls */}
+        <section className="space-y-3 pt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div 
+              onClick={() => nav("/tracker")} 
+              className="vaqta-glass p-5 space-y-2 cursor-pointer hover:border-[#00A86B]/40 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-2xl bg-[#00A86B]/10 flex items-center justify-center text-[#00A86B]">
+                <Calendar size={20} />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-white">{t("home.tracker_title")}</h4>
+                <p className="text-[9px] text-[#5C7A6D] mt-0.5">{t("home.tracker_desc")}</p>
+              </div>
             </div>
-          </div>
-          <div className="space-y-4">
-            {vacancies.map((v) => (
-              <VacancyCard key={v.id} vacancy={v} />
-            ))}
+
+            <div 
+              onClick={() => nav("/sos")} 
+              className="vaqta-glass p-5 space-y-2 cursor-pointer hover:border-red-500/40 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-400">
+                <ShieldAlert size={20} />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-white">{t("home.sos_title")}</h4>
+                <p className="text-[9px] text-[#5C7A6D] mt-0.5">{t("home.sos_desc")}</p>
+              </div>
+            </div>
           </div>
         </section>
       </main>
 
       <BottomNav />
     </div>
-  );
-}
-
-function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
-  const { t } = useLanguage();
-  return (
-    <motion.div 
-      whileHover={{ y: -2 }}
-      className="vaqta-glass p-6 space-y-4 border-[#1A3D2E]"
-    >
-      <div className="flex justify-between items-start">
-        <div className="space-y-1">
-          <h4 className="font-bold text-base leading-tight text-white">{vacancy.title}</h4>
-          <p className="text-[10px] text-[#5C7A6D] font-black uppercase tracking-widest">{vacancy.employers?.name || "Verified Partner"}</p>
-        </div>
-        <div className="bg-[#00A86B]/10 text-[#00A86B] p-2 rounded-xl border border-[#00A86B]/20">
-          <ShieldCheck size={18} />
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-4 text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">
-        <div className="flex items-center gap-2">
-          <MapPin size={14} className="text-[#00A86B]" />
-          <span>{vacancy.city}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Clock size={14} className="text-[#00A86B]" />
-          <span>Vaxta 30/30</span>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between pt-3 border-t border-white/5">
-        <span className="text-lg font-black text-[#00A86B]">{vacancy.salary_from || 0} ₽</span>
-        <div className="flex gap-2">
-          <button className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors">
-            <Heart size={18} />
-          </button>
-          <button 
-            onClick={() => window.open(vacancy.url, '_blank')}
-            className="px-5 py-2.5 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#00A86B] hover:text-white transition-all shadow-lg"
-          >
-            {t('common.more')}
-          </button>
-        </div>
-      </div>
-    </motion.div>
   );
 }

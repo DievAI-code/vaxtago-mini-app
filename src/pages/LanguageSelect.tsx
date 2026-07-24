@@ -10,8 +10,9 @@ import { Lang } from "@/i18n";
 
 const LANGUAGES: { code: Lang; native: string; flag: string }[] = [
   { code: "ru", native: "Русский", flag: "🇷🇺" },
-  { code: "en", native: "English", flag: "🇬🇧" },
+  { code: "uz", native: "Ўзбекча", flag: "🇺🇿" },
   { code: "kk", native: "Қазақша", flag: "🇰🇿" },
+  { code: "en", native: "English", flag: "🇬🇧" },
 ];
 
 export default function LanguageSelect() {
@@ -21,6 +22,7 @@ export default function LanguageSelect() {
   const handleSelect = async (code: Lang) => {
     try {
       localStorage.setItem("vaxtago_language", code);
+      localStorage.setItem("vaqta_language", code);
       const phone = localStorage.getItem("vaxtago_user_phone");
       if (phone && supabase) {
         await supabase
@@ -39,8 +41,8 @@ export default function LanguageSelect() {
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white p-8 items-center justify-center">
       <VaqtaLogo size={64} animated className="mb-8" />
-      <h2 className="text-xl font-black mb-10 tracking-tight uppercase text-center">
-        Select Language / Выберите язык / Тілді таңдаңыз
+      <h2 className="text-xl font-black mb-8 tracking-tight uppercase text-center">
+        Выберите язык / Тилни танланг / Тілді таңдаңыз / Select Language
       </h2>
       
       <div className="w-full max-w-xs space-y-3">

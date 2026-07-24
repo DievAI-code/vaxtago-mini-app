@@ -12,8 +12,9 @@ import { normalizePhone } from "@/lib/normalizePhone";
 
 const LANGUAGES: { code: Lang; name: string; flag: string }[] = [
   { code: "ru", name: "Русский", flag: "🇷🇺" },
-  { code: "en", name: "English", flag: "🇬🇧" },
+  { code: "uz", name: "Ўзбекча", flag: "🇺🇿" },
   { code: "kk", name: "Қазақша", flag: "🇰🇿" },
+  { code: "en", name: "English", flag: "🇬🇧" },
 ];
 
 export default function Settings() {
@@ -23,6 +24,7 @@ export default function Settings() {
   const handleSetLang = async (code: Lang) => {
     setLanguage(code);
     localStorage.setItem("vaxtago_language", code);
+    localStorage.setItem("vaqta_language", code);
 
     const rawPhone = localStorage.getItem("vaxtago_user_phone");
     if (rawPhone) {
@@ -48,7 +50,7 @@ export default function Settings() {
       <main className="px-6 space-y-6 mt-4 flex-1">
         <section className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">
-            {t("settings_lang") || "Language"}
+            {t("settings_lang") || "Язык"}
           </h3>
           <div className="space-y-2">
             {LANGUAGES.map((l) => (
@@ -77,9 +79,9 @@ export default function Settings() {
             <div className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Bell size={18} className="text-[#00A86B]" />
-                <span className="font-bold text-sm">Notifications</span>
+                <span className="font-bold text-sm">Уведомления</span>
               </div>
-              <span className="text-xs font-bold text-[#00A86B]">Active</span>
+              <span className="text-xs font-bold text-[#00A86B]">Включены</span>
             </div>
 
             <div className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between">
@@ -93,7 +95,7 @@ export default function Settings() {
         </section>
 
         <div className="pt-8 text-center text-xs text-[#5C7A6D] font-mono">
-          <p>VAQTA AI v3.0 Multilingual (RU, EN, KK)</p>
+          <p>VAQTA AI v3.0 • RU, UZ, KK, EN</p>
         </div>
       </main>
 

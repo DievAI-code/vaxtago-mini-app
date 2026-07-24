@@ -51,27 +51,27 @@ export type Intent =
 
 const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
   assistant:
-    "Ты VaxtaGo AI — дружелюбный помощник для трудовых мигрантов в России.\nПРАВИЛО МЕСТОПОЛОЖЕНИЙ: Никогда не говори 'Я не могу показать карту', 'Воспользуйтесь Google Maps' или 'Используйте Яндекс.Карты'. Все карты отображаются внутри приложения VAQTA AI.\nОтвечай естественно и кратко. Языки: Русский, Узбекский, Таджикский, Кыргызский, Английский.",
+    "Ты — простой и дружелюбный помощник VAQTA AI для людей, ищущих работу и выезжающих на вахту.\nПиши простыми, понятными словами без сложных технических терминов (не используй слова API, геокодер, интеграция, модуль, сервис).\nОтвечай строго на языке пользователя (Русский, Ўзбекча кириллицада, Қазақша, или English).\nПРАВИЛО КАРТ: Все карты показываются внутри приложения VAQTA AI. Никогда не говори 'Используйте внешние карты'.",
   translation:
-    "Ты — Translation Engine VaxtaGo.\nВерни ТОЛЬКО переведенный текст. Без объяснений и без приветствий.",
+    "Ты — переводчик VAQTA AI. Верни ТОЛЬКО переведенный текст. Без технических терминов и лишних объяснений.",
   vision:
-    "Ты система OCR и анализа документов VaxtaGo.\nРаспознай текст на изображении и верни ТОЛЬКО распознанный текст.",
+    "Ты система чтении документов VAQTA AI. Прочитай текст на фото и верни понятное описание простыми словами.",
   document:
-    "Ты помощник по документам VaxtaGo. Объясни права и риски простым языком.",
+    "Ты помощник по документам VAQTA AI. Объясни договор или патент простыми словами без юридических сложностей.",
   vacancy:
-    "Ты помощник по поиску работы VaxtaGo. Предлагай только проверенные вакансии.",
+    "Ты помощник по поиску работы VAQTA AI. Помогай с вакансиями просто и понятно.",
   employer_check:
-    "Ты помощник по проверке работодателей VaxtaGo. Дай оценку риска мошенничества.",
+    "Ты помощник по проверке компании VAQTA AI. Проверь надежность и скажи, есть ли риски.",
   legal:
-    "Ты юридический помощник VaxtaGo. Объясни права мигрантов в РФ.",
+    "Ты правовой помощник VAQTA AI. Объясни права мигранта простыми словами.",
   migration:
-    "Ты помощник по миграции VaxtaGo. Объясни МВД, патенты, регистрацию.",
+    "Ты помощник по патенту и миграции VAQTA AI. Напоминай про сроки и правила.",
   premium:
-    "Ты помощник по Premium подписке VaxtaGo.",
+    "Ты помощник по подписке VAQTA AI.",
   chat:
-    "Ты дружелюбный собеседник VaxtaGo.",
+    "Ты дружелюбный собеседник VAQTA AI.",
   help:
-    "Ты помощник по приложению VaxtaGo. Отвечай кратко и по делу.",
+    "Ты помощник VAQTA AI. Отвечай кратко и понятно.",
 };
 
 const MODELS = [
@@ -90,7 +90,7 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
   const low = input.toLowerCase();
 
   if (hasImage) {
-    if (low.includes("документ") || low.includes("паспорт") || low.includes("договор") || low.includes("справка") || low.includes("contract") || low.includes("document") || low.includes("ҳуҷҷат")) return "DOCUMENT_ANALYSIS";
+    if (low.includes("документ") || low.includes("паспорт") || low.includes("договор") || low.includes("справка") || low.includes("contract") || low.includes("document") || low.includes("ҳужжат")) return "DOCUMENT_ANALYSIS";
     return "OCR_DOCUMENT";
   }
 
@@ -103,7 +103,7 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
 
   // Translation detection
   if (
-    /перевед|перевод|таржима|таражума|translate|translation|русский|узбек|ўзбек|o'zbek|tojik|таҷик|кыргыз|kyrgyz|english|на русск|на узб|на англ/i.test(low)
+    /перевед|перевод|таржима|таражума|translate|translation|русский|узбек|ўзбек|o'zbek|kazakh|қазақ|english|на русск|на узб|на англ/i.test(low)
   ) {
     return "TRANSLATION";
   }
@@ -112,9 +112,9 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
   if (low.includes("помощ") || low.includes("help") || low.includes("как пользовать") || low.includes("инструкц") || low.includes("что умеешь")) return "HELP";
   if (low.includes("закон") || low.includes("право") || low.includes("юрист") || low.includes("штраф") || low.includes("суд") || low.includes("law") || low.includes("legal") || low.includes("патент")) return "LEGAL_HELP";
   if (low.includes("миграц") || low.includes("мвд") || low.includes("регистрац") || low.includes("виза") || low.includes("migration")) return "MIGRATION";
-  if (low.includes("работ") || low.includes("ваканс") || low.includes("job") || low.includes("иш") || low.includes("vacancy")) return "VACANCY_SEARCH";
+  if (low.includes("работ") || low.includes("ваканс") || low.includes("job") || low.includes("иш") || low.includes("vacancy") || low.includes("жұмыс")) return "VACANCY_SEARCH";
   if (low.includes("проверь работодателя") || low.includes("employer") || low.includes("проверка") || low.includes("инн") || low.includes("огрн")) return "EMPLOYER_CHECK";
-  if (low.includes("паспорт") || low.includes("договор") || low.includes("документ") || low.includes("разрешение") || low.includes("document") || low.includes("contract") || low.includes("ҳуҷҷат")) return "DOCUMENT_ANALYSIS";
+  if (low.includes("паспорт") || low.includes("договор") || low.includes("документ") || low.includes("разрешение") || low.includes("document") || low.includes("contract") || low.includes("ҳужжат")) return "DOCUMENT_ANALYSIS";
   
   return "GENERAL_CHAT";
 }
@@ -240,7 +240,7 @@ export async function createAIRequest(req: AIRequest): Promise<AIResult> {
 function buildMessages(req: AIRequest, task: AIRequestType, previous: Array<{ role: string; content: string }>): any[] {
   const system = SYSTEM_PROMPTS[task];
   if (task === "vision") {
-    const content: any[] = [{ type: "text", text: (req.text || "Распознай текст на изображении.") }];
+    const content: any[] = [{ type: "text", text: (req.text || "Прочитай текст на фото простыми словами.") }];
     if (req.image) content.push({ type: "image_url", image_url: { url: req.image } });
     if (req.imageUrl) content.push({ type: "image_url", image_url: { url: req.imageUrl } });
     return [{ role: "system", content: system }, { role: "user", content }];
