@@ -8,16 +8,18 @@ export interface MapProviderState {
   activeProvider: MapProviderType;
 }
 
+export function is2GISAvailable(): boolean {
+  return Boolean(import.meta.env.VITE_2GIS_MAP_KEY);
+}
+
 export const mapProvider = {
   getProviderState(): MapProviderState {
     return {
-      activeProvider: get2GISMapKey() ? "2gis" : "openstreetmap",
+      activeProvider: is2GISAvailable() ? "2gis" : "openstreetmap",
     };
   },
 
-  is2GISAvailable(): boolean {
-    return Boolean(get2GISMapKey());
-  },
+  is2GISAvailable,
 
   get2GISKey(): string {
     return get2GISMapKey();
