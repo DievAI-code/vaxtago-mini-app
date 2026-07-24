@@ -11,7 +11,8 @@ import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { Map } from "@/components/Map";
-import { hybridMapSearch, MapSearchResult, RouteDetail } from "@/services/maps/search";
+import { geocodingService, GeocodingResult } from "@/services/geocodingService";
+import { hybridMapSearch, RouteDetail } from "@/services/maps/search";
 import { subscription } from "@/services/subscription";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageProvider";
@@ -26,11 +27,9 @@ export default function Maps() {
   );
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [isLowConfidence, setIsLowConfidence] = useState(false);
-  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
-  const [searchResults, setSearchResults] = useState<MapSearchResult[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<MapSearchResult | null>(null);
+  const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<GeocodingResult | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([41.2995, 69.2401]);
   const [zoom, setZoom] = useState(13);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -60,30 +59,27 @@ export default function Maps() {
 
     setIsSearching(true);
     setSearchError(null);
-    setNoticeMessage(null);
     setRouteInfo(null);
-    setIsLowConfidence(false);
 
     try {
-      const { results, isLowConfidence: lowConf, message } = await hybridMapSearch.searchLocation(queryText);
+      // Pass userLocation for better 2GIS ranking
+      const { results, error } = await geocodingService.searchAddressFull(queryText, userLocation || undefined);
       await subscription.trackUsage("maps");
 
       if (results.length > 0) {
         setSearchResults(results);
-        setIsLowConfidence(lowConf);
-        setNoticeMessage(message || null);
         const top = results[0];
         setSelectedLocation(top);
         setMapCenter([top.latitude, top.longitude]);
         setZoom(14);
-        toast.success(`Найдено: ${top.title}`);
+        toast.success(`Найдено: ${top.name}`);
       } else {
         setSearchResults([]);
         setSelectedLocation(null);
-        setSearchError(message || "По запросу ничего не найдено.");
+        setSearchError(error || "По запросу ничего не найдено.");
       }
     } catch {
-      setSearchError("По запросу ничего не найдено.");
+      setSearchError("Ошибка при поиске.");
     } finally {
       setIsSearching(false);
     }
@@ -103,8 +99,6 @@ export default function Maps() {
           toast.error("Не удалось определить геопозицию");
         }
       );
-    } else {
-      toast.error("Геолокация не поддерживается вашим браузером");
     }
   };
 
@@ -121,7 +115,7 @@ export default function Maps() {
             setUserLocation(uCoords);
             await calculateRoute(uCoords, [selectedLocation.latitude, selectedLocation.longitude]);
           },
-          () => toast.error("Включите геолокацию на устройстве для построения маршрута")
+          () => toast.error("Включите геолокацию для маршрута")
         );
       }
       return;
@@ -133,15 +127,10 @@ export default function Maps() {
   const calculateRoute = async (from: [number, number], to: [number, number]) => {
     setBuildingRoute(true);
     try {
-      const detail = await hybridMapSearch.buildRoute({
-        from,
-        to,
-        mode: "driving",
-      });
-
+      const detail = await hybridMapSearch.buildRoute({ from, to, mode: "driving" });
       if (detail) {
         setRouteInfo(detail);
-        toast.success("Маршрут успешно построен!");
+        toast.success("Маршрут построен!");
       }
     } catch {
       toast.error("Ошибка при построении маршрута");
@@ -152,10 +141,10 @@ export default function Maps() {
 
   const handleShare = () => {
     if (!selectedLocation) return;
-    const shareText = `📍 ${selectedLocation.title}\n🏠 ${selectedLocation.address}\nhttps://2gis.ru/geo/${selectedLocation.longitude},${selectedLocation.latitude}`;
+    const shareText = `📍 ${selectedLocation.name}\n🏠 ${selectedLocation.address}\nhttps://2gis.ru/geo/${selectedLocation.longitude},${selectedLocation.latitude}`;
     navigator.clipboard.writeText(shareText);
     setCopied(true);
-    toast.success("Ссылка и адрес скопированы");
+    toast.success("Данные скопированы");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -171,29 +160,11 @@ export default function Maps() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (searchError) setSearchError(null);
-              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && executeSearch(searchQuery)}
-              placeholder="Тюмень жд вокзал, tyumen vokzal..."
+              placeholder="Тюмень вокзал, ЕПРС..."
               className="flex-1 bg-transparent py-2.5 text-xs text-white outline-none placeholder-[#5C7A6D] font-bold"
             />
-            {searchQuery && (
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setSearchResults([]);
-                  setSelectedLocation(null);
-                  setSearchError(null);
-                  setNoticeMessage(null);
-                  setIsLowConfidence(false);
-                }}
-                className="text-xs text-[#5C7A6D] hover:text-white px-1"
-              >
-                Очистить
-              </button>
-            )}
             <button
               onClick={() => executeSearch(searchQuery)}
               disabled={isSearching}
@@ -203,109 +174,21 @@ export default function Maps() {
             </button>
             <button
               onClick={handleLocateMe}
-              className="p-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-xl text-[#00A86B] hover:scale-105 transition-all"
-              title="Мое местоположение"
+              className="p-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-xl text-[#00A86B]"
             >
               <Crosshair size={16} />
             </button>
           </div>
         </div>
 
-        {/* Notice Message when exact city match was missing */}
-        {noticeMessage && searchResults.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="vaqta-glass p-3 border-amber-500/30 bg-amber-500/10 rounded-2xl z-20 space-y-2"
-          >
-            <p className="text-xs font-bold text-amber-200 flex items-center gap-1.5">
-              <AlertCircle size={14} className="text-amber-400 flex-shrink-0" />
-              <span>{noticeMessage}</span>
-            </p>
-            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto no-scrollbar">
-              {searchResults.slice(0, 4).map((res, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setSelectedLocation(res);
-                    setMapCenter([res.latitude, res.longitude]);
-                    setZoom(15);
-                    setNoticeMessage(null);
-                  }}
-                  className={`p-2 rounded-xl text-left text-xs font-bold transition-all flex items-center justify-between border ${
-                    selectedLocation?.title === res.title
-                      ? "bg-[#00A86B] border-[#00D4A8] text-white"
-                      : "bg-[#06140F]/80 border-[#1A3D2E] text-slate-200 hover:bg-white/5"
-                  }`}
-                >
-                  <div className="truncate pr-2">
-                    <p className="font-extrabold">{res.title}</p>
-                    <p className="text-[10px] text-[#5C7A6D] truncate">{res.address}</p>
-                  </div>
-                  <MapPin size={14} className="flex-shrink-0 text-[#00A86B]" />
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Low Confidence Choice Banner */}
-        {isLowConfidence && !noticeMessage && searchResults.length > 1 && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="vaqta-glass p-3 border-[#00A86B]/30 bg-[#00A86B]/10 rounded-2xl z-20 space-y-2"
-          >
-            <p className="text-xs font-bold text-[#00D4A8]">
-              Я нашёл несколько вариантов. Выберите:
-            </p>
-            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto no-scrollbar">
-              {searchResults.slice(0, 4).map((res, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setSelectedLocation(res);
-                    setMapCenter([res.latitude, res.longitude]);
-                    setZoom(15);
-                    setIsLowConfidence(false);
-                  }}
-                  className={`p-2 rounded-xl text-left text-xs font-bold transition-all flex items-center justify-between border ${
-                    selectedLocation?.title === res.title
-                      ? "bg-[#00A86B] border-[#00D4A8] text-white"
-                      : "bg-[#06140F]/80 border-[#1A3D2E] text-slate-200 hover:bg-white/5"
-                  }`}
-                >
-                  <div className="truncate pr-2">
-                    <p className="font-extrabold">{res.title}</p>
-                    <p className="text-[10px] text-[#5C7A6D] truncate">{res.address}</p>
-                  </div>
-                  <MapPin size={14} className="flex-shrink-0 text-[#00A86B]" />
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
         {searchError && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="vaqta-glass p-3.5 border-amber-500/30 bg-amber-500/10 flex items-center justify-between text-xs text-amber-200 font-bold z-20"
-          >
-            <div className="flex items-center gap-2">
-              <AlertCircle size={16} className="text-amber-400 flex-shrink-0" />
-              <span>{searchError}</span>
-            </div>
-            <button
-              onClick={() => executeSearch(searchQuery)}
-              className="p-1 text-amber-300 hover:text-white"
-            >
-              <RefreshCw size={14} />
-            </button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="vaqta-glass p-3 border-amber-500/30 text-xs text-amber-200 font-bold z-20 flex justify-between items-center">
+            <span>{searchError}</span>
+            <button onClick={() => executeSearch(searchQuery)}><RefreshCw size={14}/></button>
           </motion.div>
         )}
 
-        {searchResults.length > 1 && !isLowConfidence && !noticeMessage && (
+        {searchResults.length > 1 && (
           <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 text-xs z-20">
             {searchResults.map((res, i) => (
               <button
@@ -313,15 +196,14 @@ export default function Maps() {
                 onClick={() => {
                   setSelectedLocation(res);
                   setMapCenter([res.latitude, res.longitude]);
-                  setZoom(15);
                 }}
                 className={`px-3 py-1.5 rounded-xl border whitespace-nowrap text-[11px] font-bold transition-all ${
-                  selectedLocation?.title === res.title
+                  selectedLocation?.name === res.name
                     ? "bg-[#00A86B] border-[#00D4A8] text-white shadow-lg"
                     : "bg-[#0C1F1A] border-[#1A3D2E] text-slate-300"
                 }`}
               >
-                📍 {res.title}
+                📍 {res.name}
               </button>
             ))}
           </div>
@@ -331,17 +213,11 @@ export default function Maps() {
           <Map
             center={mapCenter}
             zoom={zoom}
-            markers={
-              selectedLocation
-                ? [
-                    {
-                      id: "selected-loc",
-                      title: selectedLocation.title,
-                      coordinates: [selectedLocation.latitude, selectedLocation.longitude],
-                    },
-                  ]
-                : []
-            }
+            markers={selectedLocation ? [{
+              id: selectedLocation.name,
+              title: selectedLocation.name,
+              coordinates: [selectedLocation.latitude, selectedLocation.longitude]
+            }] : []}
             userLocation={userLocation}
             autoOpenPopup={true}
             className="w-full h-full rounded-[2rem]"
@@ -350,46 +226,16 @@ export default function Maps() {
 
         <AnimatePresence mode="wait">
           {selectedLocation && (
-            <motion.div
-              key={selectedLocation.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="vaqta-glass p-5 border-[#00A86B]/30 space-y-3 shadow-2xl z-20"
-            >
+            <motion.div key={selectedLocation.name} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="vaqta-glass p-5 border-[#00A86B]/30 space-y-3 shadow-2xl z-20">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">📍</span>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-[#00A86B]">
-                      2ГИС
-                    </span>
-                  </div>
-                  <h3 className="font-extrabold text-base leading-snug text-[#00D4A8] truncate">
-                    {selectedLocation.title}
-                  </h3>
-                  <p className="text-xs text-slate-300 font-medium truncate">
-                    {selectedLocation.address}
-                  </p>
+                   <p className="text-[9px] font-black uppercase tracking-widest text-[#00A86B]">2ГИС ПРОВАЙДЕР • SCORE: {selectedLocation.score}</p>
+                   <h3 className="font-extrabold text-base leading-snug text-[#00D4A8] truncate">{selectedLocation.name}</h3>
+                   <p className="text-xs text-slate-300 font-medium truncate">{selectedLocation.address}</p>
                 </div>
-
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() => setIsFavorite(!isFavorite)}
-                    className={`p-2.5 rounded-xl border transition-colors ${
-                      isFavorite
-                        ? "bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]"
-                        : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    <Star size={16} fill={isFavorite ? "#D4AF37" : "none"} />
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-colors"
-                  >
-                    {copied ? <Check size={16} className="text-[#00A86B]" /> : <Share2 size={16} />}
-                  </button>
+                <div className="flex gap-1.5">
+                  <button onClick={() => setIsFavorite(!isFavorite)} className={`p-2.5 rounded-xl border ${isFavorite ? "bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]" : "bg-white/5 border-white/10 text-slate-400"}`}><Star size={16} fill={isFavorite ? "#D4AF37" : "none"} /></button>
+                  <button onClick={handleShare} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400">{copied ? <Check size={16} className="text-[#00A86B]" /> : <Share2 size={16} />}</button>
                 </div>
               </div>
 
@@ -400,18 +246,8 @@ export default function Maps() {
                 </div>
               )}
 
-              <button
-                onClick={handleBuildRoute}
-                disabled={buildingRoute}
-                className="w-full h-12 vaqta-gradient text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg vaqta-glow active:scale-95 transition-transform disabled:opacity-50"
-              >
-                {buildingRoute ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <>
-                    <Navigation size={16} /> Построить маршрут
-                  </>
-                )}
+              <button onClick={handleBuildRoute} disabled={buildingRoute} className="w-full h-12 vaqta-gradient text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl vaqta-glow disabled:opacity-50">
+                {buildingRoute ? <Loader2 size={16} className="animate-spin" /> : <><Navigation size={16} /> Построить маршрут</>}
               </button>
             </motion.div>
           )}
