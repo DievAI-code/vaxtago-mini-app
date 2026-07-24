@@ -59,7 +59,7 @@ export default function MapPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [center, setCenter] = useState<[number, number]>([69.2401, 41.2995]); // [lng, lat] Tashkent
+  const [center, setCenter] = useState<[number, number]>([69.2401, 41.2995]);
   const [zoom, setZoom] = useState(12);
   const [selectedVacancy, setSelectedVacancy] = useState<VacancyMarkerData | null>(SAMPLE_VACANCIES[0]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -208,9 +208,9 @@ export default function MapPage() {
             center={center}
             zoom={zoom}
             markers={SAMPLE_VACANCIES}
-            selectedMarkerId={selectedVacancy?.id}
+            selectedMarkerId={selectedVacancy?.id ?? null}
             onSelectMarker={(v) => {
-              setSelectedVacancy(v);
+              setSelectedVacancy(v as VacancyMarkerData);
               setCenter(v.coordinates);
             }}
             userLocation={userLocation}

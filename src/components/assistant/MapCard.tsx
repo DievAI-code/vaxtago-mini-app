@@ -39,8 +39,8 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
           setLocation({
             name: query,
             address: query,
-            latitude: 57.153, // Tyumen default lat
-            longitude: 65.534, // Tyumen default lng
+            latitude: 57.153,
+            longitude: 65.534,
           });
         }
       }
