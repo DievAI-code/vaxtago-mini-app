@@ -36,11 +36,11 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
         if (res) {
           setLocation(res);
         } else {
-          // Fallback location for known default
+          // Fallback location for known default if not found
           setLocation({
             name: query,
             address: query,
-            latitude: 57.153, // Tyumen default lat if not found
+            latitude: 57.153, // Tyumen default lat
             longitude: 65.534, // Tyumen default lng
           });
         }

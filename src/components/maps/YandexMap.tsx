@@ -70,6 +70,11 @@ export function YandexMap({
   useEffect(() => {
     let mounted = true;
 
+    console.log("[YANDEX INIT]", {
+      mapsKey: Boolean(import.meta.env.VITE_YANDEX_MAPS_KEY),
+      geocoderKey: Boolean(import.meta.env.VITE_YANDEX_GEOCODER)
+    });
+
     if (!hasYandexMapsKey) {
       console.warn("[YandexMap] API Key missing. Rendering fallback UI.");
       setUseOsmFallback(true);
@@ -88,32 +93,40 @@ export function YandexMap({
           return;
         }
 
-        const ymaps = (window as any).ymaps3;
-        if (!ymaps) {
+        try {
+          const ymaps = (window as any).ymaps3;
+          if (!ymaps || !ymaps.YMap) {
+            throw new Error("ymaps3 or YMap is not available");
+          }
+
+          const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer } = ymaps;
+
+          if (mapInstanceRef.current) {
+            try { mapInstanceRef.current.destroy(); } catch {}
+            mapInstanceRef.current = null;
+          }
+          if (mapContainerRef.current) {
+            mapContainerRef.current.innerHTML = "";
+          }
+
+          if (!mapContainerRef.current) {
+            throw new Error("Map container is not ready");
+          }
+
+          const map = new YMap(mapContainerRef.current, {
+            location: { center, zoom },
+          });
+
+          map.addChild(new YMapDefaultSchemeLayer({}));
+          map.addChild(new YMapDefaultFeaturesLayer({}));
+
+          mapInstanceRef.current = map;
+          setLoading(false);
+        } catch (error) {
+          console.error("[YandexMap] Initialization error, falling back to OSM:", error);
           setUseOsmFallback(true);
           setLoading(false);
-          return;
         }
-
-        const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer } = ymaps;
-
-        if (mapInstanceRef.current) {
-          try { mapInstanceRef.current.destroy(); } catch {}
-          mapInstanceRef.current = null;
-        }
-        if (mapContainerRef.current) {
-          mapContainerRef.current.innerHTML = "";
-        }
-
-        const map = new YMap(mapContainerRef.current!, {
-          location: { center, zoom },
-        });
-
-        map.addChild(new YMapDefaultSchemeLayer({}));
-        map.addChild(new YMapDefaultFeaturesLayer({}));
-
-        mapInstanceRef.current = map;
-        setLoading(false);
       })
       .catch(() => {
         if (mounted) {
@@ -135,57 +148,69 @@ export function YandexMap({
     if (mapInstanceRef.current && center) {
       try {
         mapInstanceRef.current.setLocation({ center, zoom, duration: 300 });
-      } catch {}
+      } catch (error) {
+        console.warn("[YandexMap] Failed to update location:", error);
+      }
     }
   }, [center[0], center[1], zoom]);
 
   useEffect(() => {
     if (useOsmFallback || !mapInstanceRef.current) return;
 
-    const ymaps = (window as any).ymaps3;
-    const { YMapMarker } = ymaps;
-    const map = mapInstanceRef.current;
-    const markerElements: any[] = [];
+    try {
+      const ymaps = (window as any).ymaps3;
+      if (!ymaps || !ymaps.YMapMarker) return;
 
-    markers.forEach((m) => {
-      const isSelected = selectedMarkerId === m.id;
-      const el = document.createElement("div");
-      el.className = "cursor-pointer transition-transform transform hover:scale-110 active:scale-95";
+      const { YMapMarker } = ymaps;
+      const map = mapInstanceRef.current;
+      const markerElements: any[] = [];
 
-      let badgeBg = "bg-red-500 text-white border-red-400";
-      let icon = "🔴";
-      if (m.type === "verified") { badgeBg = "bg-[#00A86B] text-white border-[#00D4A8]"; icon = "🟢"; }
-      else if (m.type === "premium") { badgeBg = "bg-[#D4AF37] text-black border-yellow-300 font-bold"; icon = "⭐"; }
+      markers.forEach((m) => {
+        try {
+          const isSelected = selectedMarkerId === m.id;
+          const el = document.createElement("div");
+          el.className = "cursor-pointer transition-transform transform hover:scale-110 active:scale-95";
 
-      el.innerHTML = `
-        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-2xl border ${badgeBg} ${isSelected ? "ring-4 ring-white scale-110 z-50" : ""}">
-          <span class="text-xs">${icon}</span>
-          <span class="text-[11px] font-black tracking-tight whitespace-nowrap">${m.salary || m.title}</span>
-        </div>
-      `;
+          let badgeBg = "bg-red-500 text-white border-red-400";
+          let icon = "🔴";
+          if (m.type === "verified") { badgeBg = "bg-[#00A86B] text-white border-[#00D4A8]"; icon = "🟢"; }
+          else if (m.type === "premium") { badgeBg = "bg-[#D4AF37] text-black border-yellow-300 font-bold"; icon = "⭐"; }
 
-      el.addEventListener("click", () => onSelectMarker?.(m));
+          el.innerHTML = `
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-2xl border ${badgeBg} ${isSelected ? "ring-4 ring-white scale-110 z-50" : ""}">
+              <span class="text-xs">${icon}</span>
+              <span class="text-[11px] font-black tracking-tight whitespace-nowrap">${m.salary || m.title}</span>
+            </div>
+          `;
 
-      try {
-        const marker = new YMapMarker({ coordinates: m.coordinates }, el);
-        map.addChild(marker);
-        markerElements.push(marker);
-      } catch {}
-    });
+          el.addEventListener("click", () => onSelectMarker?.(m));
 
-    if (userLocation) {
-      const uEl = document.createElement("div");
-      uEl.innerHTML = `<div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow-xl flex items-center justify-center animate-pulse"><div class="w-2.5 h-2.5 rounded-full bg-white"></div></div>`;
-      try {
-        const userMarker = new YMapMarker({ coordinates: userLocation }, uEl);
-        map.addChild(userMarker);
-        markerElements.push(userMarker);
-      } catch {}
+          const marker = new YMapMarker({ coordinates: m.coordinates }, el);
+          map.addChild(marker);
+          markerElements.push(marker);
+        } catch (e) {
+          console.warn("[YandexMap] Failed to add marker:", e);
+        }
+      });
+
+      if (userLocation) {
+        try {
+          const uEl = document.createElement("div");
+          uEl.innerHTML = `<div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow-xl flex items-center justify-center animate-pulse"><div class="w-2.5 h-2.5 rounded-full bg-white"></div></div>`;
+          const userMarker = new YMapMarker({ coordinates: userLocation }, uEl);
+          map.addChild(userMarker);
+          markerElements.push(userMarker);
+        } catch (e) {
+          console.warn("[YandexMap] Failed to add user location marker:", e);
+        }
+      }
+
+      return () => {
+        markerElements.forEach((mk) => { try { map.removeChild(mk); } catch {} });
+      };
+    } catch (error) {
+      console.warn("[YandexMap] Marker effect failed:", error);
     }
-
-    return () => {
-      markerElements.forEach((mk) => { try { map.removeChild(mk); } catch {} });
-    };
   }, [markers, selectedMarkerId, userLocation, onSelectMarker, useOsmFallback]);
 
   if (useOsmFallback) {
