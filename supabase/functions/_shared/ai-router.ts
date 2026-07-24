@@ -51,27 +51,38 @@ export type Intent =
 
 const SYSTEM_PROMPTS: Record<AIRequestType, string> = {
   assistant:
-    "Ты — простой и дружелюбный помощник VAQTA AI для людей, ищущих работу и выезжающих на вахту.\nПиши простыми, понятными словами без сложных технических терминов (не используй слова API, геокодер, интеграция, модуль, сервис).\nОтвечай строго на языке пользователя (Русский, Ўзбекча кириллицада, Қазақша, или English).\nПРАВИЛО КАРТ: Все карты показываются внутри приложения VAQTA AI. Никогда не говори 'Используйте внешние карты'.",
+    "Ты — простой и дружелюбный помощник VAQTA AI для граждан Узбекистана и СНГ, ищущих работу и выезжающих за границу.\n" +
+    "ВАЖНОЕ ПРАВИЛО ЯЗЫКА:\n" +
+    "1. Если пользователь пишет на узбекской кириллице (например: 'Салом иш керак'), отвечай строго на узбекской кириллице (Ўзбек тили).\n" +
+    "2. Если пользователь пишет на узбекской латинице (например: 'Salom ish kerak'), отвечай на узбекской латинице (O'zbek tili).\n" +
+    "3. Если на русском — на русском. Если на английском — на английском.\n" +
+    "Пиши простыми, естественными и понятными словами без сложных технических терминов.\n" +
+    "ПРАВИЛО КАРТ: Все карты открываются прямо в приложении VAQTA AI. Не отправляй на внешние сайты.",
+
   translation:
-    "Ты — переводчик VAQTA AI. Верни ТОЛЬКО переведенный текст. Без технических терминов и лишних объяснений.",
+    "Ты — переводчик VAQTA AI. Переведи текст естественно, без машинных ошибок. Верни ТОЛЬКО переведенный текст.",
+
   vision:
-    "Ты система чтении документов VAQTA AI. Прочитай текст на фото и верни понятное описание простыми словами.",
+    "Ты система чтения и перевода документов VAQTA AI. Прочитай текст на фото и переведи его на язык пользователя.",
+
   document:
-    "Ты помощник по документам VAQTA AI. Объясни договор или патент простыми словами без юридических сложностей.",
+    "Ты помощник по документам VAQTA AI. Объясни патент, договор или визу простыми словами.",
+
   vacancy:
     "Ты помощник по поиску работы VAQTA AI. Помогай с вакансиями просто и понятно.",
+
   employer_check:
-    "Ты помощник по проверке компании VAQTA AI. Проверь надежность и скажи, есть ли риски.",
+    "Ты помощник по проверке компании VAQTA AI. Проверь надежность работодателя.",
+
   legal:
     "Ты правовой помощник VAQTA AI. Объясни права мигранта простыми словами.",
+
   migration:
-    "Ты помощник по патенту и миграции VAQTA AI. Напоминай про сроки и правила.",
-  premium:
-    "Ты помощник по подписке VAQTA AI.",
-  chat:
-    "Ты дружелюбный собеседник VAQTA AI.",
-  help:
-    "Ты помощник VAQTA AI. Отвечай кратко и понятно.",
+    "Ты помощник по патенту и миграции VAQTA AI.",
+
+  premium: "Ты помощник по подписке VAQTA AI.",
+  chat: "Ты дружелюбный собеседник VAQTA AI.",
+  help: "Ты помощник VAQTA AI. Отвечай кратко и понятно.",
 };
 
 const MODELS = [
@@ -90,20 +101,20 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
   const low = input.toLowerCase();
 
   if (hasImage) {
-    if (low.includes("документ") || low.includes("паспорт") || low.includes("договор") || low.includes("справка") || low.includes("contract") || low.includes("document") || low.includes("ҳужжат")) return "DOCUMENT_ANALYSIS";
+    if (low.includes("документ") || low.includes("паспорт") || low.includes("договор") || low.includes("справка") || low.includes("contract") || low.includes("document") || low.includes("ҳужжат") || low.includes("hujjat")) return "DOCUMENT_ANALYSIS";
     return "OCR_DOCUMENT";
   }
 
   // Location search keywords
   if (
-    /найди адрес|покажи адрес|где находится|найти место|покажи на карте|маршрут до|аэропорт|вокзал|жд вокзал|метро|больница|рынок|улица|проспект|корпус/i.test(low)
+    /найди адрес|покажи адрес|где находится|найти место|покажи на карте|маршрут до|аэропорт|вокзал|жд вокзал|метро|больница|рынок|улица|проспект|корпус|вокзал|vokzal|vokzali/i.test(low)
   ) {
     return "LOCATION_SEARCH";
   }
 
   // Translation detection
   if (
-    /перевед|перевод|таржима|таражума|translate|translation|русский|узбек|ўзбек|o'zbek|kazakh|қазақ|english|на русск|на узб|на англ/i.test(low)
+    /перевед|перевод|таржима|translate|translation|русский|узбек|ўзбек|o'zbek|english/i.test(low)
   ) {
     return "TRANSLATION";
   }
@@ -112,9 +123,9 @@ export function detectIntent(input: string, hasImage: boolean = false, previousM
   if (low.includes("помощ") || low.includes("help") || low.includes("как пользовать") || low.includes("инструкц") || low.includes("что умеешь")) return "HELP";
   if (low.includes("закон") || low.includes("право") || low.includes("юрист") || low.includes("штраф") || low.includes("суд") || low.includes("law") || low.includes("legal") || low.includes("патент")) return "LEGAL_HELP";
   if (low.includes("миграц") || low.includes("мвд") || low.includes("регистрац") || low.includes("виза") || low.includes("migration")) return "MIGRATION";
-  if (low.includes("работ") || low.includes("ваканс") || low.includes("job") || low.includes("иш") || low.includes("vacancy") || low.includes("жұмыс")) return "VACANCY_SEARCH";
+  if (low.includes("работ") || low.includes("ваканс") || low.includes("job") || low.includes("иш") || low.includes("ish") || low.includes("vacancy")) return "VACANCY_SEARCH";
   if (low.includes("проверь работодателя") || low.includes("employer") || low.includes("проверка") || low.includes("инн") || low.includes("огрн")) return "EMPLOYER_CHECK";
-  if (low.includes("паспорт") || low.includes("договор") || low.includes("документ") || low.includes("разрешение") || low.includes("document") || low.includes("contract") || low.includes("ҳужжат")) return "DOCUMENT_ANALYSIS";
+  if (low.includes("паспорт") || low.includes("договор") || low.includes("документ") || low.includes("разрешение") || low.includes("document") || low.includes("contract") || low.includes("ҳужжат") || low.includes("hujjat")) return "DOCUMENT_ANALYSIS";
   
   return "GENERAL_CHAT";
 }
@@ -191,8 +202,7 @@ async function tryModel(model: string, messages: any[]): Promise<string> {
 
   const bodyText = await response.text();
   if (isGuardrailOrPolicyError(bodyText)) {
-    console.error(`[OpenRouter Guardrail/Policy] model=${model} status=${response.status} body=${bodyText.slice(0, 500)}`);
-    throw new Error(`Model ${model} blocked by guardrail/policy: ${bodyText.slice(0, 200)}`);
+    throw new Error(`Model ${model} blocked by guardrail/policy`);
   }
   let data: any;
   try { data = JSON.parse(bodyText); } catch { throw new Error("Invalid JSON from AI"); }
@@ -234,7 +244,7 @@ export async function createAIRequest(req: AIRequest): Promise<AIResult> {
   }
 
   logRequest({ user: req.userId, task: requestType, duration_ms: Date.now() - startTime, success: false, error: lastError?.message || "all models failed" });
-  return { text: "AI временно переключается на резервную модель.", model: "none", provider: "none", intent, action: getActionForIntent(intent), language: req.language };
+  return { text: "AI вақтинча банд. Бироздан сўнг қайта уриниб кўринг.", model: "none", provider: "none", intent, action: getActionForIntent(intent), language: req.language };
 }
 
 function buildMessages(req: AIRequest, task: AIRequestType, previous: Array<{ role: string; content: string }>): any[] {

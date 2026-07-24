@@ -8,9 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
 const LANGUAGES: { code: Lang; name: string; flag: string }[] = [
+  { code: "uz_cyr", name: "Ўзбек тили", flag: "🇺🇿" },
+  { code: "uz", name: "O'zbek tili", flag: "🇺🇿" },
   { code: "ru", name: "Русский", flag: "🇷🇺" },
-  { code: "uz", name: "Ўзбекча", flag: "🇺🇿" },
-  { code: "kk", name: "Қазақша", flag: "🇰🇿" },
   { code: "en", name: "English", flag: "🇬🇧" },
 ];
 
@@ -55,11 +55,11 @@ export function LanguageSwitcher() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         disabled={saving}
-        className="flex items-center gap-2 px-3 py-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-2xl text-xs font-bold text-white hover:bg-white/10 transition-all shadow-lg disabled:opacity-50"
+        className="flex items-center gap-1.5 px-3 py-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-2xl text-xs font-bold text-white hover:bg-white/10 transition-all shadow-lg active:scale-95 disabled:opacity-50"
       >
         <Globe size={14} className="text-[#00A86B]" />
         <span>{currentLang.flag}</span>
-        <span className="hidden sm:inline font-bold">{currentLang.name}</span>
+        <span className="font-bold">{currentLang.name}</span>
         <ChevronDown size={14} className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
 

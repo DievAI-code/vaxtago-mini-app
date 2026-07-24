@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Bot, X, ImageIcon, Camera, Mic, Briefcase, FileText, MapPin, Sparkles } from "lucide-react";
+import { Send, User, Bot, X, ImageIcon, Camera, Mic, Briefcase, MapPin, Sparkles, Languages } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
@@ -38,7 +38,7 @@ export default function Home() {
 
     const access = await subscription.checkUserAccess("ai");
     if (!access.allowed) {
-      toast.error(t("premium.feature_locked") || "AI limit tugadi.");
+      toast.error(t("premium.feature_locked") || "AI лимит тугади.");
       return;
     }
 
@@ -52,20 +52,43 @@ export default function Home() {
   };
 
   const getGreeting = () => {
+    if (language === "uz_cyr") {
+      return "Сизга иш, ҳужжатлар, таржима ва манзиллар бўйича ёрдам бераман";
+    }
     if (language === "uz") {
-      return "Salom! Men VAQTA AI yordamchisiman.\nIsh, hujjatlar, tarjima va manzillar bo'yicha yordam beraman.";
+      return "Sizga ish, hujjatlar, tarjima va manzillar bo'yicha yordam beraman";
     }
     if (language === "en") {
-      return "Hello! I am VAQTA AI Assistant.\nI help with jobs, documents, translation, and addresses.";
+      return "I can help you with jobs, documents, translation, and addresses.";
     }
-    return "Здравствуйте! Я VAQTA AI помощник.\nПомогаю с работой, документами, переводом и адресами.";
+    return "Помогаю с работой, документами, переводом и адресами.";
   };
 
-  const QUICK_PROMPTS = [
-    { label: "🔍 " + t("home.find_job"), prompt: "Покажи вакансии для вахты" },
-    { label: "📍 " + t("home.find_address"), prompt: "ЖД Вокзал в Тюмени" },
-    { label: "📄 " + t("home.check_doc"), path: "/contract-audit" },
-    { label: "📷 " + t("home.translate_photo"), path: "/scanner" },
+  const QUICK_ACTION_BUTTONS = [
+    { 
+      label: language === "uz" ? "AI yordamchi" : "AI ёрдамчи", 
+      icon: Bot, 
+      color: "from-[#00A86B] to-[#00D4A8]",
+      action: () => nav("/ai") 
+    },
+    { 
+      label: language === "uz" ? "Rasm tarjima" : "Расм таржима", 
+      icon: Camera, 
+      color: "from-purple-600 to-indigo-500",
+      action: () => nav("/scanner") 
+    },
+    { 
+      label: language === "uz" ? "Ish qidirish" : "Иш қидириш", 
+      icon: Briefcase, 
+      color: "from-emerald-600 to-teal-500",
+      action: () => nav("/jobs-test") 
+    },
+    { 
+      label: language === "uz" ? "Manzil topish" : "Манзил топиш", 
+      icon: MapPin, 
+      color: "from-amber-500 to-orange-500",
+      action: () => { setInput(language === "uz" ? "Toshkent vokzali" : "Вокзал Тюмень"); } 
+    },
   ];
 
   return (
@@ -73,42 +96,45 @@ export default function Home() {
       <Header title="nav.home" onMenuClick={() => setIsMenuOpen(true)} />
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar smooth-scroll pb-36">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-5 no-scrollbar smooth-scroll pb-36 pt-safe">
         {/* Main Banner Greeting */}
-        <div className="vaqta-glass p-5 border-[#00A86B]/30 bg-gradient-to-br from-[#00A86B]/15 via-transparent to-transparent space-y-3">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="vaqta-glass p-5 border-[#00A86B]/30 bg-gradient-to-br from-[#00A86B]/15 via-[#0C1F1A] to-[#06140F] space-y-3 shadow-2xl"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl vaqta-gradient flex items-center justify-center text-white shadow-xl vaqta-glow">
+            <div className="w-12 h-12 rounded-2xl vaqta-gradient flex items-center justify-center text-white shadow-xl vaqta-glow flex-shrink-0">
               <Bot size={28} />
             </div>
             <div>
-              <span className="font-black text-white text-base">VAQTA <span className="text-[#00A86B]">AI</span></span>
-              <p className="text-[10px] text-[#00A86B] font-bold uppercase tracking-widest">Digital Assistant</p>
+              <span className="font-black text-white text-lg tracking-tight">VAQTA <span className="text-[#00A86B]">AI</span></span>
+              <p className="text-[10px] text-[#00A86B] font-black uppercase tracking-widest">Digital Assistant</p>
             </div>
           </div>
-          <h2 className="text-sm font-black text-white leading-relaxed whitespace-pre-line">
+          <h2 className="text-sm font-extrabold text-slate-100 leading-relaxed">
             {getGreeting()}
           </h2>
-        </div>
+        </motion.div>
 
-        {/* Quick Chips */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-          {QUICK_PROMPTS.map((q, idx) => (
-            <button
+        {/* 4 Large Action Buttons */}
+        <div className="grid grid-cols-2 gap-3">
+          {QUICK_ACTION_BUTTONS.map((btn, idx) => (
+            <motion.button
               key={idx}
-              onClick={() => {
-                if (q.path) nav(q.path);
-                else if (q.prompt) {
-                  setInput(q.prompt);
-                }
-              }}
-              className="px-3 py-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-xl text-xs font-bold text-white whitespace-nowrap hover:border-[#00A86B] active:scale-95 transition-all shadow-md"
+              whileTap={{ scale: 0.95 }}
+              onClick={btn.action}
+              className="vaqta-glass p-4 border-[#1A3D2E] flex flex-col items-center gap-2 text-center active:scale-95 transition-all shadow-lg hover:border-[#00A86B]/50"
             >
-              {q.label}
-            </button>
+              <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${btn.color} flex items-center justify-center text-white shadow-md`}>
+                <btn.icon size={22} />
+              </div>
+              <span className="text-xs font-black text-white leading-tight uppercase tracking-wider">{btn.label}</span>
+            </motion.button>
           ))}
         </div>
 
-        {/* Dynamic Chat Stream */}
+        {/* Dynamic AI Messages */}
         {messages.map((m, i) => (
           <div key={i} className="space-y-3">
             <motion.div
@@ -150,7 +176,7 @@ export default function Home() {
       </div>
 
       {/* Input Bar */}
-      <div className="fixed bottom-20 left-0 w-full px-4 pb-2 z-50">
+      <div className="fixed bottom-20 left-0 w-full px-3 pb-2 z-50">
         <AnimatePresence>
           {attachedImage && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="relative mb-2 inline-block">
@@ -166,7 +192,7 @@ export default function Home() {
           <div className="flex items-center gap-0.5">
             <button onClick={() => fileRef.current?.click()} className="p-2 text-[#5C7A6D] hover:text-[#00A86B] active:scale-90 transition-transform"><ImageIcon size={18} /></button>
             <button onClick={() => cameraRef.current?.click()} className="p-2 text-[#5C7A6D] hover:text-[#00A86B] active:scale-90 transition-transform"><Camera size={18} /></button>
-            <button onClick={() => { setIsRecording(!isRecording); if (!isRecording) toast.info("Ovozli xabar tayyorlanmoqda..."); }} className={`p-2 transition-transform active:scale-90 ${isRecording ? "text-red-500 animate-pulse" : "text-[#5C7A6D]"}`}>
+            <button onClick={() => { setIsRecording(!isRecording); if (!isRecording) toast.info(language.startsWith("uz") ? "Ovozli xabar yozilmoqda..." : "Запись голоса..."); }} className={`p-2 transition-transform active:scale-90 ${isRecording ? "text-red-500 animate-pulse" : "text-[#5C7A6D]"}`}>
               <Mic size={18} />
             </button>
           </div>
