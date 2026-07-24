@@ -1,6 +1,7 @@
 "use client";
 
 import { geocodingService, GeocodingResult } from "@/services/geocodingService";
+import { expandOrganizationQuery } from "./organizationAliases";
 
 export type ObjectType =
   | "railway_station"
@@ -81,7 +82,7 @@ const CITY_DICTIONARY: Record<string, string> = {
   новосибирск: "Новосибирск",
   novosibirsk: "Новосибирск",
 
-  // Самара / Уфа / Омск / Краснодар / Челябинск / Тобольск / Ишим
+  // Самара / Уфа / Омск / Краснодар / Челябинск / Тобольск / Ишим / Нижневартовск
   самара: "Самара",
   уфа: "Уфа",
   омск: "Омск",
@@ -102,6 +103,17 @@ function cleanCityPrefixes(text: string): string {
     .replace(/г\.\s*/g, " ")
     .replace(/город\.\s*/g, " ")
     .replace(/город\s+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Removes quotes, punctuation, and extra whitespace for clean query fallback
+ */
+function cleanPunctuationAndQuotes(text: string): string {
+  return text
+    .replace(/["'«»’“”]/g, "")
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -245,18 +257,55 @@ function scoreCandidate(candidate: GeocodingResult, parsed: ParsedLocationQuery)
 
 export const hybridMapSearch = {
   parseLocationQuery,
+  expandOrganizationQuery,
 
   async searchLocation(
     rawQuery: string
   ): Promise<{ results: MapSearchResult[]; isLowConfidence: boolean; message?: string }> {
-    const parsed = parseLocationQuery(rawQuery);
-    const rawResults = await geocodingService.searchAddress(rawQuery);
+    const originalQuery = rawQuery.trim();
+    const expandedQuery = expandOrganizationQuery(originalQuery);
+    const cleanedQuery = cleanPunctuationAndQuotes(expandedQuery || originalQuery);
+
+    console.log("ORIGINAL QUERY:", originalQuery);
+    console.log("EXPANDED QUERY:", expandedQuery);
+
+    const parsed = parseLocationQuery(expandedQuery || originalQuery);
+
+    // Build list of candidate search queries to attempt sequentially
+    const searchAttempts: string[] = [];
+
+    // Attempt 1: Full expanded query (e.g. "Ермаковское Предприятие по ремонту скважин Нижневартовск")
+    if (expandedQuery) {
+      searchAttempts.push(expandedQuery);
+    }
+
+    // Attempt 2: Original query (e.g. "ЕПРС Нижневартовск")
+    if (!searchAttempts.includes(originalQuery)) {
+      searchAttempts.push(originalQuery);
+    }
+
+    // Attempt 3: Cleaned query (without quotes/punctuation)
+    if (cleanedQuery && !searchAttempts.includes(cleanedQuery)) {
+      searchAttempts.push(cleanedQuery);
+    }
+
+    let rawResults: GeocodingResult[] = [];
+
+    for (const queryVariant of searchAttempts) {
+      console.log("2GIS QUERY:", queryVariant);
+      rawResults = await geocodingService.searchAddress(queryVariant);
+      console.log("RESULTS:", rawResults);
+
+      if (rawResults.length > 0) {
+        break;
+      }
+    }
 
     if (rawResults.length === 0) {
       return {
         results: [],
         isLowConfidence: false,
-        message: parsed.city ? `В шаҳарда (${parsed.city}) топилмади.` : "По запросу ничего не найдено.",
+        message: parsed.city ? `В городе (${parsed.city}) объект не найден.` : "По запросу ничего не найдено.",
       };
     }
 
@@ -294,7 +343,7 @@ export const hybridMapSearch = {
 
     let warningMessage: string | undefined = undefined;
     if (parsed.city && !hasExactCityMatch) {
-      warningMessage = `В шаҳарда (${parsed.city}) точный объект не найден. Возможно вы имели в виду:`;
+      warningMessage = `В городе (${parsed.city}) точный объект не найден. Возможно вы имели в виду:`;
     }
 
     return {
