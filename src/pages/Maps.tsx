@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, Crosshair, Navigation, Share2, Star, Loader2,
-  AlertCircle, RefreshCw, Check
+  AlertCircle, RefreshCw, Check, MapPin
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
@@ -26,6 +26,7 @@ export default function Maps() {
   );
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [isLowConfidence, setIsLowConfidence] = useState(false);
 
   const [searchResults, setSearchResults] = useState<MapSearchResult[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<MapSearchResult | null>(null);
@@ -59,13 +60,15 @@ export default function Maps() {
     setIsSearching(true);
     setSearchError(null);
     setRouteInfo(null);
+    setIsLowConfidence(false);
 
     try {
-      const results = await hybridMapSearch.searchLocation(queryText);
+      const { results, isLowConfidence: lowConf } = await hybridMapSearch.searchLocation(queryText);
       await subscription.trackUsage("maps");
 
       if (results.length > 0) {
         setSearchResults(results);
+        setIsLowConfidence(lowConf);
         const top = results[0];
         setSelectedLocation(top);
         setMapCenter([top.latitude, top.longitude]);
@@ -170,7 +173,7 @@ export default function Maps() {
                 if (searchError) setSearchError(null);
               }}
               onKeyDown={(e) => e.key === "Enter" && executeSearch(searchQuery)}
-              placeholder="Поиск мест, вокзалов, больниц, адресов..."
+              placeholder="Тюмень жд вокзал, москва аэропорт..."
               className="flex-1 bg-transparent py-2.5 text-xs text-white outline-none placeholder-[#5C7A6D] font-bold"
             />
             {searchQuery && (
@@ -180,6 +183,7 @@ export default function Maps() {
                   setSearchResults([]);
                   setSelectedLocation(null);
                   setSearchError(null);
+                  setIsLowConfidence(false);
                 }}
                 className="text-xs text-[#5C7A6D] hover:text-white px-1"
               >
@@ -203,6 +207,43 @@ export default function Maps() {
           </div>
         </div>
 
+        {/* Low Confidence Choice Banner */}
+        {isLowConfidence && searchResults.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="vaqta-glass p-3 border-[#00A86B]/30 bg-[#00A86B]/10 rounded-2xl z-20 space-y-2"
+          >
+            <p className="text-xs font-bold text-[#00D4A8]">
+              Я нашёл несколько вариантов. Выберите:
+            </p>
+            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto no-scrollbar">
+              {searchResults.slice(0, 4).map((res, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setSelectedLocation(res);
+                    setMapCenter([res.latitude, res.longitude]);
+                    setZoom(15);
+                    setIsLowConfidence(false);
+                  }}
+                  className={`p-2 rounded-xl text-left text-xs font-bold transition-all flex items-center justify-between border ${
+                    selectedLocation?.title === res.title
+                      ? "bg-[#00A86B] border-[#00D4A8] text-white"
+                      : "bg-[#06140F]/80 border-[#1A3D2E] text-slate-200 hover:bg-white/5"
+                  }`}
+                >
+                  <div className="truncate pr-2">
+                    <p className="font-extrabold">{res.title}</p>
+                    <p className="text-[10px] text-[#5C7A6D] truncate">{res.address}</p>
+                  </div>
+                  <MapPin size={14} className="flex-shrink-0 text-[#00A86B]" />
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {searchError && (
           <motion.div
             initial={{ opacity: 0, y: -5 }}
@@ -222,7 +263,7 @@ export default function Maps() {
           </motion.div>
         )}
 
-        {searchResults.length > 1 && (
+        {searchResults.length > 1 && !isLowConfidence && (
           <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 text-xs z-20">
             {searchResults.map((res, i) => (
               <button
