@@ -6,15 +6,21 @@ import path from "path";
 export default defineConfig(() => ({
   server: {
     hmr: true,
-    host: "localhost",
+    host: "0.0.0.0",
     port: 8080,
   },
-  plugins: [dyadComponentTagger(), react()],
+
+  plugins: [
+    dyadComponentTagger(),
+    react(),
+  ],
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
+
   build: {
     outDir: "dist",
     sourcemap: false,
