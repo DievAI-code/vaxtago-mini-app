@@ -5,24 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { detectAIAction } from "@/services/aiActions";
+import { detectAIAction, ActionChip, AIActionType } from "@/services/aiActions";
 
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   action?: any;
+  chips?: ActionChip[];
 }
 
-/**
- * Очищает ответы AI от некорректных рекомендаций сторонних карт
- */
 function sanitizeAiResponse(text: string): string {
   if (!text) return "";
   return text
-    .replace(/я не могу показать карт[ыу]/gi, "Открываю интерактивную карту VAQTA AI...")
-    .replace(/воспользоваться google maps/gi, "использовать карту VAQTA AI")
-    .replace(/воспользуйтесь яндекс\.карти|яндекс\.картами|google maps/gi, "картой VAQTA AI");
+    .replace(/я не могу показать карт[ыу]/gi, "VAQTA AI харитасини очмоқдаман...")
+    .replace(/воспользоваться google maps/gi, "VAQTA AI харитасидан фойдаланиш")
+    .replace(/яндекс\.картами|google maps/gi, "VAQTA AI харитаси");
 }
 
 export function useAiChat() {
@@ -30,18 +28,17 @@ export function useAiChat() {
   const { language, t } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const chatHistoryRef = useRef<ChatMessage[]>([]);
+  const lastActionContext = useRef<{ lastAction?: AIActionType; lastQuery?: string }>({});
   const navigate = useNavigate();
 
   const sendMessage = useCallback(async (message: string, image?: string): Promise<string | null> => {
     if ((!message.trim() && !image) || loading) return null;
     
-    const userPhone = localStorage.getItem("vaxtago_user_phone");
-    if (!userPhone) return null;
+    const userPhone = localStorage.getItem("vaxtago_user_phone") || "79000000000";
 
     setLoading(true);
-    
-    // Предварительная проверка намерений (локации, маршруты, работы)
-    const detectedAction = detectAIAction(message);
+
+    const detectedAction = detectAIAction(message, lastActionContext.current);
 
     const userMsg: ChatMessage = {
       role: "user",
@@ -54,14 +51,26 @@ export function useAiChat() {
     chatHistoryRef.current = newHistory;
 
     try {
-      // 1. Поиск мест и локаций -> Автоматический переход на /maps
-      if (
-        detectedAction.action === "MAP_SEARCH" ||
-        detectedAction.action === "MAP_ROUTE" ||
-        detectedAction.action === "MAP_NEARBY"
-      ) {
-        const queryText = detectedAction.query || detectedAction.destination || message;
-        const replyText = `Нашел объект: "${queryText}". Открываю карту VAQTA AI...`;
+      // 1. Photo translate shortcut
+      if (detectedAction.action === "PHOTO_TRANSLATE" && !image) {
+        const replyText = detectedAction.message || "Расмни юборинг. Мен матнни ўқийман ва таржима қилиб бераман.";
+        const assistantMsg: ChatMessage = {
+          role: "assistant",
+          content: replyText,
+          timestamp: new Date(),
+        };
+        const updatedHistory = [...newHistory, assistantMsg];
+        setMessages(updatedHistory);
+        chatHistoryRef.current = updatedHistory;
+        setLoading(false);
+        setTimeout(() => navigate("/scanner"), 1200);
+        return replyText;
+      }
+
+      // 2. Map / Location Search
+      if (detectedAction.action === "MAP_SEARCH" && detectedAction.query) {
+        const queryText = detectedAction.query;
+        const replyText = `📍 ${queryText} бўйича 2ГИС харитасини очмоқдаман...`;
 
         const assistantMsg: ChatMessage = {
           role: "assistant",
@@ -73,39 +82,67 @@ export function useAiChat() {
         const updatedHistory = [...newHistory, assistantMsg];
         setMessages(updatedHistory);
         chatHistoryRef.current = updatedHistory;
-
         setLoading(false);
 
-        // Переход на страницу карт
         setTimeout(() => {
           navigate(`/maps?search=${encodeURIComponent(queryText)}`);
-        }, 800);
+        }, 900);
 
         return replyText;
       }
 
-      // 2. Детекция вакансий
-      if (detectedAction.action === "JOB_SEARCH") {
-        const waitingReply = "Формирую подборку вакансий...";
-        
+      // 3. Job Search with direct prompt or interactive chips
+      if (detectedAction.action === "WORK_SEARCH") {
+        lastActionContext.current = { lastAction: "WORK_SEARCH", lastQuery: detectedAction.profession };
+
+        if (detectedAction.city) {
+          const replyText = detectedAction.message || `${detectedAction.city} бўйича вакансиялар тайёрланмоқда...`;
+          const assistantMsg: ChatMessage = {
+            role: "assistant",
+            content: replyText,
+            timestamp: new Date(),
+            action: detectedAction
+          };
+          const updatedHistory = [...newHistory, assistantMsg];
+          setMessages(updatedHistory);
+          chatHistoryRef.current = updatedHistory;
+
+          setTimeout(() => navigate(`/jobs-test?query=${encodeURIComponent(detectedAction.city)}`), 1000);
+          setLoading(false);
+          return replyText;
+        }
+
+        const replyText = detectedAction.message || "Албатта ёрдам бераман. Қайси шаҳарда иш керак?";
         const assistantMsg: ChatMessage = {
           role: "assistant",
-          content: waitingReply,
+          content: replyText,
           timestamp: new Date(),
-          action: detectedAction
+          chips: detectedAction.chips,
         };
-        
         const updatedHistory = [...newHistory, assistantMsg];
         setMessages(updatedHistory);
         chatHistoryRef.current = updatedHistory;
-        
-        setTimeout(() => navigate(`/jobs-test?query=${encodeURIComponent(detectedAction.profession || "")}`), 1000);
-        
         setLoading(false);
-        return waitingReply;
+        return replyText;
       }
 
-      // 3. Стандартный запрос к AI Edge Function
+      // 4. Document / Patent Help with chips
+      if (detectedAction.action === "DOCUMENT_HELP") {
+        const replyText = detectedAction.message || "Патент ва миграция бўйича ёрдам бераман.";
+        const assistantMsg: ChatMessage = {
+          role: "assistant",
+          content: replyText,
+          timestamp: new Date(),
+          chips: detectedAction.chips,
+        };
+        const updatedHistory = [...newHistory, assistantMsg];
+        setMessages(updatedHistory);
+        chatHistoryRef.current = updatedHistory;
+        setLoading(false);
+        return replyText;
+      }
+
+      // 5. Standard AI query via Supabase Edge Function
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
           message: message.trim(),
@@ -123,7 +160,7 @@ export function useAiChat() {
         return null;
       }
 
-      const rawReply = data?.reply || "AI откликнулся.";
+      const rawReply = data?.reply || "ИИ жавоб берди.";
       const cleanReply = sanitizeAiResponse(rawReply);
       
       const assistantMsg: ChatMessage = {
@@ -139,7 +176,7 @@ export function useAiChat() {
       return cleanReply;
 
     } catch (err: any) {
-      toast.error(t("ai.error"));
+      toast.error(t("ai.error") || "Алоқада хатолик юз берди");
       return null;
     } finally {
       setLoading(false);
