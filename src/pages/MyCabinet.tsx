@@ -2,18 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  User, Phone, Crown, Zap, Scan, 
-  Map as MapIcon, LogOut, 
-  ArrowRight, Key, Clock, 
+import {
+  User, Phone, Crown, Zap, Scan,
+  Map as MapIcon, LogOut,
+  ArrowRight, Key, Clock,
   ShieldCheck, ShieldAlert, Lock, RefreshCw, X
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
-import { supabase } from "@/integrations/supabase/client";
-import { normalizePhone } from "@/lib/normalizePhone";
+import { getUserByPhone, checkPremiumAccess } from "@/services/userService";
 import { subscription } from "@/services/subscription";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -25,7 +24,7 @@ export default function MyCabinet() {
   const [userData, setUserData] = useState<any>(null);
   const [usage, setUsage] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [adminModal, setAdminModal] = useState(false);
   const [adminCode, setAdminCode] = useState("");
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -39,31 +38,34 @@ export default function MyCabinet() {
 
   const loadData = async () => {
     const rawPhone = localStorage.getItem("vaxtago_user_phone");
-    if (!rawPhone) return nav("/login");
-
-    const phone = normalizePhone(rawPhone);
-    if (!phone) return nav("/login");
+    if (!rawPhone) {
+      nav("/login");
+      return;
+    }
 
     try {
-      const { data, error } = await supabase.from("users").select("*").eq("phone_number", phone).maybeSingle();
-      if (error) {
+      const user = await getUserByPhone(rawPhone);
+
+      if (!user) {
         toast.error("Не удалось загрузить профиль");
-      } else {
-        setUserData(data);
+        return;
       }
 
+      setUserData(user);
+
+      const premiumCheck = checkPremiumAccess(user);
       const aiAccess = await subscription.checkUserAccess("ai");
       const ocrAccess = await subscription.checkUserAccess("ocr");
       const mapAccess = await subscription.checkUserAccess("maps");
 
-      const isUnlimited = aiAccess.isPremium || aiAccess.mode === "all";
+      const isUnlimited = premiumCheck.isPremium || aiAccess.mode === "all";
 
       setUsage({
         status: isUnlimited ? "premium" : "free",
         mode: aiAccess.mode,
-        ai_remaining: aiAccess.remaining,
-        ocr_remaining: ocrAccess.remaining,
-        map_remaining: mapAccess.remaining,
+        ai_remaining: isUnlimited ? Infinity : aiAccess.remaining,
+        ocr_remaining: isUnlimited ? Infinity : ocrAccess.remaining,
+        map_remaining: isUnlimited ? Infinity : mapAccess.remaining,
       });
     } catch (err) {
       console.error(err);
@@ -115,7 +117,7 @@ export default function MyCabinet() {
 
       <main className="p-6 space-y-6">
         {isAdmin && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
             className="vaqta-glass p-6 border-[#D4AF37]/40 bg-gradient-to-br from-[#D4AF37]/20 via-transparent to-[#00A86B]/10 relative overflow-hidden"
           >
@@ -145,7 +147,7 @@ export default function MyCabinet() {
               </div>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4 mt-6 pt-5 border-t border-white/5">
             <div>
               <p className="text-[9px] uppercase text-[#5C7A6D] font-black tracking-widest">Статус</p>
@@ -162,7 +164,7 @@ export default function MyCabinet() {
           </div>
         </section>
 
-        <motion.button 
+        <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={handleAdminAuth}
           className="w-full p-5 vaqta-glass border-[#1A3D2E] bg-white/5 flex items-center justify-between group shadow-xl"
@@ -182,7 +184,7 @@ export default function MyCabinet() {
             <div>
               <p className="text-[10px] font-black uppercase text-[#5C7A6D] tracking-widest mb-1">{t("premium.title")}</p>
               <h3 className={`text-2xl font-black ${usage?.status === 'premium' ? 'vaqta-gold-text' : 'text-slate-200'}`}>
-                VAQTA {usage?.status.toUpperCase()}
+                VAQTA {usage?.status?.toUpperCase()}
               </h3>
             </div>
             {usage?.status === 'free' && (
@@ -191,12 +193,12 @@ export default function MyCabinet() {
               </button>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase">
             <Clock size={14} className={usage?.status === 'premium' ? "text-[#D4AF37]" : "text-[#5C7A6D]"} />
             <span>
-              {usage?.status === 'premium' 
-                ? (usage.mode === 'all' ? 'Безлимитный доступ (ALL USERS Mode)' : 'Premium активен') 
+              {usage?.status === 'premium'
+                ? (usage.mode === 'all' ? 'Безлимитный доступ (ALL USERS Mode)' : 'Premium активен')
                 : 'Лимитированный бесплатный доступ'}
             </span>
           </div>
@@ -224,21 +226,21 @@ export default function MyCabinet() {
         </section>
 
         <div className="space-y-2">
-           <button 
-              onClick={() => { localStorage.clear(); toast.success("Кеш очищен"); window.location.reload(); }}
-              className="w-full vaqta-glass p-5 border-[#1A3D2E] flex items-center gap-4 active:scale-95 transition-transform"
-            >
-              <div className="p-2.5 rounded-xl bg-white/5 text-cyan-400"><RefreshCw size={18} /></div>
-              <span className="text-sm font-black uppercase text-white tracking-widest">Очистить кеш</span>
-            </button>
+          <button
+            onClick={() => { localStorage.clear(); toast.success("Кеш очищен"); window.location.reload(); }}
+            className="w-full vaqta-glass p-5 border-[#1A3D2E] flex items-center gap-4 active:scale-95 transition-transform"
+          >
+            <div className="p-2.5 rounded-xl bg-white/5 text-cyan-400"><RefreshCw size={18} /></div>
+            <span className="text-sm font-black uppercase text-white tracking-widest">Очистить кеш</span>
+          </button>
 
-            <button 
-              onClick={handleLogout}
-              className="w-full vaqta-glass p-5 border-red-500/20 bg-red-500/5 flex items-center gap-4 active:scale-95 transition-transform"
-            >
-              <div className="p-2.5 rounded-xl bg-red-500/10 text-red-500"><LogOut size={18} /></div>
-              <span className="text-sm font-black uppercase tracking-widest text-red-400">{t("logout")}</span>
-            </button>
+          <button
+            onClick={handleLogout}
+            className="w-full vaqta-glass p-5 border-red-500/20 bg-red-500/5 flex items-center gap-4 active:scale-95 transition-transform"
+          >
+            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-500"><LogOut size={18} /></div>
+            <span className="text-sm font-black uppercase tracking-widest text-red-400">{t("logout")}</span>
+          </button>
         </div>
       </main>
 

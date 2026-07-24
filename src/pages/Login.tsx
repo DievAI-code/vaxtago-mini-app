@@ -7,7 +7,7 @@ import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { useLanguage } from "@/context/LanguageProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { toast } from "sonner";
-import { safeSupabaseUpsertUser, clearSupabaseSession } from "@/integrations/supabase/client";
+import { safeSupabaseLogin, clearSupabaseSession } from "@/integrations/supabase/client";
 import { isConfigured } from "@/lib/env";
 import { normalizePhone } from "@/lib/normalizePhone";
 import { motion } from "framer-motion";
@@ -20,52 +20,45 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     await clearSupabaseSession();
 
     if (!isConfigured()) {
-      toast.error(t("common.error") + ": Supabase not configured");
+      toast.error("Supabase не настроен. Проверьте переменные окружения.");
       return;
     }
 
     const cleanPhone = normalizePhone(phone);
     if (cleanPhone.length < 10) {
-      toast.error(t("auth.phone_prompt"));
+      toast.error("Введите корректный номер телефона");
       return;
     }
 
     setLoading(true);
-    
+
     try {
-      const { data, error } = await safeSupabaseUpsertUser(cleanPhone, { language_code: language });
+      const { data, error } = await safeSupabaseLogin(cleanPhone, { language_code: language });
 
       if (error || !data) {
         throw error || new Error("Failed to authenticate user");
       }
 
-      handleLoginSuccess(data, cleanPhone);
-      
+      localStorage.setItem("vaxtago_auth", "true");
+      localStorage.setItem("vaxtago_user_data", JSON.stringify(data));
+      localStorage.setItem("vaxtago_user_phone", cleanPhone);
+
+      toast.success(t("welcome"));
+      nav("/home", { replace: true });
     } catch (err: any) {
-      console.error('[Login] Unexpected error:', err);
+      console.error("[Login] Unexpected error:", err);
       toast.error("Не удалось загрузить профиль. Проверьте подключение.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLoginSuccess = (userData: any, cleanPhone: string) => {
-    localStorage.setItem("vaxtago_auth", "true");
-    localStorage.setItem("vaxtago_user_data", JSON.stringify(userData));
-    localStorage.setItem("vaxtago_user_phone", cleanPhone);
-    
-    toast.success(t("welcome"));
-    
-    nav("/home", { replace: true });
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white items-center justify-center px-8 relative">
-      {/* Top Header language selector */}
       <div className="absolute top-6 right-6 z-50">
         <LanguageSwitcher />
       </div>

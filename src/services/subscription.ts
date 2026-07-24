@@ -2,6 +2,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePhone } from "@/lib/normalizePhone";
+import { getUserByPhone, checkPremiumAccess, User } from "./userService";
 
 export type FeatureType = "ai" | "ocr" | "maps" | "routes" | "jobs";
 export type PremiumMode = "off" | "selected" | "all";
@@ -42,7 +43,7 @@ export const subscription = {
       ocr_limit_free: 5,
       map_limit_free: 5,
       jobs_limit_free: 5,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     try {
@@ -80,95 +81,86 @@ export const subscription = {
       return { allowed: true, isPremium: false, remaining: 5, mode };
     }
 
-    const phone = normalizePhone(rawPhone);
-    if (!phone) {
+    const user = await getUserByPhone(rawPhone);
+
+    if (!user) {
       return { allowed: true, isPremium: false, remaining: 5, mode };
     }
 
-    try {
-      if (!supabase) return { allowed: true, isPremium: false, remaining: 5, mode };
+    const premiumCheck = checkPremiumAccess(user);
 
-      const { data: user, error } = await supabase
+    if (mode === "selected" && premiumCheck.isPremium) {
+      return { allowed: true, isPremium: true, remaining: Infinity, mode: "selected" };
+    }
+
+    if (premiumCheck.isPremium) {
+      return { allowed: true, isPremium: true, remaining: Infinity, mode };
+    }
+
+    if (premiumCheck.expired) {
+      await supabase
         .from("users")
-        .select("*")
-        .eq("phone_number", phone)
-        .maybeSingle();
-
-      if (error || !user) {
-        return { allowed: true, isPremium: false, remaining: 5, mode };
-      }
-
-      const isUserPremium = user.subscription_status === "premium" || user.is_premium === true;
-
-      if (mode === "selected" && isUserPremium) {
-        return { allowed: true, isPremium: true, remaining: Infinity, mode: "selected" };
-      }
-
-      if (isUserPremium) {
-        return { allowed: true, isPremium: true, remaining: Infinity, mode };
-      }
-
-      const lastReset = new Date(user.last_limit_reset || 0);
-      const todayStr = new Date().toDateString();
-
-      if (lastReset.toDateString() !== todayStr) {
-        await supabase
-          .from("users")
-          .update({
-            ai_requests_used: 0,
-            ocr_requests_used: 0,
-            map_requests_used: 0,
-            job_searches_used: 0,
-            last_limit_reset: new Date().toISOString()
-          })
-          .eq("phone_number", phone);
-
-        user.ai_requests_used = 0;
-        user.ocr_requests_used = 0;
-        user.map_requests_used = 0;
-        user.job_searches_used = 0;
-      }
-
-      let used = 0;
-      let limit = 5;
-
-      switch (feature) {
-        case "ai":
-          used = user.ai_requests_used || 0;
-          limit = settings.ai_limit_free;
-          break;
-        case "ocr":
-          used = user.ocr_requests_used || 0;
-          limit = settings.ocr_limit_free;
-          break;
-        case "maps":
-        case "routes":
-          used = user.map_requests_used || 0;
-          limit = settings.map_limit_free;
-          break;
-        case "jobs":
-          used = user.job_searches_used || 0;
-          limit = settings.jobs_limit_free;
-          break;
-      }
-
-      const remaining = Math.max(0, limit - used);
-      return {
-        allowed: remaining > 0,
-        isPremium: false,
-        remaining,
-        mode
-      };
-    } catch (err) {
-      console.warn("[Subscription] Access check fallback:", err);
-      return { allowed: true, isPremium: false, remaining: 5, mode };
+        .update({ subscription_status: "free", updated_at: new Date().toISOString() })
+        .eq("id", user.id);
     }
+
+    const lastReset = new Date(user.last_limit_reset || 0);
+    const todayStr = new Date().toDateString();
+
+    if (lastReset.toDateString() !== todayStr) {
+      await supabase
+        .from("users")
+        .update({
+          ai_requests_used: 0,
+          ocr_requests_used: 0,
+          map_requests_used: 0,
+          job_searches_used: 0,
+          last_limit_reset: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+
+      user.ai_requests_used = 0;
+      user.ocr_requests_used = 0;
+      user.map_requests_used = 0;
+      user.job_searches_used = 0;
+    }
+
+    let used = 0;
+    let limit = 5;
+
+    switch (feature) {
+      case "ai":
+        used = user.ai_requests_used || 0;
+        limit = settings.ai_limit_free;
+        break;
+      case "ocr":
+        used = user.ocr_requests_used || 0;
+        limit = settings.ocr_limit_free;
+        break;
+      case "maps":
+      case "routes":
+        used = user.map_requests_used || 0;
+        limit = settings.map_limit_free;
+        break;
+      case "jobs":
+        used = user.job_searches_used || 0;
+        limit = settings.jobs_limit_free;
+        break;
+    }
+
+    const remaining = Math.max(0, limit - used);
+    return {
+      allowed: remaining > 0,
+      isPremium: false,
+      remaining,
+      mode,
+    };
   },
 
   async trackUsage(feature: FeatureType): Promise<void> {
     const rawPhone = localStorage.getItem("vaxtago_user_phone");
     if (!rawPhone || !supabase) return;
-    
+
     const phone = normalizePhone(rawPhone);
     if (!phone) return;
 
@@ -177,7 +169,7 @@ export const subscription = {
       ocr: "ocr_requests_used",
       maps: "map_requests_used",
       routes: "map_requests_used",
-      jobs: "job_searches_used"
+      jobs: "job_searches_used",
     };
 
     const col = columnMap[feature];
@@ -195,7 +187,7 @@ export const subscription = {
         .from("users")
         .update({
           [col]: currentUsed + 1,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq("phone_number", phone);
     } catch (e) {
@@ -211,7 +203,7 @@ export const subscription = {
         .from("app_settings")
         .update({
           ...newSettings,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq("id", current.id);
 
@@ -221,7 +213,7 @@ export const subscription = {
 
       await supabase.from("admin_logs").insert({
         action: actionLogMessage,
-        details: JSON.stringify(newSettings)
+        details: JSON.stringify(newSettings),
       });
 
       return true;
@@ -229,5 +221,5 @@ export const subscription = {
       console.error("[Subscription] Update settings error:", err);
       return false;
     }
-  }
+  },
 };

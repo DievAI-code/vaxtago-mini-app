@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
-import { Clock, FileText, MapPin, Trash2 } from "lucide-react";
+import { Clock, FileText, Trash2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizePhone } from "@/lib/normalizePhone";
+import { getUserByPhone } from "@/services/userService";
 
 export default function History() {
   const { t } = useLanguage();
@@ -22,12 +22,7 @@ export default function History() {
     try {
       const rawPhone = localStorage.getItem("vaxtago_user_phone");
       if (rawPhone) {
-        const phone = normalizePhone(rawPhone);
-        const { data: user } = await supabase
-          .from("users")
-          .select("id")
-          .eq("phone_number", phone)
-          .maybeSingle();
+        const user = await getUserByPhone(rawPhone);
 
         if (user) {
           const { data } = await supabase
@@ -49,8 +44,7 @@ export default function History() {
     try {
       const rawPhone = localStorage.getItem("vaxtago_user_phone");
       if (rawPhone) {
-        const phone = normalizePhone(rawPhone);
-        const { data: user } = await supabase.from("users").select("id").eq("phone_number", phone).maybeSingle();
+        const user = await getUserByPhone(rawPhone);
         if (user) {
           await supabase.from("ocr_history").delete().eq("user_id", user.id);
         }

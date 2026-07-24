@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Search, Crown, ShieldCheck, ChevronRight, User as UserIcon, RefreshCw, 
-  Trash2, Zap, Phone, ToggleLeft, ToggleRight, X, Lock 
+import {
+  Search, Crown, ShieldCheck, RefreshCw,
+  Trash2, Phone, ToggleLeft, ToggleRight, X, Lock
 } from "lucide-react";
 import { Header } from "@/components/Header";
-import { Card } from "@/components/ui/card";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { useLanguage } from "@/context/LanguageProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { updateUserSubscription } from "@/services/userService";
 import { toast } from "sonner";
 
 interface DBUser {
@@ -19,8 +19,9 @@ interface DBUser {
   first_name?: string;
   last_name?: string;
   language_code?: string;
-  is_premium?: boolean;
-  premium_until?: string;
+  subscription_status?: string;
+  subscription_expires_at?: string;
+  ai_requests_limit?: number;
   role?: string;
   created_at?: string;
   last_login?: string;
@@ -36,12 +37,6 @@ export default function AdminUsers() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<DBUser | null>(null);
-  const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({
-    ai_enabled: true,
-    ocr_enabled: true,
-    maps_enabled: true,
-    jobs_enabled: true,
-  });
 
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "31975";
 
@@ -77,90 +72,44 @@ export default function AdminUsers() {
       if (error) throw error;
       setUsers(data as DBUser[] || []);
     } catch (err) {
-      console.warn("[Admin] Supabase user load error, using mockup fallback", err);
-      setUsers([
-        {
-          id: "u1",
-          phone_number: "+998901234567",
-          first_name: "Анвар",
-          language_code: "uz",
-          is_premium: true,
-          created_at: new Date().toISOString(),
-          last_login: new Date().toISOString()
-        },
-        {
-          id: "u2",
-          phone_number: "+79991112233",
-          first_name: "Дмитрий",
-          language_code: "ru",
-          is_premium: false,
-          created_at: new Date().toISOString(),
-          last_login: new Date().toISOString()
-        }
-      ]);
+      console.warn("[AdminUsers] Load error", err);
+      setUsers([]);
     } finally {
       setLoadingUsers(false);
     }
   };
 
   const togglePremium = async (user: DBUser) => {
-    const nextStatus = !user.is_premium;
-    const premiumUntil = nextStatus 
-      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() 
+    const nextStatus = user.subscription_status === "premium" ? "free" : "premium";
+    const premiumUntil = nextStatus === "premium"
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
-    try {
-      if (supabase) {
-        await supabase
-          .from("users")
-          .update({
-            is_premium: nextStatus,
-            premium_until: premiumUntil,
-            subscription_status: nextStatus ? "premium" : "free"
-          })
-          .eq("phone_number", user.phone_number);
-      }
+    const success = await updateUserSubscription(user.id, {
+      subscription_status: nextStatus as "free" | "premium",
+      subscription_expires_at: premiumUntil,
+      premium_started_at: nextStatus === "premium" ? new Date().toISOString() : null,
+    });
 
-      setUsers(prev => prev.map(u => u.id === user.id ? { 
-        ...u, 
-        is_premium: nextStatus, 
-        premium_until: premiumUntil || undefined 
+    if (success) {
+      setUsers(prev => prev.map(u => u.id === user.id ? {
+        ...u,
+        subscription_status: nextStatus,
+        subscription_expires_at: premiumUntil || undefined,
       } : u));
 
       if (selectedUser?.id === user.id) {
-        setSelectedUser(prev => prev ? { ...prev, is_premium: nextStatus } : null);
+        setSelectedUser(prev => prev ? { ...prev, subscription_status: nextStatus } : null);
       }
 
-      toast.success(nextStatus ? "Premium активирован" : "Premium отключен");
-    } catch (err) {
+      toast.success(nextStatus === "premium" ? "Premium активирован" : "Premium отключен");
+    } else {
       toast.error("Ошибка при обновлении статуса");
     }
   };
 
-  const toggleFeaturePermission = async (featureName: string) => {
-    if (!selectedUser) return;
-    const newValue = !userPermissions[featureName];
-
-    setUserPermissions(prev => ({ ...prev, [featureName]: newValue }));
-
-    try {
-      if (supabase) {
-        await supabase.from("user_permissions").upsert({
-          user_id: selectedUser.id,
-          phone_number: selectedUser.phone_number,
-          feature_name: featureName,
-          enabled: newValue,
-          updated_at: new Date().toISOString()
-        }, { onConflict: "user_id,feature_name" });
-      }
-      toast.success(`Функция ${featureName}: ${newValue ? "Включена" : "Отключена"}`);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const filteredUsers = users.filter(u => 
-    u.phone_number.includes(searchQuery) || 
+  const filteredUsers = users.filter(u =>
+    u.phone_number.includes(searchQuery) ||
     (u.first_name && u.first_name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -174,18 +123,18 @@ export default function AdminUsers() {
         <form onSubmit={handleAdminLogin} className="w-full max-w-sm space-y-4">
           <div className="relative">
             <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-[#00A86B]" size={20} />
-            <input 
-              type="password" 
+            <input
+              type="password"
               value={pass}
               onChange={(e) => setPass(e.target.value)}
-              placeholder="••••••"
+              placeholder="•••••"
               className="w-full h-16 bg-[#0C1F1A] border border-[#1A3D2E] rounded-2xl pl-14 pr-6 text-center text-xl tracking-[0.5em] focus:border-[#00A86B] outline-none transition-all font-mono"
             />
           </div>
 
           {error && <p className="text-xs text-red-400 text-center font-bold">{t("admin.invalid_pass")}</p>}
 
-          <button 
+          <button
             type="submit"
             className="w-full h-16 vaqta-gradient rounded-2xl font-black text-lg shadow-xl uppercase tracking-wider"
           >
@@ -209,8 +158,8 @@ export default function AdminUsers() {
               <p className="text-[10px] text-[#5C7A6D] uppercase font-black tracking-widest">Управление Premium и доступами</p>
             </div>
           </div>
-          <button 
-            onClick={loadUsers} 
+          <button
+            onClick={loadUsers}
             className="p-3 bg-[#0C1F1A] border border-[#1A3D2E] rounded-2xl text-[#00A86B] active:scale-95"
           >
             <RefreshCw size={18} className={loadingUsers ? "animate-spin" : ""} />
@@ -220,7 +169,7 @@ export default function AdminUsers() {
         <div className="relative vaqta-glass p-2 border-[#1A3D2E]">
           <div className="flex items-center gap-3 px-3">
             <Search size={18} className="text-[#5C7A6D]" />
-            <input 
+            <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -237,7 +186,7 @@ export default function AdminUsers() {
 
           <div className="space-y-2">
             {filteredUsers.map((u) => (
-              <div 
+              <div
                 key={u.id}
                 onClick={() => setSelectedUser(u)}
                 className={`vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between cursor-pointer transition-colors ${
@@ -251,7 +200,7 @@ export default function AdminUsers() {
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-xs font-bold text-white">{u.phone_number}</p>
-                      {u.is_premium && (
+                      {u.subscription_status === "premium" && (
                         <span className="bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded-full text-[9px] font-black uppercase flex items-center gap-1">
                           <Crown size={10} /> Premium
                         </span>
@@ -264,12 +213,12 @@ export default function AdminUsers() {
                 <button
                   onClick={(e) => { e.stopPropagation(); togglePremium(u); }}
                   className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-                    u.is_premium 
-                      ? "bg-red-500/10 text-red-400 border border-red-500/20" 
+                    u.subscription_status === "premium"
+                      ? "bg-red-500/10 text-red-400 border border-red-500/20"
                       : "vaqta-gradient text-white shadow-lg"
                   }`}
                 >
-                  {u.is_premium ? t("admin.deactivate_premium") : t("admin.activate_premium")}
+                  {u.subscription_status === "premium" ? t("admin.deactivate_premium") : t("admin.activate_premium")}
                 </button>
               </div>
             ))}
@@ -280,26 +229,30 @@ export default function AdminUsers() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="vaqta-glass p-6 border-[#00A86B]/40 space-y-4">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[10px] font-black uppercase text-[#00A86B]">Настройка доступа</p>
+                <p className="text-[10px] font-black uppercase text-[#00A86B]">Детали пользователя</p>
                 <h4 className="text-base font-bold text-white">{selectedUser.phone_number}</h4>
+                <p className="text-[10px] text-[#5C7A6D] mt-1">
+                  Статус: {selectedUser.subscription_status || "free"}
+                </p>
+                {selectedUser.subscription_expires_at && (
+                  <p className="text-[10px] text-[#5C7A6D]">
+                    Истекает: {new Date(selectedUser.subscription_expires_at).toLocaleDateString()}
+                  </p>
+                )}
               </div>
-              <button onClick={() => setSelectedUser(null)} className="p-1 text-[#5C7A6D] hover:text-white">
-                <X size={18} />
-              </button>
+              <button onClick={() => setSelectedUser(null)} className="text-xs text-[#5C7A6D] font-bold">Закрыть</button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              {Object.entries(userPermissions).map(([key, enabled]) => (
-                <div 
-                  key={key} 
-                  onClick={() => toggleFeaturePermission(key)}
-                  className="p-3 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between cursor-pointer"
-                >
-                  <span className="text-xs font-bold uppercase tracking-wider">{key.replace("_enabled", "")}</span>
-                  {enabled ? <ToggleRight className="text-[#00A86B]" size={24} /> : <ToggleLeft className="text-slate-600" size={24} />}
-                </div>
-              ))}
-            </div>
+            <button
+              onClick={() => togglePremium(selectedUser)}
+              className={`w-full h-12 rounded-2xl font-black text-xs uppercase tracking-wider transition-all ${
+                selectedUser.subscription_status === "premium"
+                  ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                  : "vaqta-gradient text-white shadow-lg"
+              }`}
+            >
+              {selectedUser.subscription_status === "premium" ? "Отключить Premium" : "Включить Premium"}
+            </button>
           </motion.div>
         )}
       </main>

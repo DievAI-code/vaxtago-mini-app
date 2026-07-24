@@ -2,19 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  User, Phone, Globe, Crown, Zap, Scan, 
-  Map as MapIcon, Calendar, Settings, LogOut, 
-  ChevronRight, ShieldCheck, LayoutGrid, Clock,
-  ArrowRight, Key
+import {
+  User, Phone, Globe, Crown, Zap, Scan,
+  Map as MapIcon, Calendar, Settings, LogOut,
+  ChevronRight, ShieldCheck, Clock, ArrowRight, Key
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
-import { supabase } from "@/integrations/supabase/client";
-import { normalizePhone } from "@/lib/normalizePhone";
-import { motion, AnimatePresence } from "framer-motion";
+import { getUserByPhone, createUser, checkPremiumAccess } from "@/services/userService";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 export default function Profile() {
@@ -34,43 +32,19 @@ export default function Profile() {
       nav("/login");
       return;
     }
-    
-    const phone = normalizePhone(rawPhone);
-    if (!phone) {
-      nav("/login");
-      return;
-    }
 
     try {
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("phone_number", phone)
-        .maybeSingle();
+      let user = await getUserByPhone(rawPhone);
 
-      if (error) {
-        toast.error("Не удалось загрузить профиль");
-        console.error("Profile load error:", error);
-      } else if (data) {
-        setUserData(data);
-      } else {
-        // Если профиль не найден, создаем его
-        const { data: newUserData, error: insertError } = await supabase
-          .from("users")
-          .insert({
-            phone_number: phone,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .maybeSingle();
-          
-        if (insertError) {
-          toast.error("Не удалось создать профиль");
-        } else {
-          setUserData(newUserData);
+      if (!user) {
+        user = await createUser(rawPhone);
+        if (!user) {
+          toast.error("Не удалось загрузить профиль");
+          return;
         }
       }
+
+      setUserData(user);
     } catch (err) {
       toast.error("Не удалось загрузить профиль");
       console.error("Profile load exception:", err);
@@ -94,6 +68,7 @@ export default function Profile() {
   );
 
   const isFounder = userData?.role === 'founder';
+  const premiumCheck = checkPremiumAccess(userData);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-36">
@@ -101,7 +76,6 @@ export default function Profile() {
       <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <main className="p-6 space-y-6">
-        {/* Profile Header */}
         <section className="flex flex-col items-center text-center gap-4 py-4">
           <div className="relative">
             <div className="w-24 h-24 rounded-[2.5rem] vaqta-gradient p-1 shadow-2xl">
@@ -109,7 +83,7 @@ export default function Profile() {
                 <User size={40} className="text-[#00A86B]" />
               </div>
             </div>
-            {userData?.subscription_status === 'premium' && (
+            {premiumCheck.isPremium && (
               <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#D4AF37] rounded-full border-4 border-[#06140F] flex items-center justify-center text-black">
                 <Crown size={14} />
               </div>
@@ -121,9 +95,8 @@ export default function Profile() {
           </div>
         </section>
 
-        {/* Founder Access Button */}
         {isFounder && (
-          <motion.button 
+          <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => nav("/admin")}
             className="w-full p-5 vaqta-glass border-[#D4AF37]/30 bg-gradient-to-r from-[#D4AF37]/10 to-transparent flex items-center justify-between group"
@@ -141,30 +114,28 @@ export default function Profile() {
           </motion.button>
         )}
 
-        {/* Subscription Card */}
-        <div className={`vaqta-glass p-6 border ${userData?.subscription_status === 'premium' ? 'border-[#D4AF37]/40 shadow-[0_0_30px_rgba(212,175,55,0.1)]' : 'border-[#1A3D2E]'}`}>
+        <div className={`vaqta-glass p-6 border ${premiumCheck.isPremium ? 'border-[#D4AF37]/40 shadow-[0_0_30px_rgba(212,175,55,0.1)]' : 'border-[#1A3D2E]'}`}>
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">{t("profile.subscription")}</p>
-              <h3 className={`text-xl font-black mt-1 ${userData?.subscription_status === 'premium' ? 'vaqta-gold-text' : 'text-white'}`}>
-                {userData?.subscription_status === 'premium' ? 'VAQTA PREMIUM' : 'VAQTA FREE'}
+              <h3 className={`text-xl font-black mt-1 ${premiumCheck.isPremium ? 'vaqta-gold-text' : 'text-white'}`}>
+                {premiumCheck.isPremium ? 'VAQTA PREMIUM' : 'VAQTA FREE'}
               </h3>
             </div>
-            {userData?.subscription_status !== 'premium' && (
+            {!premiumCheck.isPremium && (
               <button onClick={() => nav("/premium")} className="bg-[#00A86B] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg vaqta-glow">
                 Upgrade
               </button>
             )}
           </div>
-          {userData?.subscription_status === 'premium' && (
+          {premiumCheck.isPremium && userData?.subscription_expires_at && (
             <div className="flex items-center gap-2 text-[10px] font-bold text-[#D4AF37] uppercase">
               <Clock size={12} />
-              <span>{t("profile.expires")}: {userData.subscription_expires ? new Date(userData.subscription_expires).toLocaleDateString() : t("profile.forever")}</span>
+              <span>{t("profile.expires")}: {new Date(userData.subscription_expires_at).toLocaleDateString()}</span>
             </div>
           )}
         </div>
 
-        {/* Usage Stats */}
         <section className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5C7A6D] ml-2">{t("profile.usage")}</h3>
           <div className="grid grid-cols-3 gap-3">
@@ -186,7 +157,6 @@ export default function Profile() {
           </div>
         </section>
 
-        {/* Settings & Language */}
         <section className="space-y-4">
           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5C7A6D] ml-2">{t("profile.settings")}</h3>
           <div className="space-y-2">
@@ -194,14 +164,14 @@ export default function Profile() {
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-2xl bg-white/5 text-[#00A86B]"><Globe size={18} /></div>
                 <div>
-                   <p className="text-xs font-bold">{t("profile.language")}</p>
-                   <p className="text-[10px] uppercase font-black text-[#5C7A6D]">{language.toUpperCase()}</p>
+                  <p className="text-xs font-bold">{t("profile.language")}</p>
+                  <p className="text-[10px] uppercase font-black text-[#5C7A6D]">{language.toUpperCase()}</p>
                 </div>
               </div>
               <ChevronRight size={16} className="text-[#1A3D2E]" />
             </div>
 
-            <button 
+            <button
               onClick={handleLogout}
               className="w-full vaqta-glass p-5 border-red-500/20 bg-red-500/5 flex items-center gap-4 active:scale-95 transition-transform"
             >
@@ -210,7 +180,7 @@ export default function Profile() {
             </button>
           </div>
         </section>
-        
+
         <p className="text-center text-[9px] text-[#5C7A6D] uppercase font-black tracking-widest pt-4">
           VAQTA AI v3.0 • Joined {userData?.created_at ? new Date(userData.created_at).toLocaleDateString() : '—'}
         </p>
