@@ -66,42 +66,62 @@ export default function Maps() {
 
   const executeCommand = async (text: string) => {
     setSearchQuery(text);
-    const intent = detectNavigationIntent(text);
+    const result = detectNavigationIntent(text);
     
-    if (intent.intent === "route") {
+    if (result.intent === "route") {
       setLoading(true);
       try {
         // 1. Resolve Destination
-        const toResults = await geocodingService.searchAddress(intent.to || "");
+        const toResults = await geocodingService.searchAddress(result.to || "");
         if (toResults.length === 0) return toast.error("Место назначения не найдено");
         const to = toResults[0];
         setDestination(to);
 
         // 2. Resolve Origin
-        let from = origin;
-        if (intent.from) {
-          const fromResults = await geocodingService.searchAddress(intent.from);
+        let from: GeocodingResult | null = null;
+        if (result.from) {
+          const fromResults = await geocodingService.searchAddress(result.from);
           if (fromResults.length > 0) from = fromResults[0];
-        } else if (!userCoords) {
-           handleLocateMe(); // try getting GPS
+        } else {
+          // If no "from" provided, use user GPS
+          if (userCoords) {
+            from = {
+              latitude: userCoords[0],
+              longitude: userCoords[1],
+              display_name: "Я",
+              name: "Я"
+            };
+          } else {
+            handleLocateMe();
+          }
         }
         
         if (from) {
           setOrigin(from);
-          await calculateRoute(from, to, (intent.mode as TravelMode) || "car");
-          setMode((intent.mode as TravelMode) || "car");
+          const travelMode = (result.mode as any === "transport") ? "transit" : (result.mode || "car");
+          await calculateRoute(from, to, travelMode as TravelMode);
+          setMode(travelMode as TravelMode);
         } else {
-          toast.info("Нажмите кнопку геолокации, чтобы построить маршрут от вас");
+          toast.info("Геолокация недоступна. Поиск точки отправления...");
         }
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
     } else {
       // General search
-      const results = await geocodingService.searchAddress(text);
-      if (results.length > 0) {
-        setDestination(results[0]);
-        setRoute(null);
+      setLoading(true);
+      try {
+        const results = await geocodingService.searchAddress(result.to || text);
+        if (results.length > 0) {
+          setDestination(results[0]);
+          setRoute(null);
+        } else {
+          toast.error("Ничего не найдено");
+        }
+      } finally {
+        setLoading(false);
       }
     }
   };
