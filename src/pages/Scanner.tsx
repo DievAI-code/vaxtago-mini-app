@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Camera, Loader2, Globe, ChevronRight } from "lucide-react";
+import { useState, useRef } from "react";
+import { Camera, Loader2, Globe, ChevronRight, RefreshCw, CheckCircle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { imageTranslationService } from "@/services/imageTranslationService";
@@ -11,42 +11,37 @@ import { Lang } from "@/i18n";
 import { toast } from "sonner";
 
 const TARGET_LANGS: { code: Lang; label: string; flag: string }[] = [
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
   { code: "uz", label: "O'zbekcha", flag: "🇺🇿" },
-  { code: "tg", label: "Тоҷикӣ", flag: "🇹🇯" },
-  { code: "kk", label: "Қазақша", flag: "🇰🇿" },
+  { code: "ru", label: "Русский", flag: "🇷🇺" },
   { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "kk", label: "Қазақша", flag: "🇰🇿" },
 ];
 
 export default function Scanner() {
   const { t, language } = useLanguage();
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{ original: string; translated: string } | null>(null);
   const [targetLang, setTargetLang] = useState<Lang>(language);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (file: File) => {
     const access = await subscription.checkUserAccess("ocr");
     if (!access.allowed) {
-      toast.error(t("premium.feature_locked") || "Лимит сканирования исчерпан.");
+      toast.error(t("premium.feature_locked") || "OCR limit tugadi.");
       return;
     }
 
     setLoading(true);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      try {
-        const data = await imageTranslationService.processImage(file, targetLang);
-        setResult(data);
-        await subscription.trackUsage("ocr");
-        toast.success(t("scanner.result_ready"));
-      } catch (err) {
-        toast.error(t("scanner.error_ai"));
-      } finally {
-        setLoading(false);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const data = await imageTranslationService.processImage(file, targetLang);
+      setResult(data);
+      await subscription.trackUsage("ocr");
+      toast.success(t("scanner.result_ready") || "Tarjima tayyor!");
+    } catch {
+      toast.error(t("scanner.error_ai") || "AI tarjimada xatolik.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,49 +60,62 @@ export default function Scanner() {
               <button
                 key={l.code}
                 onClick={() => setTargetLang(l.code)}
-                className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1 transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                   targetLang === l.code ? "bg-[#00A86B] text-white shadow-lg" : "bg-white/5 text-slate-400"
                 }`}
               >
                 <span>{l.flag}</span>
+                <span className="text-[10px]">{l.label}</span>
               </button>
             ))}
           </div>
         </div>
 
         {!result ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-6">
-            <div className="w-24 h-24 rounded-full vaqta-gradient flex items-center justify-center vaqta-glow shadow-2xl">
-              <Camera size={40} />
+          <div className="flex flex-col items-center justify-center py-12 gap-6">
+            <div className="w-24 h-24 rounded-[2rem] vaqta-gradient flex items-center justify-center vaqta-glow shadow-2xl">
+              <Camera size={40} className="text-white" />
             </div>
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 max-w-xs">
               <h2 className="text-xl font-black">{t("scanner.title")}</h2>
-              <p className="text-xs text-[#5C7A6D] font-medium">{t("scanner.desc")}</p>
+              <p className="text-xs text-[#5C7A6D] font-medium leading-relaxed">{t("scanner.desc")}</p>
             </div>
+
             <input 
               type="file" 
               className="hidden" 
               id="cam-input" 
               accept="image/*" 
+              ref={fileRef}
               onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
             />
-            <label 
-              htmlFor="cam-input"
-              className="w-full h-16 bg-[#00A86B] rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-widest cursor-pointer shadow-lg active:scale-95 transition-transform text-xs"
+
+            <button 
+              onClick={() => fileRef.current?.click()}
+              className="w-full h-16 bg-[#00A86B] rounded-2xl flex items-center justify-center gap-3 font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform text-xs text-white vaqta-glow"
             >
               {t("scanner.take_photo")} <ChevronRight size={20} />
-            </label>
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
-             <div className="vaqta-glass p-6 border-[#00A86B]/30">
-                <h3 className="text-[10px] font-black uppercase text-[#00A86B] mb-2">{t("scanner.original_text")}</h3>
-                <img src={result.original} className="w-full rounded-2xl max-h-48 object-cover mb-3" alt="Original" />
+             <div className="vaqta-glass p-4 border-[#00A86B]/30 relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black uppercase text-[#00A86B] flex items-center gap-1">
+                    <CheckCircle size={14} /> AI Overlay Result ({targetLang.toUpperCase()})
+                  </span>
+                  <button onClick={() => setResult(null)} className="text-xs text-[#5C7A6D] hover:text-white flex items-center gap-1 font-bold">
+                    <RefreshCw size={12} /> {t("scanner.new_scan")}
+                  </button>
+                </div>
+                <img src={result.translated} className="w-full rounded-2xl max-h-80 object-contain bg-black/40" alt="Translated Overlay" />
              </div>
-             <div className="vaqta-glass p-6 border-[#D4AF37]/30">
-                <h3 className="text-[10px] font-black uppercase text-[#D4AF37] mb-2">{t("scanner.translation")} ({targetLang.toUpperCase()})</h3>
-                <img src={result.translated} className="w-full rounded-2xl max-h-48 object-cover mb-3" alt="Translated" />
+
+             <div className="vaqta-glass p-4 border-[#1A3D2E]">
+                <h3 className="text-[10px] font-black uppercase text-[#5C7A6D] mb-2">{t("scanner.original_text")}</h3>
+                <img src={result.original} className="w-full rounded-2xl max-h-48 object-cover opacity-80" alt="Original" />
              </div>
+
              <button onClick={() => setResult(null)} className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl font-black uppercase text-xs tracking-wider">
                {t("scanner.new_scan")}
              </button>
@@ -121,6 +129,7 @@ export default function Scanner() {
           </div>
         )}
       </main>
+
       <BottomNav />
     </div>
   );

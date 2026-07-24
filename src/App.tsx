@@ -35,11 +35,6 @@ const AdminIntegrations = lazy(() => import("./pages/AdminIntegrations"));
 
 const queryClient = new QueryClient();
 
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthed = localStorage.getItem("vaxtago_auth") === "true";
-  return isAuthed ? <>{children}</> : <Navigate to="/login" replace />;
-};
-
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const session = localStorage.getItem("vaqta_admin_session");
   const isAdmin = session ? JSON.parse(session).role === "founder" : false;
@@ -58,21 +53,24 @@ const AnimatedRoutes = () => {
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           <Route path="/admin/integrations" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
 
-          <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
-          <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
-          <Route path="/jobs" element={<PrivateRoute><Jobs /></PrivateRoute>} />
-          <Route path="/jobs-test" element={<PrivateRoute><JobsTest /></PrivateRoute>} />
-          <Route path="/map" element={<PrivateRoute><MapPage /></PrivateRoute>} />
-          <Route path="/maps" element={<PrivateRoute><Maps /></PrivateRoute>} />
-          <Route path="/ai" element={<PrivateRoute><AiAssistant /></PrivateRoute>} />
-          <Route path="/cabinet" element={<PrivateRoute><MyCabinet /></PrivateRoute>} />
-          <Route path="/scanner" element={<PrivateRoute><Scanner /></PrivateRoute>} />
-          <Route path="/ocr" element={<PrivateRoute><OcrTranslator /></PrivateRoute>} />
-          <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
-          <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-          <Route path="/premium" element={<PrivateRoute><Premium /></PrivateRoute>} />
-          <Route path="/tracker" element={<PrivateRoute><MigrationTracker /></PrivateRoute>} />
-          <Route path="/sos" element={<PrivateRoute><SOSLegal /></PrivateRoute>} />
+          {/* Main App Routes - accessible immediately */}
+          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/ai" element={<AiAssistant />} />
+          <Route path="/jobs" element={<JobsTest />} />
+          <Route path="/jobs-test" element={<JobsTest />} />
+          <Route path="/scanner" element={<Scanner />} />
+          <Route path="/ocr" element={<OcrTranslator />} />
+          <Route path="/premium" element={<Premium />} />
+          <Route path="/settings" element={<Settings />} />
+
+          {/* Sub pages */}
+          <Route path="/map" element={<MapPage />} />
+          <Route path="/maps" element={<Maps />} />
+          <Route path="/cabinet" element={<MyCabinet />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/tracker" element={<MigrationTracker />} />
+          <Route path="/sos" element={<SOSLegal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

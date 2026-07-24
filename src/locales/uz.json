@@ -1,10 +1,10 @@
 {
-  "greeting": "Ассалому алайкум! Сизга қандай ёрдам керак?",
+  "greeting": "Salom! Men VAQTA AI yordamchisiman.\nIsh, hujjatlar, tarjima va manzillar bo'yicha yordam beraman.",
   "home": {
-    "find_job": "Иш топиш",
-    "check_doc": "Ҳужжатни текшириш",
-    "translate_photo": "Расмни таржима қилиш",
-    "find_address": "Манзил топиш",
-    "ask_ai": "AI га савол бериш"
+    "find_job": "Ish topish",
+    "check_doc": "Hujjatni tekshirish",
+    "translate_photo": "Rasm tarjimasi",
+    "find_address": "Manzil topish",
+    "ask_ai": "AI ga savol berish"
   }
 }

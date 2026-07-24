@@ -3,9 +3,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  X, LayoutGrid, Sparkles, Scan, MapPin, User,
-  Settings, Clock, Info, Mail, ShieldCheck,
-  Calendar, ShieldAlert, FileSearch, Key, UserCircle, Briefcase
+  X, Sparkles, Camera, Briefcase, Crown, Settings as SettingsIcon,
+  Home as HomeIcon, Calendar, ShieldAlert, FileSearch, Clock,
+  Info, Mail, ShieldCheck, UserCircle
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { VaqtaLogo } from "./VaqtaLogo";
@@ -25,14 +25,14 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
     | { path: string; icon: any; label: string }
     | { separator: true }
   > = [
-    { path: "/home", icon: LayoutGrid, label: "nav.home" },
+    { path: "/home", icon: HomeIcon, label: "nav.home" },
     { path: "/ai", icon: Sparkles, label: "nav.ai" },
-    { path: "/scanner", icon: Scan, label: "nav.scanner" },
-    { path: "/map", icon: MapPin, label: "nav.map" },
-    { path: "/jobs-test", icon: Briefcase, label: "Тест Работа России" },
-    { path: "/cabinet", icon: UserCircle, label: "nav.cabinet" },
+    { path: "/scanner", icon: Camera, label: "nav.scanner" },
+    { path: "/jobs-test", icon: Briefcase, label: "nav.jobs" },
+    { path: "/premium", icon: Crown, label: "nav.premium" },
+    { path: "/settings", icon: SettingsIcon, label: "nav.settings" },
     { separator: true },
-    { path: "/admin", icon: Key, label: "nav.admin" },
+    { path: "/cabinet", icon: UserCircle, label: "nav.cabinet" },
     { path: "/tracker", icon: Calendar, label: "nav.tracker" },
     { path: "/sos", icon: ShieldAlert, label: "nav.sos" },
     { path: "/contract-audit", icon: FileSearch, label: "nav.contract" },

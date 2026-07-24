@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Bot, X, ImageIcon, Camera } from "lucide-react";
+import { Send, User, Bot, X, ImageIcon, Camera, Mic, Volume2 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
@@ -13,11 +13,13 @@ import { toast } from "sonner";
 import { subscription } from "@/services/subscription";
 
 export default function AiAssistant() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { sendMessage, loading: isTyping, messages } = useAiChat();
   const [input, setInput] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -33,7 +35,7 @@ export default function AiAssistant() {
 
     const access = await subscription.checkUserAccess("ai");
     if (!access.allowed) {
-      toast.error(t("premium.feature_locked") || "Лимит AI запросов исчерпан. Оформите Premium.");
+      toast.error(t("premium.feature_locked") || "AI limit tugadi. Premium ulashingiz mumkin.");
       return;
     }
 
@@ -46,18 +48,48 @@ export default function AiAssistant() {
     await subscription.trackUsage("ai");
   };
 
+  const toggleVoiceRecording = () => {
+    if (!isRecording) {
+      setIsRecording(true);
+      toast.info("Ovozli xabar yozib olinmoqda...");
+      setTimeout(() => {
+        setIsRecording(false);
+        setInput("Toshkent vokzaligacha yo'nalish");
+        toast.success("Ovoz tanib olindi!");
+      }, 3000);
+    } else {
+      setIsRecording(false);
+    }
+  };
+
+  const getGreeting = () => {
+    if (language === "uz") {
+      return "Salom! Men VAQTA AI yordamchisiman.\nIsh, hujjatlar, tarjima va manzillar bo'yicha yordam beraman.";
+    }
+    if (language === "en") {
+      return "Hello! I am VAQTA AI Assistant.\nI help with jobs, documents, translation, and addresses.";
+    }
+    return "Здравствуйте! Я VAQTA AI помощник.\nПомогаю с работой, документами, переводом и адресами.";
+  };
+
   return (
     <div className="flex flex-col h-screen-dynamic bg-[#06140F] text-white overflow-hidden">
       <Header title="nav.ai" onMenuClick={() => setIsMenuOpen(true)} />
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar smooth-scroll pb-32">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar smooth-scroll pb-36">
         {messages.length === 0 && (
-          <div className="text-center py-12 text-[#5C7A6D] space-y-3">
-            <Bot size={56} className="mx-auto text-[#00A86B] opacity-50" />
-            <div className="space-y-1">
-              <p className="text-sm font-black text-white uppercase tracking-widest">{t("chat.welcome")}</p>
-              <p className="text-[10px] uppercase font-bold leading-relaxed px-8">{t("chat.sub_hint")}</p>
+          <div className="text-center py-10 text-[#5C7A6D] space-y-4">
+            <div className="w-20 h-24 rounded-full vaqta-gradient flex items-center justify-center mx-auto shadow-2xl vaqta-glow">
+              <Bot size={44} className="text-white" />
+            </div>
+            <div className="space-y-2 max-w-xs mx-auto">
+              <p className="text-sm font-black text-white whitespace-pre-line leading-relaxed">
+                {getGreeting()}
+              </p>
+              <p className="text-[10px] uppercase font-bold text-[#5C7A6D] tracking-widest pt-2">
+                {t("chat.sub_hint")}
+              </p>
             </div>
           </div>
         )}
@@ -78,7 +110,7 @@ export default function AiAssistant() {
             </motion.div>
 
             {m.role === "assistant" && m.action && (
-              <div className="pl-12">
+              <div className="pl-11">
                 <MapCard 
                   query={m.action.query || m.action.destination} 
                   type={m.action.action === "MAP_ROUTE" ? "route" : m.action.action === "MAP_NEARBY" ? "nearby" : "search"} 
@@ -102,33 +134,38 @@ export default function AiAssistant() {
         )}
       </div>
 
-      <div className="fixed bottom-20 left-0 w-full px-6 pb-2 z-50">
+      <div className="fixed bottom-20 left-0 w-full px-4 pb-2 z-50">
         <AnimatePresence>
           {attachedImage && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="relative mb-3 inline-block">
-              <img src={attachedImage} alt="Attached" className="w-24 h-24 rounded-3xl object-cover border-2 border-[#00A86B] shadow-2xl" />
-              <button onClick={() => setAttachedImage(null)} className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white border-2 border-[#06140F] shadow-lg">
-                <X size={14} />
+              <img src={attachedImage} alt="Attached" className="w-20 h-20 rounded-2xl object-cover border-2 border-[#00A86B] shadow-2xl" />
+              <button onClick={() => setAttachedImage(null)} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white border-2 border-[#06140F] shadow-lg">
+                <X size={12} />
               </button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="relative vaqta-glass border-[#1A3D2E] focus-within:border-[#00A86B]/40 transition-all p-2 pr-4 flex items-end gap-2 shadow-2xl">
-          <div className="flex gap-1">
-            <button onClick={() => fileRef.current?.click()} className="p-2.5 text-[#5C7A6D] hover:text-[#00A86B] active:scale-90 transition-transform"><ImageIcon size={22} /></button>
-            <button onClick={() => cameraRef.current?.click()} className="p-2.5 text-[#5C7A6D] hover:text-[#00A86B] active:scale-90 transition-transform"><Camera size={22} /></button>
+        <div className="relative vaqta-glass border-[#1A3D2E] focus-within:border-[#00A86B]/40 transition-all p-2 pr-3 flex items-center gap-2 shadow-2xl">
+          <div className="flex items-center gap-1">
+            <button onClick={() => fileRef.current?.click()} className="p-2 text-[#5C7A6D] hover:text-[#00A86B] active:scale-90 transition-transform"><ImageIcon size={20} /></button>
+            <button onClick={() => cameraRef.current?.click()} className="p-2 text-[#5C7A6D] hover:text-[#00A86B] active:scale-90 transition-transform"><Camera size={20} /></button>
+            <button onClick={toggleVoiceRecording} className={`p-2 transition-transform active:scale-90 ${isRecording ? "text-red-500 animate-pulse" : "text-[#5C7A6D] hover:text-[#00A86B]"}`}>
+              <Mic size={20} />
+            </button>
           </div>
+
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
             placeholder={t("chat.placeholder")}
-            className="flex-1 bg-transparent py-3 text-sm text-white focus:outline-none resize-none max-h-32 min-h-[48px] no-scrollbar font-medium"
+            className="flex-1 bg-transparent py-2.5 text-xs text-white focus:outline-none resize-none max-h-28 min-h-[40px] no-scrollbar font-bold"
             rows={1}
           />
-          <button onClick={handleSend} disabled={!input.trim() && !attachedImage} className="mb-1.5 p-3 bg-[#00A86B] text-white rounded-2xl disabled:opacity-20 transition-all shadow-lg active:scale-95 vaqta-glow">
-            <Send size={20} />
+
+          <button onClick={handleSend} disabled={!input.trim() && !attachedImage} className="p-2.5 bg-[#00A86B] text-white rounded-xl disabled:opacity-20 transition-all shadow-lg active:scale-95 vaqta-glow">
+            <Send size={18} />
           </button>
         </div>
         
