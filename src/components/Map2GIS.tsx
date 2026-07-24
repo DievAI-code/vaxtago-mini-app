@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { get2GISKey } from "@/services/mapProvider";
+import { mapProvider } from "@/services/mapProvider";
 
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIconRetina from "leaflet/dist/images/marker-icon-2x.png";
@@ -86,14 +86,21 @@ export function Map2GIS({
   const markerRefs = useRef<Record<string, any>>({});
   const userMarkerRef = useRef<any>(null);
 
+  const apiKey = mapProvider.get2GISKey();
+
   useEffect(() => {
+    if (!apiKey) {
+      console.error("2ГИС API ключ не настроен");
+      return;
+    }
+
     if (window.DG) {
       initMap();
       return;
     }
 
     const script = document.createElement("script");
-    script.src = `https://map.api.2gis.ru/2.0/load.js?pkg=full&mode=release&key=${get2GISKey()}`;
+    script.src = `https://maps.api.2gis.ru/2.0/load.js?pkg=full&mode=release&key=${apiKey}`;
     script.async = true;
     script.onload = initMap;
     document.body.appendChild(script);
@@ -104,7 +111,7 @@ export function Map2GIS({
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [apiKey]);
 
   const initMap = () => {
     if (!containerRef.current || mapRef.current || !window.DG) return;

@@ -83,13 +83,13 @@ class MapsService {
     return null;
   }
   
-  openYandexMaps(coordinates: [number, number], address?: string) {
+  openExternalMaps(coordinates: [number, number], address?: string) {
     const [lng, lat] = coordinates;
     const url = `https://www.google.com/maps/?q=${lat},${lng}`;
     window.open(url, '_blank');
   }
   
-  openYandexRoute(from: [number, number], to: [number, number]) {
+  openExternalRoute(from: [number, number], to: [number, number]) {
     const [fromLng, fromLat] = from;
     const [toLng, toLat] = to;
     const url = `https://www.google.com/maps/?rtext=${fromLat},${fromLng}~${toLat},${toLng}&rtt=auto`;

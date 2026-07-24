@@ -1,9 +1,25 @@
 "use client";
 
-export const is2GISAvailable = (): boolean => {
-  return Boolean(import.meta.env.VITE_2GIS_MAP_KEY);
-};
+import { get2GISMapKey } from "@/lib/env";
 
-export const get2GISKey = (): string => {
-  return import.meta.env.VITE_2GIS_MAP_KEY || "";
+export type MapProviderType = "2gis" | "openstreetmap";
+
+export interface MapProviderState {
+  activeProvider: MapProviderType;
+}
+
+export const mapProvider = {
+  getProviderState(): MapProviderState {
+    return {
+      activeProvider: get2GISMapKey() ? "2gis" : "openstreetmap",
+    };
+  },
+
+  is2GISAvailable(): boolean {
+    return Boolean(get2GISMapKey());
+  },
+
+  get2GISKey(): string {
+    return get2GISMapKey();
+  }
 };

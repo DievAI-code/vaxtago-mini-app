@@ -64,9 +64,9 @@ export function MapWidget({ query, coordinates, onClose }: MapWidgetProps) {
     }
   };
 
-  const openInYandexMaps = () => {
+  const openInExternalMaps = () => {
     if (selectedLocation) {
-      mapsService.openYandexMaps(
+      mapsService.openExternalMaps(
         [selectedLocation.longitude, selectedLocation.latitude],
         selectedLocation.address
       );
@@ -75,9 +75,9 @@ export function MapWidget({ query, coordinates, onClose }: MapWidgetProps) {
 
   const openRoute = () => {
     if (selectedLocation) {
-      // Здесь можно реализовать выбор начальной точки
-      mapsService.openYandexRoute(
-        [37.617494, 55.755826], // Москва по умолчанию
+      // Here you can implement choosing a starting point
+      mapsService.openExternalRoute(
+        [37.617494, 55.755826], // Moscow by default
         [selectedLocation.longitude, selectedLocation.latitude]
       );
     }
@@ -117,11 +117,11 @@ export function MapWidget({ query, coordinates, onClose }: MapWidgetProps) {
 
       <div className="space-y-2">
         <button
-          onClick={openInYandexMaps}
+          onClick={openInExternalMaps}
           className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
         >
           <ExternalLink size={16} />
-          Открыть в Яндекс Картах
+          Открыть в Картах
         </button>
 
         <button
