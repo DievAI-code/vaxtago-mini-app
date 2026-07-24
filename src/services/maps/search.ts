@@ -23,7 +23,7 @@ export interface MapSearchResult {
   latitude: number;
   longitude: number;
   type?: string;
-  source: "2gis" | "osm";
+  source: "2gis" | "osm" | "overpass";
   score?: number;
   cityMatch?: boolean;
 }
@@ -109,7 +109,7 @@ function cleanCityPrefixes(text: string): string {
 /**
  * Smart Location Query Parser
  * Parses city, object type, and constructs an optimized search string.
- * Supports: "г.Тюмень", "г. Тюмень", "город Тюмень", "жд вокзал г.Тюмень"
+ * Handles: "г.Тюмень", "г. Тюмень", "город Тюмень", "жд вокзал г.Тюмень"
  */
 export function parseLocationQuery(query: string): ParsedLocationQuery {
   const cleanedText = cleanCityPrefixes(query);
@@ -256,7 +256,7 @@ export const hybridMapSearch = {
       return {
         results: [],
         isLowConfidence: false,
-        message: parsed.city ? `В городе (${parsed.city}) объект не найден.` : "По запросу ничего не найдено.",
+        message: parsed.city ? `В шаҳарда (${parsed.city}) топилмади.` : "По запросу ничего не найдено.",
       };
     }
 
@@ -285,7 +285,7 @@ export const hybridMapSearch = {
       longitude: candidate.longitude,
       score,
       cityMatch,
-      source: (candidate as any).source === "osm" ? "osm" : "2gis",
+      source: ((candidate as any).source as any) || "2gis",
     }));
 
     const hasExactCityMatch = parsed.city ? sortedResults.some((r) => r.cityMatch) : true;
@@ -294,7 +294,7 @@ export const hybridMapSearch = {
 
     let warningMessage: string | undefined = undefined;
     if (parsed.city && !hasExactCityMatch) {
-      warningMessage = `В городе (${parsed.city}) точный объект не найден. Возможно вы имели в виду:`;
+      warningMessage = `В шаҳарда (${parsed.city}) точный объект не найден. Возможно вы имели в виду:`;
     }
 
     return {
