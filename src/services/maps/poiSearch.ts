@@ -1,6 +1,8 @@
+OSM > Overpass) with specific retries for railway stations and organizations, and 30s Overpass timeout">
 "use client";
 
 import { get2GISMapKey } from "@/lib/env";
+import { getOrganizationAlternatives } from "./organizationAliases";
 
 export interface POISearchParams {
   city: string | null;
@@ -41,70 +43,32 @@ function getDistanceSq(lat1: number, lon1: number, lat2: number, lon2: number): 
 }
 
 /**
- * Specialized 2GIS Catalog fetch for Organizations/Companies
+ * Priority 1: 2GIS Catalog API (Specialized for Orgs)
  */
-async function fetch2GISOrganization(
+async function fetch2GIS(
   query: string,
-  center: { lat: number; lon: number } | null
+  center: { lat: number; lon: number } | null,
+  isOrg: boolean
 ): Promise<POIResult[]> {
   const key = get2GISMapKey();
   if (!key) return [];
 
   try {
-    // Parameters requested: type=branch,company,building and specific fields
-    let url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&key=${key}&type=branch,company,building&fields=items.point,items.name,items.full_name,items.address_name,items.contact_groups&limit=12`;
+    const fields = isOrg 
+      ? "items.point,items.name,items.full_name,items.address_name,items.contact_groups"
+      : "items.point,items.name,items.full_name,items.address_name";
+    
+    const type = isOrg ? "branch,company,building" : "branch,building,attraction,airport,terminal";
+
+    let url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&key=${key}&type=${type}&fields=${fields}&limit=12`;
 
     if (center) {
       url += `&point=${center.lon},${center.lat}&radius=35000`;
     }
 
-    console.log(`[2GIS ATTEMPT] Query: "${query}"`);
-
     const response = await fetch(url);
     if (!response.ok) return [];
 
-    const data = await response.json();
-    const items = data.result?.items || [];
-
-    return items
-      .map((item: any) => {
-        const lat = item.point?.lat;
-        const lon = item.point?.lon;
-        if (lat && lon) {
-          return {
-            latitude: lat,
-            longitude: lon,
-            display_name: item.full_name || item.address_name || item.name,
-            name: item.name || item.full_name || "Организация",
-            address: item.address_name || item.full_name || "",
-            source: "2gis" as const,
-          };
-        }
-        return null;
-      })
-      .filter(Boolean) as POIResult[];
-  } catch (e) {
-    console.error("[2GIS Org Fetch Error]", e);
-    return [];
-  }
-}
-
-/**
- * Standard 2GIS Catalog fetch for Generic POIs
- */
-async function fetch2GISPOI(
-  query: string,
-  center: { lat: number; lon: number } | null
-): Promise<POIResult[]> {
-  const key = get2GISMapKey();
-  if (!key) return [];
-
-  try {
-    let url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&key=${key}&fields=items.geometry,items.full_name,items.address_name,items.name&limit=10`;
-    if (center) url += `&point=${center.lon},${center.lat}&radius=20000`;
-
-    const response = await fetch(url);
-    if (!response.ok) return [];
     const data = await response.json();
     const items = data.result?.items || [];
 
@@ -125,11 +89,42 @@ async function fetch2GISPOI(
         return null;
       })
       .filter(Boolean) as POIResult[];
-  } catch (e) { return []; }
+  } catch (e) {
+    return [];
+  }
 }
 
 /**
- * OpenStreetMap Overpass API fallback
+ * Priority 2: OpenStreetMap Nominatim
+ */
+async function fetchOSMNominatim(query: string, center: { lat: number; lon: number } | null): Promise<POIResult[]> {
+  try {
+    let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&accept-language=ru`;
+    if (center) {
+      // Focus search near coordinates
+      const viewbox = `${center.lon - 0.5},${center.lat + 0.5},${center.lon + 0.5},${center.lat - 0.5}`;
+      url += `&viewbox=${viewbox}&bounded=1`;
+    }
+
+    const response = await fetch(url, { headers: { "User-Agent": "VAQTA-AI/1.0" } });
+    if (!response.ok) return [];
+    const data = await response.json();
+
+    return data.map((item: any) => ({
+      latitude: parseFloat(item.lat),
+      longitude: parseFloat(item.lon),
+      display_name: item.display_name,
+      name: item.name || item.display_name.split(",")[0],
+      address: item.display_name,
+      source: "osm" as const,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Priority 3: Overpass API Fallback (Strictly for non-orgs)
  */
 async function fetchOverpassPOI(
   objectType: string,
@@ -140,11 +135,17 @@ async function fetchOverpassPOI(
     if (objectType === "bus_station") tagQuery = '["amenity"="bus_station"]';
     else if (objectType === "airport") tagQuery = '["aeroway"="aerodrome"]';
     else if (objectType === "hospital") tagQuery = '["amenity"="hospital"]';
+    else if (objectType === "metro") tagQuery = '["railway"="station"]["station"="subway"]';
 
-    const overpassQl = `[out:json][timeout:10];(node(around:20000,${center.lat},${center.lon})${tagQuery};way(around:20000,${center.lat},${center.lon})${tagQuery};);out center;`;
+    const overpassQl = `[out:json][timeout:30];(node(around:20000,${center.lat},${center.lon})${tagQuery};way(around:20000,${center.lat},${center.lon})${tagQuery};);out center;`;
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQl)}`;
 
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (!response.ok) return [];
     const data = await response.json();
     const elements = data.elements || [];
@@ -160,7 +161,9 @@ async function fetchOverpassPOI(
         return null;
       })
       .filter(Boolean) as POIResult[];
-  } catch (e) { return []; }
+  } catch {
+    return []; // Silence 504 and errors
+  }
 }
 
 /**
@@ -211,71 +214,57 @@ export async function searchPOI({
   const low = original.toLowerCase();
   const center = city ? CITY_COORDS[city] || null : null;
 
-  // Determine Search Type
-  const isOrganization = /епрс|предприятие|завод|ооо|ао|нпс|база|управление|цех|скважин/i.test(low);
+  const isOrganization = /епрс|ермако|предприятие|завод|ооо|ао|нпс|база|управление|цех|скважин|прс/i.test(low);
   const typeLabel = isOrganization ? "organization" : objectType;
 
-  console.log(`[ORG SEARCH]`);
-  console.log(`Original: "${original}"`);
-  console.log(`Type: ${typeLabel}`);
-  console.log(`City: ${city || "Not detected"}`);
-  console.log(`Center:`, center);
-
-  if (isOrganization) {
-    // Tiered Organization Search
-    const attempts: string[] = [original];
-    
-    // Attempt 1: Full Name (Expanded) variant is usually already in original if expandedQuery was passed
-    // We add some common logical variations
-    if (city && original.includes(city)) {
-       attempts.push(original.replace(city, "").trim()); // Attempt 1: Name without city
-    }
-
-    // Identify acronym if present (e.g. ЕПРС)
-    const acronymMatch = low.match(/[а-яё]{2,6}/i);
-    if (acronymMatch && !attempts.includes(acronymMatch[0])) {
-       attempts.push(acronymMatch[0].toUpperCase()); // Attempt 2: Acronym
-    }
-
-    // Add city prefix variant
-    if (city && !original.startsWith(city)) {
-       attempts.push(`${city} ${original.replace(city, "").trim()}`); // Attempt 4: City + Name
-    }
-
-    for (const q of attempts) {
-      const results = await fetch2GISOrganization(q, center);
-      const filtered = filterAndRank(results, city, center);
-      console.log(`Results for "${q}":`, filtered.length);
-      if (filtered.length > 0) {
-        console.log(`FINAL RESULT:`, filtered[0]);
-        return filtered;
-      }
-    }
-
-    return [];
-  }
-
-  // Standard Generic POI Search
-  let results: POIResult[] = [];
-  if (objectType === "railway_station") {
-    const queries = city ? [`Железнодорожный вокзал ${city}`, "вокзал"] : ["вокзал"];
-    for (const q of queries) {
-      results = await fetch2GISPOI(q, center);
-      if (results.length > 0) break;
-    }
+  // Build Tiered Attempts
+  let attempts: string[] = [];
+  if (typeLabel === "railway_station" && city) {
+    attempts = [
+      `вокзал ${city}`,
+      `железнодорожный вокзал ${city}`,
+      `${city} вокзал`,
+      `станция ${city}`
+    ];
+  } else if (isOrganization) {
+    attempts = getOrganizationAlternatives(original, city);
   } else {
-    results = await fetch2GISPOI(original, center);
+    attempts = [original];
   }
 
-  let finalResults = filterAndRank(results, city, center);
+  console.log(`[POI SEARCH]`);
+  console.log(`TYPE: ${typeLabel}`);
+  console.log(`QUERY: ${original}`);
+  console.log(`ALTERNATIVES:`, attempts);
 
-  // Overpass Fallback ONLY for generic POIs
-  if (finalResults.length === 0 && center && !isOrganization) {
-    const overpass = await fetchOverpassPOI(objectType, center);
-    finalResults = filterAndRank(overpass, city, center);
-    console.log(`OVERPASS RESULTS:`, finalResults.length);
+  let finalResults: POIResult[] = [];
+
+  // TIER 1: 2GIS (With retries for alternatives)
+  for (const q of attempts) {
+    console.log(`CURRENT ATTEMPT: 2GIS "${q}"`);
+    const results = await fetch2GIS(q, center, isOrganization);
+    finalResults = filterAndRank(results, city, center);
+    console.log(`RESULT COUNT: ${finalResults.length}`);
+    if (finalResults.length > 0) return finalResults;
   }
 
-  console.log(`FINAL RESULT:`, finalResults[0] || "None");
-  return finalResults;
+  // TIER 2: OSM Nominatim (Only if 2GIS failed all attempts)
+  for (const q of attempts) {
+    console.log(`CURRENT ATTEMPT: Nominatim "${q}"`);
+    const results = await fetchOSMNominatim(q, center);
+    finalResults = filterAndRank(results, city, center);
+    console.log(`RESULT COUNT: ${finalResults.length}`);
+    if (finalResults.length > 0) return finalResults;
+  }
+
+  // TIER 3: Overpass (Last resort, only for non-orgs)
+  if (!isOrganization && center) {
+    console.log(`CURRENT ATTEMPT: Overpass API (30s timeout)`);
+    const results = await fetchOverpassPOI(objectType, center);
+    finalResults = filterAndRank(results, city, center);
+    console.log(`RESULT COUNT: ${finalResults.length}`);
+    if (finalResults.length > 0) return finalResults;
+  }
+
+  return [];
 }

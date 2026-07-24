@@ -3,6 +3,7 @@
 export const organizationAliases: Record<string, string> = {
   епрс: "Ермаковское Предприятие по ремонту скважин",
   ерс: "Ермаковское Предприятие по ремонту скважин",
+  ермако: "Ермаковское Предприятие по ремонту скважин",
   прс: "Предприятие по ремонту скважин",
   мфц: "Многофункциональный центр",
   мвд: "Министерство внутренних дел",
@@ -13,8 +14,37 @@ export const organizationAliases: Record<string, string> = {
 };
 
 /**
+ * Returns a list of alternative names for a given abbreviation or query.
+ */
+export function getOrganizationAlternatives(query: string, city: string | null): string[] {
+  const low = query.toLowerCase();
+  const citySuffix = city ? ` ${city}` : "";
+  const alts: string[] = [];
+
+  // Handle specific ЕПРС / ПРС logic
+  if (low.includes("епрс") || low.includes("ермако")) {
+    alts.push(`ЕПРС${citySuffix}`);
+    alts.push(`ЕРМАКО${citySuffix}`);
+    alts.push(`Ермаковское ПРС${citySuffix}`);
+    alts.push(`Ермаковское Предприятие по ремонту скважин${citySuffix}`);
+    alts.push(`Предприятие по ремонту скважин${citySuffix}`);
+    alts.push(`ремонт скважин${citySuffix}`);
+  } else if (low.includes("прс")) {
+    alts.push(`ПРС${citySuffix}`);
+    alts.push(`Предприятие по ремонту скважин${citySuffix}`);
+    alts.push(`ремонт скважин${citySuffix}`);
+  }
+
+  // Add the original query as a fallback if not already in list
+  if (!alts.some(a => a.toLowerCase() === low)) {
+    alts.push(query);
+  }
+
+  return [...new Set(alts)]; // Return unique values
+}
+
+/**
  * Replaces known acronyms and abbreviations in a query string with their full official names.
- * Handles case-insensitivity (ЕПРС, епрс, Епрс).
  */
 export function expandOrganizationQuery(query: string): string {
   const trimmed = query.trim();
@@ -23,7 +53,6 @@ export function expandOrganizationQuery(query: string): string {
   let expanded = trimmed;
 
   for (const [alias, fullName] of Object.entries(organizationAliases)) {
-    // Regex matches alias as a standalone word (case insensitive, supporting Cyrillic)
     const regex = new RegExp(`(?:^|\\s|\\b|(?<=[^a-zа-яё0-9]))${alias}(?=\\s|\\b|(?=[^a-zа-яё0-9])|$)`, "gi");
     if (regex.test(expanded)) {
       expanded = expanded.replace(regex, (match) => {
