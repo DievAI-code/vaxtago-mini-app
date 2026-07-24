@@ -11,7 +11,7 @@ import {
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
-import { YandexMap } from "@/components/maps/YandexMap";
+import { Map as OsmMap } from "@/components/Map";
 import { hybridMapSearch, MapSearchResult, RouteDetail } from "@/services/maps/search";
 import { subscription } from "@/services/subscription";
 import { toast } from "sonner";
@@ -35,16 +35,13 @@ export default function Maps() {
   const [zoom, setZoom] = useState(13);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
-  // Route state
   const [routeMode, setRouteMode] = useState<"driving" | "foot">("driving");
   const [routeInfo, setRouteInfo] = useState<RouteDetail | null>(null);
   const [buildingRoute, setBuildingRoute] = useState(false);
 
-  // Favorites & Share
   const [isFavorite, setIsFavorite] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Initial load
   useEffect(() => {
     const q = searchParams.get("search") || searchParams.get("query");
     if (q) {
@@ -56,7 +53,6 @@ export default function Maps() {
   const executeSearch = async (queryText: string) => {
     if (!queryText.trim()) return;
 
-    // Check Premium limit
     const access = await subscription.checkUserAccess("maps");
     if (!access.allowed) {
       toast.error(t("premium.feature_locked") || "Лимит поисков на карте исчерпан. Оформите Premium.");
@@ -155,7 +151,7 @@ export default function Maps() {
 
   const handleShare = () => {
     if (!selectedLocation) return;
-    const shareText = `📍 ${selectedLocation.title}\n🏠 ${selectedLocation.address}\nhttps://yandex.ru/maps/?pt=${selectedLocation.longitude},${selectedLocation.latitude}&z=16`;
+    const shareText = `📍 ${selectedLocation.title}\n🏠 ${selectedLocation.address}\nhttps://www.google.com/maps/?q=${selectedLocation.latitude},${selectedLocation.longitude}`;
     navigator.clipboard.writeText(shareText);
     setCopied(true);
     toast.success("Ссылка и адрес скопированы");
@@ -168,7 +164,6 @@ export default function Maps() {
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
       <main className="flex-1 p-4 space-y-3 flex flex-col relative">
-        {/* Top controls & Search */}
         <div className="vaqta-glass p-2 border-[#1A3D2E] shadow-xl relative z-20">
           <div className="flex items-center gap-2 px-2">
             <Search size={18} className="text-[#00A86B]" />
@@ -213,7 +208,6 @@ export default function Maps() {
           </div>
         </div>
 
-        {/* Search error friendly message */}
         {searchError && (
           <motion.div
             initial={{ opacity: 0, y: -5 }}
@@ -233,7 +227,6 @@ export default function Maps() {
           </motion.div>
         )}
 
-        {/* Search Results list options if multiple */}
         {searchResults.length > 1 && (
           <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 text-xs z-20">
             {searchResults.map((res, i) => (
@@ -256,9 +249,8 @@ export default function Maps() {
           </div>
         )}
 
-        {/* Map Container */}
         <div className="relative flex-1 min-h-[380px] rounded-[2rem] overflow-hidden border border-[#1A3D2E] shadow-2xl z-10">
-          <YandexMap
+          <OsmMap
             center={mapCenter}
             zoom={zoom}
             markers={
@@ -267,12 +259,7 @@ export default function Maps() {
                     {
                       id: "selected-loc",
                       title: selectedLocation.title,
-                      salary: "",
-                      city: "",
-                      address: selectedLocation.address,
                       coordinates: [selectedLocation.longitude, selectedLocation.latitude],
-                      type: "verified",
-                      employerName: selectedLocation.title,
                     },
                   ]
                 : []
@@ -282,7 +269,6 @@ export default function Maps() {
           />
         </div>
 
-        {/* Selected Location Bottom Card */}
         <AnimatePresence mode="wait">
           {selectedLocation && (
             <motion.div
@@ -297,7 +283,7 @@ export default function Maps() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs">📍</span>
                     <span className="text-[9px] font-black uppercase tracking-widest text-[#00A86B]">
-                      {selectedLocation.source === "yandex" ? "Yandex Maps" : "OpenStreetMap"}
+                      OpenStreetMap
                     </span>
                   </div>
                   <h3 className="font-extrabold text-base leading-snug text-white truncate">
@@ -328,7 +314,6 @@ export default function Maps() {
                 </div>
               </div>
 
-              {/* Transport Mode Switcher */}
               <div className="flex items-center justify-between pt-1 border-t border-white/5">
                 <div className="flex items-center gap-2 bg-[#06140F] p-1 rounded-xl border border-[#1A3D2E]">
                   <button
@@ -363,7 +348,6 @@ export default function Maps() {
                 )}
               </div>
 
-              {/* Action Buttons */}
               <button
                 onClick={handleBuildRoute}
                 disabled={buildingRoute}

@@ -15,41 +15,24 @@ export interface RouteResult {
 }
 
 class MapsService {
-  private yandexApiKey: string;
-  
-  constructor() {
-    this.yandexApiKey = import.meta.env.VITE_YANDEX_MAPS_KEY || "";
-  }
-  
   async searchAddress(query: string): Promise<GeocodingResult[]> {
-    if (!this.yandexApiKey) {
-      console.warn("Yandex Maps API key not configured");
-      return [];
-    }
-    
     try {
-      const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${this.yandexApiKey}&geocode=${encodeURIComponent(query)}&format=json&results=5`;
-      const response = await fetch(url);
-      
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&accept-language=ru`;
+      const response = await fetch(url, {
+        headers: { "User-Agent": "VAQTA-AI-Geocoder/1.0" }
+      });
+
       if (!response.ok) {
         throw new Error(`Geocoding failed: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      const features = data.response?.GeoObjectCollection?.featureMember || [];
-      
-      return features.map((feature: any) => {
-        const geoObject = feature.GeoObject;
-        const [lng, lat] = geoObject.Point.pos.split(' ').map(Number);
-        
-        return {
-          latitude: lat,
-          longitude: lng,
-          address: geoObject.name,
-          display_name: geoObject.description || geoObject.name
-        };
-      });
-      
+      return data.map((item: any) => ({
+        latitude: parseFloat(item.lat),
+        longitude: parseFloat(item.lon),
+        address: item.name,
+        display_name: item.display_name
+      }));
     } catch (error) {
       console.error("Geocoding error:", error);
       return [];
@@ -65,19 +48,16 @@ class MapsService {
   }
   
   async reverseGeocode(lat: number, lng: number): Promise<string> {
-    if (!this.yandexApiKey) return "";
-    
     try {
-      const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${this.yandexApiKey}&geocode=${lng},${lat}&format=json&results=1`;
-      const response = await fetch(url);
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ru`;
+      const response = await fetch(url, {
+        headers: { "User-Agent": "VAQTA-AI-Geocoder/1.0" }
+      });
       
       if (!response.ok) return "";
       
       const data = await response.json();
-      const feature = data.response?.GeoObjectCollection?.featureMember?.[0];
-      
-      return feature?.GeoObject?.name || "";
-      
+      return data.display_name || "";
     } catch (error) {
       console.error("Reverse geocoding error:", error);
       return "";
@@ -85,25 +65,34 @@ class MapsService {
   }
   
   async calculateRoute(from: [number, number], to: [number, number]): Promise<RouteResult | null> {
-    // Заглушка для расчета маршрута
-    return {
-      from,
-      to,
-      distance: Math.sqrt(Math.pow(to[0] - from[0], 2) + Math.pow(to[1] - from[1], 2)) * 111000,
-      duration: 30
-    };
+    try {
+      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${from[1]},${from[0]};${to[1]},${to[0]}?overview=false`);
+      if (res.ok) {
+        const data = await res.json();
+        const route = data.routes?.[0];
+        if (route) {
+          return {
+            from,
+            to,
+            distance: route.distance,
+            duration: route.duration
+          };
+        }
+      }
+    } catch {}
+    return null;
   }
   
   openYandexMaps(coordinates: [number, number], address?: string) {
     const [lng, lat] = coordinates;
-    const url = `https://yandex.ru/maps/?pt=${lng},${lat}&z=15`;
+    const url = `https://www.google.com/maps/?q=${lat},${lng}`;
     window.open(url, '_blank');
   }
   
   openYandexRoute(from: [number, number], to: [number, number]) {
     const [fromLng, fromLat] = from;
     const [toLng, toLat] = to;
-    const url = `https://yandex.ru/maps/?rtext=${fromLat},${fromLng}~${toLat},${toLng}&rtt=auto`;
+    const url = `https://www.google.com/maps/?rtext=${fromLat},${fromLng}~${toLat},${toLng}&rtt=auto`;
     window.open(url, '_blank');
   }
 }

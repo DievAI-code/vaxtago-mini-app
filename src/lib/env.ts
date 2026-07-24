@@ -15,15 +15,3 @@ export function getSupabaseAnonKey(): string {
 export function isConfigured(): boolean {
   return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
 }
-
-export function getYandexMapsKey(): string {
-  const key = import.meta.env.VITE_YANDEX_MAPS_KEY || "";
-  console.log("[YANDEX MAP KEY]", Boolean(key));
-  return key;
-}
-
-export function getYandexGeocoderKey(): string {
-  const key = import.meta.env.VITE_YANDEX_GEOCODER || "";
-  console.log("[YANDEX GEOCODER KEY]", Boolean(key));
-  return key;
-}

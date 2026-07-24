@@ -9,7 +9,7 @@ import {
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
-import { YandexMap, VacancyMarkerData } from "@/components/maps/YandexMap";
+import { Map as OsmMap, VacancyMarkerData } from "@/components/Map";
 import { geocodingService } from "@/services/geocodingService";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageProvider";
@@ -119,7 +119,7 @@ export default function MapPage() {
 
   const buildRoute = useCallback((coords: [number, number]) => {
     const [lng, lat] = coords;
-    const url = `https://yandex.ru/maps/?rtext=~${lat},${lng}&rtt=auto`;
+    const url = `https://www.google.com/maps/?rtext=~${lat},${lng}&rtt=auto`;
     window.open(url, "_blank");
   }, []);
 
@@ -129,14 +129,13 @@ export default function MapPage() {
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
       <main className="px-4 mt-2 flex-1 space-y-4 flex flex-col">
-        {/* Top Header Controls */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
               <span>🗺️</span> Карта вакансий
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">
-              Яндекс Карты v3 • Поиск адресов и вакансий
+              OpenStreetMap • Поиск адресов и вакансий
             </p>
           </div>
           <button
@@ -148,7 +147,6 @@ export default function MapPage() {
           </button>
         </div>
 
-        {/* Search input */}
         <div className="relative vaqta-glass border-[#1A3D2E] p-2 focus-within:border-[#00A86B]/50 transition-all shadow-xl">
           <div className="flex items-center gap-3 px-3">
             <Search size={18} className="text-[#00A86B]" />
@@ -173,7 +171,6 @@ export default function MapPage() {
           </div>
         </div>
 
-        {/* Search Error State with Retry Button */}
         {searchError && (
           <motion.div
             initial={{ opacity: 0, y: -5 }}
@@ -194,7 +191,6 @@ export default function MapPage() {
           </motion.div>
         )}
 
-        {/* Legend Filter Badges */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 text-[10px] font-black uppercase tracking-wider">
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0C1F1A] border border-[#1A3D2E] text-slate-300">
             <span>🔴</span> <span>Работодатель</span>
@@ -207,9 +203,8 @@ export default function MapPage() {
           </div>
         </div>
 
-        {/* Yandex Map Container */}
         <div className="relative flex-1 min-h-[360px] md:min-h-[450px]">
-          <YandexMap
+          <OsmMap
             center={center}
             zoom={zoom}
             markers={SAMPLE_VACANCIES}
@@ -223,7 +218,6 @@ export default function MapPage() {
           />
         </div>
 
-        {/* Selected Vacancy Card */}
         <AnimatePresence mode="wait">
           {selectedVacancy && (
             <motion.div
@@ -269,7 +263,6 @@ export default function MapPage() {
                 )}
               </div>
 
-              {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
                   onClick={() => selectedVacancy.url && window.open(selectedVacancy.url, "_blank")}

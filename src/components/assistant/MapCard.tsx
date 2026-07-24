@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Navigation, Compass, Loader2, AlertCircle, Clock, Route } from "lucide-react";
-import { YandexMap } from "../maps/YandexMap";
+import { Map } from "@/components/Map";
 import { useLanguage } from "@/context/LanguageProvider";
 import { locationService, LocationResult, RouteResult } from "@/services/locationService";
 import { toast } from "sonner";
@@ -36,7 +36,6 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
         if (res) {
           setLocation(res);
         } else {
-          // Fallback location for known default if not found
           setLocation({
             name: query,
             address: query,
@@ -46,7 +45,6 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
         }
       }
 
-      // Try user location
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
@@ -122,26 +120,21 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
       className="w-full vaqta-glass overflow-hidden border-[#00A86B]/30 shadow-2xl my-2"
     >
       <div className="h-44 relative">
-        <YandexMap
+        <Map
           center={mapCenter}
           zoom={14}
           markers={[
             {
               id: "target",
               title: location.name,
-              salary: "",
-              city: "",
-              address: location.address,
               coordinates: mapCenter,
-              type: "verified",
-              employerName: location.name,
             },
           ]}
           userLocation={userCoords ? [userCoords[1], userCoords[0]] : null}
           className="w-full h-full rounded-none"
         />
 
-        <div className="absolute top-3 left-3 bg-[#06140F]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 max-w-[85%] shadow-lg">
+        <div className="absolute top-3 left-3 z-[1000] bg-[#06140F]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 max-w-[85%] shadow-lg pointer-events-none">
           <MapPin size={14} className="text-[#00A86B] flex-shrink-0" />
           <span className="text-[10px] font-black uppercase text-white truncate">
             {location.name}
