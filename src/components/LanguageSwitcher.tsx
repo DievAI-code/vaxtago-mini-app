@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Globe, ChevronDown, Check } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
-import { Lang } from "@/i18n";
+import { Lang, setLanguage as setI18nLang } from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,12 +20,15 @@ export function LanguageSwitcher() {
   const [saving, setSaving] = useState(false);
 
   const handleLanguageChange = async (newLang: Lang) => {
-    if (newLang === language) return;
+    if (newLang === language) {
+      setIsOpen(false);
+      return;
+    }
     
     setSaving(true);
     try {
-      localStorage.setItem("vaxtago_language", newLang);
-      localStorage.setItem("vaqta_language", newLang);
+      setI18nLang(newLang);
+      setLanguage(newLang);
       
       const userPhone = localStorage.getItem("vaxtago_user_phone");
       if (userPhone && supabase) {
@@ -37,8 +40,6 @@ export function LanguageSwitcher() {
           })
           .eq("phone_number", userPhone);
       }
-      
-      setLanguage(newLang);
     } catch (error) {
       console.error("Error saving language:", error);
     } finally {
@@ -58,7 +59,6 @@ export function LanguageSwitcher() {
         className="flex items-center gap-1.5 px-3 py-2 bg-[#0C1F1A] border border-[#1A3D2E] rounded-2xl text-xs font-bold text-white hover:bg-white/10 transition-all shadow-lg active:scale-95 disabled:opacity-50"
       >
         <Globe size={14} className="text-[#00A86B]" />
-        <span>{currentLang.flag}</span>
         <span className="font-bold">{currentLang.name}</span>
         <ChevronDown size={14} className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, ChevronRight, Loader2 } from "lucide-react";
+import { Phone, ChevronRight, Loader2, Globe } from "lucide-react";
 import { VaqtaLogo } from "@/components/VaqtaLogo";
 import { useLanguage } from "@/context/LanguageProvider";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -24,13 +24,13 @@ export default function Login() {
     await clearSupabaseSession();
 
     if (!isConfigured()) {
-      toast.error("Supabase не настроен. Проверьте переменные окружения.");
+      toast.error(t("common.error"));
       return;
     }
 
     const cleanPhone = normalizePhone(phone);
     if (cleanPhone.length < 10) {
-      toast.error("Введите корректный номер телефона");
+      toast.error(t("auth.phone_placeholder"));
       return;
     }
 
@@ -40,18 +40,18 @@ export default function Login() {
       const { data, error } = await safeSupabaseLogin(cleanPhone, { language_code: language });
 
       if (error || !data) {
-        throw error || new Error("Failed to authenticate user");
+        throw error || new Error("Auth error");
       }
 
       localStorage.setItem("vaxtago_auth", "true");
       localStorage.setItem("vaxtago_user_data", JSON.stringify(data));
       localStorage.setItem("vaxtago_user_phone", cleanPhone);
 
-      toast.success(t("welcome"));
+      toast.success(t("greeting").split('\n')[0]);
       nav("/home", { replace: true });
     } catch (err: any) {
-      console.error("[Login] Unexpected error:", err);
-      toast.error("Не удалось загрузить профиль. Проверьте подключение.");
+      console.error("[Login] error:", err);
+      toast.error(t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function Login() {
             className="w-full h-16 rounded-3xl vaqta-gradient flex items-center justify-center gap-3 text-lg font-black text-white shadow-xl disabled:opacity-50"
           >
             {loading ? <Loader2 className="animate-spin" size={24} /> : (
-              <>{t("common.continue")} <ChevronRight size={20} /></>
+              <>{t("buttons.continue")} <ChevronRight size={20} /></>
             )}
           </button>
         </form>

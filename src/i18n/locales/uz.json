@@ -5,28 +5,35 @@
   "chat_ph": "Savol yoki manzilni yozing...",
   "chat_placeholder": "Savol yoki manzilni yozing...",
   "nav": {
-    "home": "AI",
-    "ai": "AI",
+    "home": "Asosiy",
+    "ai": "AI Yordamchi",
     "scanner": "Rasm tarjima",
     "jobs": "Ish",
-    "map": "Karta",
+    "map": "Xarita",
     "profile": "Profil",
     "premium": "Premium",
     "settings": "Sozlamalar",
     "tracker": "Patent",
-    "sos": "Yordam"
+    "sos": "Yordam",
+    "cabinet": "Kabinet",
+    "admin": "Admin"
   },
   "buttons": {
-    "ai": "🤖 AI",
+    "ai": "🤖 AI Chat",
     "scanner": "📷 Rasm tarjima",
     "jobs": "💼 Ish",
-    "maps": "📍 Karta",
+    "maps": "📍 Xarita",
     "send": "Yuborish",
     "take_photo": "Kamera",
     "gallery": "Galereya",
     "save": "Saqlash",
     "route": "Marshrut",
-    "open_map": "Xaritada ochish"
+    "open_map": "Xaritada ochish",
+    "start": "Boshlash",
+    "login": "Kirish",
+    "continue": "Davom etish",
+    "search": "Qidirish",
+    "path": "Yo'l"
   },
   "scanner": {
     "title": "Rasm tarjima",
@@ -38,29 +45,51 @@
     "original": "Asl rasm",
     "translated": "Tarjima qilingan rasm",
     "download": "Rasmni saqlab olish",
-    "new_scan": "Yangi rasm"
+    "new_scan": "Yangi rasm",
+    "error_ai": "Tarjima qilishda xatolik yuz berdi",
+    "original_text": "Asl matn",
+    "translation": "Tarjima",
+    "step_analyze": "Rasm tahlil qilinmoqda..."
   },
   "maps": {
     "title": "2GIS Xarita",
     "search_ph": "Tyumen vokzal, Moskva metro...",
-    "not_found": "Uzr, topilmadi. Shahar nomini ham yozib ko'ring.",
-    "route": "Marshrut tuzish"
+    "not_found": "Hech narsa topilmadi. Manzilni aniqroq yozib ko'ring.",
+    "route": "Yo'nalish qurish",
+    "my_location": "Mening joylashuvim",
+    "from": "Qayerdan",
+    "to": "Qayerga",
+    "walking": "Piyoda",
+    "car": "Mashina",
+    "transit": "Transport",
+    "start_route": "Yo'lga chiqish",
+    "destination": "Manzil"
   },
   "jobs": {
     "title": "Ish qidirish",
     "search_ph": "Kasb va shahar (payvandchi Moskva)...",
     "found_count": "Vakansiyalar",
-    "apply": "Ariza yuborish"
+    "apply": "Ariza yuborish",
+    "not_connected": "Ish o'rinlari manbasi ulanish bosqichida"
   },
-  "premium": {
-    "title": "VAQTA Premium",
-    "subtitle": "Cheksiz AI va rasm tarjima",
-    "buy": "Premium ulash"
+  "chat": {
+    "welcome": "Assalomu alaykum! Bugun sizga qanday yordam bera olaman? Hujjatlar, rasmlar va tarjimalarni tushunaman.",
+    "typing": "AI o'ylamoqda...",
+    "error": "AI bilan aloqa uzildi. Keyinroq urinib ko'ring.",
+    "placeholder": "Biror narsa yozing..."
   },
-  "profile": {
-    "title": "Profil",
-    "subscription": "Tarif",
-    "login_prompt": "Saqlash va tarifni oshirish uchun tizimga kiring",
-    "login_btn": "Tizimga kirish"
+  "auth": {
+    "login_title": "Tizimga kirish",
+    "subtitle": "Ish va hayot uchun yordamchingiz",
+    "phone_placeholder": "+7 (___) ___ ____",
+    "select_lang": "Tilni tanlang",
+    "privacy_note": "Davom etish orqali foydalanish shartlariga rozilik berasiz"
+  },
+  "common": {
+    "done": "Tayyor",
+    "error": "Xatolik",
+    "loading": "Yuklanmoqda...",
+    "retry": "Qayta urinish",
+    "close": "Yopish"
   }
 }

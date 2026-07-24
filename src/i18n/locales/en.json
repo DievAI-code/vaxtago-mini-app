@@ -1,32 +1,39 @@
 {
   "app_title": "VAQTA AI",
   "app_subtitle": "Smart Assistant",
-  "greeting": "Hello 👋\nI can help you with jobs, documents, translation and locations.",
+  "greeting": "Hello 👋\nI can help you with job search, documents, translation, and navigation.",
   "chat_ph": "Type your question...",
   "chat_placeholder": "Type a question or location...",
   "nav": {
-    "home": "AI",
-    "ai": "AI",
-    "scanner": "Translate photo",
+    "home": "Home",
+    "ai": "AI Assistant",
+    "scanner": "Translator",
     "jobs": "Jobs",
-    "map": "Map",
+    "map": "Maps",
     "profile": "Profile",
     "premium": "Premium",
     "settings": "Settings",
     "tracker": "Patent",
-    "sos": "Help"
+    "sos": "Help",
+    "cabinet": "Cabinet",
+    "admin": "Admin"
   },
   "buttons": {
-    "ai": "🤖 AI",
+    "ai": "🤖 AI Chat",
     "scanner": "📷 Photo Translate",
     "jobs": "💼 Jobs",
-    "maps": "📍 Map",
+    "maps": "📍 Maps",
     "send": "Send",
     "take_photo": "Camera",
     "gallery": "Gallery",
     "save": "Save",
     "route": "Route",
-    "open_map": "Open map"
+    "open_map": "Open in Maps",
+    "start": "Start",
+    "login": "Login",
+    "continue": "Continue",
+    "search": "Search",
+    "path": "Path"
   },
   "scanner": {
     "title": "Photo Translator",
@@ -38,29 +45,51 @@
     "original": "Original Photo",
     "translated": "Translated Image",
     "download": "Save Result",
-    "new_scan": "New Scan"
+    "new_scan": "New Scan",
+    "error_ai": "AI error during translation",
+    "original_text": "Original text",
+    "translation": "Translation",
+    "step_analyze": "Analyzing image..."
   },
   "maps": {
     "title": "2GIS Map",
     "search_ph": "Station Tyumen, Metro Moscow...",
     "not_found": "Not found. Try specifying city name as well.",
-    "route": "Build Route"
+    "route": "Build Route",
+    "my_location": "My Location",
+    "from": "From",
+    "to": "To",
+    "walking": "Walking",
+    "car": "Driving",
+    "transit": "Transit",
+    "start_route": "Start Navigation",
+    "destination": "Destination"
   },
   "jobs": {
     "title": "Job Search",
-    "search_ph": "Profession & City (welder Moscow)...",
+    "search_ph": "Profession and City (welder Moscow)...",
     "found_count": "Vacancies",
-    "apply": "Apply"
+    "apply": "Apply",
+    "not_connected": "Job sources are being connected"
   },
-  "premium": {
-    "title": "VAQTA Premium",
-    "subtitle": "Unlimited AI and photo translation",
-    "buy": "Get Premium"
+  "chat": {
+    "welcome": "Hello! How can I help you today? I understand documents, photos, and translations.",
+    "typing": "AI is thinking...",
+    "error": "Connection error with AI. Try again later.",
+    "placeholder": "Type something..."
   },
-  "profile": {
-    "title": "Profile",
-    "subscription": "Plan",
-    "login_prompt": "Sign in to save your search history and data",
-    "login_btn": "Sign In with Phone"
+  "auth": {
+    "login_title": "System Login",
+    "subtitle": "Your assistant for work and life",
+    "phone_placeholder": "+7 (___) ___ ____",
+    "select_lang": "Select Language",
+    "privacy_note": "By continuing you agree to the terms of use"
+  },
+  "common": {
+    "done": "Done",
+    "error": "Error",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "close": "Close"
   }
 }
