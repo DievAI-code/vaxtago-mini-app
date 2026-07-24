@@ -27,6 +27,7 @@ export default function Maps() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isLowConfidence, setIsLowConfidence] = useState(false);
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
   const [searchResults, setSearchResults] = useState<MapSearchResult[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<MapSearchResult | null>(null);
@@ -59,16 +60,18 @@ export default function Maps() {
 
     setIsSearching(true);
     setSearchError(null);
+    setNoticeMessage(null);
     setRouteInfo(null);
     setIsLowConfidence(false);
 
     try {
-      const { results, isLowConfidence: lowConf } = await hybridMapSearch.searchLocation(queryText);
+      const { results, isLowConfidence: lowConf, message } = await hybridMapSearch.searchLocation(queryText);
       await subscription.trackUsage("maps");
 
       if (results.length > 0) {
         setSearchResults(results);
         setIsLowConfidence(lowConf);
+        setNoticeMessage(message || null);
         const top = results[0];
         setSelectedLocation(top);
         setMapCenter([top.latitude, top.longitude]);
@@ -77,7 +80,7 @@ export default function Maps() {
       } else {
         setSearchResults([]);
         setSelectedLocation(null);
-        setSearchError("По запросу ничего не найдено.");
+        setSearchError(message || "По запросу ничего не найдено.");
       }
     } catch {
       setSearchError("По запросу ничего не найдено.");
@@ -173,7 +176,7 @@ export default function Maps() {
                 if (searchError) setSearchError(null);
               }}
               onKeyDown={(e) => e.key === "Enter" && executeSearch(searchQuery)}
-              placeholder="Тюмень жд вокзал, москва аэропорт..."
+              placeholder="Тюмень жд вокзал, tyumen vokzal..."
               className="flex-1 bg-transparent py-2.5 text-xs text-white outline-none placeholder-[#5C7A6D] font-bold"
             />
             {searchQuery && (
@@ -183,6 +186,7 @@ export default function Maps() {
                   setSearchResults([]);
                   setSelectedLocation(null);
                   setSearchError(null);
+                  setNoticeMessage(null);
                   setIsLowConfidence(false);
                 }}
                 className="text-xs text-[#5C7A6D] hover:text-white px-1"
@@ -207,8 +211,46 @@ export default function Maps() {
           </div>
         </div>
 
+        {/* Notice Message when exact city match was missing */}
+        {noticeMessage && searchResults.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="vaqta-glass p-3 border-amber-500/30 bg-amber-500/10 rounded-2xl z-20 space-y-2"
+          >
+            <p className="text-xs font-bold text-amber-200 flex items-center gap-1.5">
+              <AlertCircle size={14} className="text-amber-400 flex-shrink-0" />
+              <span>{noticeMessage}</span>
+            </p>
+            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto no-scrollbar">
+              {searchResults.slice(0, 4).map((res, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setSelectedLocation(res);
+                    setMapCenter([res.latitude, res.longitude]);
+                    setZoom(15);
+                    setNoticeMessage(null);
+                  }}
+                  className={`p-2 rounded-xl text-left text-xs font-bold transition-all flex items-center justify-between border ${
+                    selectedLocation?.title === res.title
+                      ? "bg-[#00A86B] border-[#00D4A8] text-white"
+                      : "bg-[#06140F]/80 border-[#1A3D2E] text-slate-200 hover:bg-white/5"
+                  }`}
+                >
+                  <div className="truncate pr-2">
+                    <p className="font-extrabold">{res.title}</p>
+                    <p className="text-[10px] text-[#5C7A6D] truncate">{res.address}</p>
+                  </div>
+                  <MapPin size={14} className="flex-shrink-0 text-[#00A86B]" />
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* Low Confidence Choice Banner */}
-        {isLowConfidence && searchResults.length > 1 && (
+        {isLowConfidence && !noticeMessage && searchResults.length > 1 && (
           <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
@@ -263,7 +305,7 @@ export default function Maps() {
           </motion.div>
         )}
 
-        {searchResults.length > 1 && !isLowConfidence && (
+        {searchResults.length > 1 && !isLowConfidence && !noticeMessage && (
           <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 text-xs z-20">
             {searchResults.map((res, i) => (
               <button
@@ -323,10 +365,10 @@ export default function Maps() {
                       2ГИС
                     </span>
                   </div>
-                  <h3 className="font-extrabold text-base leading-snug text-white truncate">
+                  <h3 className="font-extrabold text-base leading-snug text-[#00D4A8] truncate">
                     {selectedLocation.title}
                   </h3>
-                  <p className="text-xs text-[#5C7A6D] font-medium truncate">
+                  <p className="text-xs text-slate-300 font-medium truncate">
                     {selectedLocation.address}
                   </p>
                 </div>
