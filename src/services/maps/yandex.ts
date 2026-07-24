@@ -1,6 +1,6 @@
 "use client";
 
-import { YANDEX_MAPS_KEY, YANDEX_GEOCODER_KEY, HAS_YANDEX_MAPS, HAS_YANDEX_GEOCODER } from "@/config/maps";
+import { YANDEX_MAPS_API_KEY, YANDEX_GEOCODER_API_KEY, hasYandexMapsKey, hasYandexGeocoderKey } from "@/config/maps";
 
 export interface YandexSearchResult {
   title: string;
@@ -20,14 +20,8 @@ export interface YandexRouteResult {
 
 let yandexScriptPromise: Promise<void> | null = null;
 
-/**
- * Очистка запроса от служебных слов
- */
 function cleanQuery(text: string): string {
-  const stopWords = [
-    "покажи", "найди", "где находится", "на карте", 
-    "маршрут", "открой", "адрес", "город", "в", "на"
-  ];
+  const stopWords = ["покажи", "найди", "где находится", "на карте", "маршрут", "открой", "адрес", "город", "в", "на"];
   let cleaned = text.toLowerCase();
   stopWords.forEach(word => {
     const regex = new RegExp(`\\b${word}\\b`, "gi");
@@ -38,15 +32,15 @@ function cleanQuery(text: string): string {
 
 export const yandexService = {
   getMapsApiKey(): string {
-    return YANDEX_MAPS_KEY;
+    return YANDEX_MAPS_API_KEY;
   },
 
   getGeocoderApiKey(): string {
-    return YANDEX_GEOCODER_KEY;
+    return YANDEX_GEOCODER_API_KEY;
   },
 
   async loadYandexMaps(): Promise<boolean> {
-    if (!HAS_YANDEX_MAPS) {
+    if (!hasYandexMapsKey) {
       console.warn("[Yandex] API Key missing. Skipping JS API load. Fallback to OSM.");
       return false;
     }
@@ -58,7 +52,7 @@ export const yandexService = {
 
     yandexScriptPromise = new Promise<void>((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(YANDEX_MAPS_KEY)}&lang=ru_RU`;
+      script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(YANDEX_MAPS_API_KEY)}&lang=ru_RU`;
       script.async = true;
       script.onload = () => window.ymaps3?.ready.then(() => resolve()).catch(reject);
       script.onerror = () => reject(new Error("Network error loading Yandex Maps script"));
@@ -72,9 +66,9 @@ export const yandexService = {
     const target = cleanQuery(query);
     if (!target) return [];
 
-    if (HAS_YANDEX_GEOCODER) {
+    if (hasYandexGeocoderKey) {
       try {
-        const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(YANDEX_GEOCODER_KEY)}&geocode=${encodeURIComponent(target)}&format=json&results=5&lang=ru_RU`;
+        const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(YANDEX_GEOCODER_API_KEY)}&geocode=${encodeURIComponent(target)}&format=json&results=5&lang=ru_RU`;
         const res = await fetch(url);
         
         if (res.status === 403) {
@@ -101,7 +95,6 @@ export const yandexService = {
       }
     }
 
-    // OSM Fallback
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(target)}&format=json&limit=5&accept-language=ru`);
       if (res.ok) {
