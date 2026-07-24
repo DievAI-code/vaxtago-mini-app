@@ -62,8 +62,7 @@ export default function Maps() {
     setRouteInfo(null);
 
     try {
-      // Pass userLocation for better 2GIS ranking
-      const { results, error } = await geocodingService.searchAddressFull(queryText, userLocation || undefined);
+      const { results, error } = await geocodingService.searchAddressFull(queryText);
       await subscription.trackUsage("maps");
 
       if (results.length > 0) {
@@ -229,7 +228,7 @@ export default function Maps() {
             <motion.div key={selectedLocation.name} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="vaqta-glass p-5 border-[#00A86B]/30 space-y-3 shadow-2xl z-20">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1 min-w-0">
-                   <p className="text-[9px] font-black uppercase tracking-widest text-[#00A86B]">2ГИС ПРОВАЙДЕР • SCORE: {selectedLocation.score}</p>
+                   <p className="text-[9px] font-black uppercase tracking-widest text-[#00A86B]">2ГИС ПРОВАЙДЕР</p>
                    <h3 className="font-extrabold text-base leading-snug text-[#00D4A8] truncate">{selectedLocation.name}</h3>
                    <p className="text-xs text-slate-300 font-medium truncate">{selectedLocation.address}</p>
                 </div>

@@ -66,10 +66,6 @@
   background: linear-gradient(135deg, #00A86B 0%, #00A3E0 50%, #2563EB 100%);
 }
 
-.vaqta-gradient-border {
-  border-image: linear-gradient(135deg, #00A86B, #00A3E0, #2563EB) 1;
-}
-
 .vaqta-glow {
   box-shadow: 0 0 35px rgba(0, 168, 107, 0.25), 0 0 15px rgba(37, 99, 235, 0.15);
 }
@@ -80,14 +76,6 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
-.vaqta-friendship-badge {
-  background: linear-gradient(135deg, rgba(0, 168, 107, 0.15), rgba(37, 99, 235, 0.15));
-  border: 1px solid rgba(0, 212, 168, 0.3);
-}
-
-.text-tiny { font-size: 0.7rem; line-height: 1rem; font-weight: 700; letter-spacing: 0.05em; }
-.text-caption { font-size: 0.8rem; line-height: 1.1rem; font-weight: 500; }
 
 /* Smooth scrolling */
 .smooth-scroll {
