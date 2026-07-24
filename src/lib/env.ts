@@ -17,9 +17,5 @@ export function isConfigured(): boolean {
 }
 
 export function get2GISMapKey(): string {
-  const key = import.meta.env.VITE_2GIS_MAP_KEY || "";
-  if (!key) {
-    console.warn("2ГИС API ключ не настроен. Установите VITE_2GIS_MAP_KEY в .env файле. Используется OpenStreetMap.");
-  }
-  return key;
+  return import.meta.env.VITE_2GIS_MAP_KEY || "";
 }

@@ -3,13 +3,12 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Search, Navigation, MapPin, ShieldCheck, Star, 
-  ExternalLink, Crosshair, Briefcase, RefreshCw, AlertCircle 
+  Search, Navigation, MapPin, ExternalLink, Crosshair, Briefcase, RefreshCw, AlertCircle 
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
-import { Map as OsmMap, VacancyMarkerData } from "@/components/Map";
+import { Map, VacancyMarkerData } from "@/components/Map";
 import { geocodingService } from "@/services/geocodingService";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageProvider";
@@ -21,7 +20,7 @@ const SAMPLE_VACANCIES: VacancyMarkerData[] = [
     salary: "180 000 ₽",
     city: "Ташкент",
     address: "улица Амира Темура, 107, Ташкент",
-    coordinates: [41.3322, 69.2831], // [lat, lng]
+    coordinates: [41.3322, 69.2831],
     type: "premium",
     employerName: "ООО 'ПромСтройМонтаж'",
     schedule: "Вахта 30/30 • Проживание + Питание",
@@ -33,7 +32,7 @@ const SAMPLE_VACANCIES: VacancyMarkerData[] = [
     salary: "150 000 ₽",
     city: "Ташкент",
     address: "Проспект Ислама Каримова, 43, Ташкент",
-    coordinates: [41.3111, 69.2605], // [lat, lng]
+    coordinates: [41.3111, 69.2605],
     type: "verified",
     employerName: "Логистика Узбекистан",
     schedule: "Сменный график 15/15",
@@ -45,7 +44,7 @@ const SAMPLE_VACANCIES: VacancyMarkerData[] = [
     salary: "95 000 ₽",
     city: "Ташкент",
     address: "улица Бабура, 55, Ташкент",
-    coordinates: [41.2825, 69.2488], // [lat, lng]
+    coordinates: [41.2825, 69.2488],
     type: "employer",
     employerName: "ИП Диев Д.С.",
     schedule: "Полный день • Предоставляется жильё",
@@ -59,7 +58,7 @@ export default function MapPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [center, setCenter] = useState<[number, number]>([41.2995, 69.2401]); // [lat, lng]
+  const [center, setCenter] = useState<[number, number]>([41.2995, 69.2401]);
   const [zoom, setZoom] = useState(12);
   const [selectedVacancy, setSelectedVacancy] = useState<VacancyMarkerData | null>(SAMPLE_VACANCIES[0]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -73,24 +72,24 @@ export default function MapPage() {
       const res = await geocodingService.searchAddressFull(searchQuery);
 
       if (res.isTooShort) {
-        setSearchError("Введите полный адрес:\nгород + улица + дом");
-        toast.warning("Введите полный адрес (напр. Москва, Ленина 25)");
+        setSearchError("Пожалуйста, введите название места или адрес.");
+        toast.warning("Введите адрес для поиска");
         return;
       }
 
       if (res.results && res.results.length > 0) {
         const first = res.results[0];
-        setCenter([first.latitude, first.longitude]); // [lat, lng]
+        setCenter([first.latitude, first.longitude]);
         setZoom(14);
         setSearchError(null);
         toast.success(`Найдено: ${first.display_name.slice(0, 45)}...`);
       } else {
-        const msg = res.error || "Не удалось найти адрес. Уточните город или улицу.";
+        const msg = res.error || "По запросу ничего не найдено.";
         setSearchError(msg);
-        toast.error("Адрес не найден");
+        toast.error("По запросу ничего не найдено.");
       }
     } catch {
-      setSearchError("Не удалось найти адрес. Уточните город или улицу.");
+      setSearchError("Ошибка при поиске адреса.");
       toast.error("Ошибка при поиске адреса.");
     } finally {
       setIsSearching(false);
@@ -101,7 +100,7 @@ export default function MapPage() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude]; // [lat, lng]
+          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
           setUserLocation(coords);
           setCenter(coords);
           setZoom(14);
@@ -119,7 +118,7 @@ export default function MapPage() {
 
   const buildRoute = useCallback((coords: [number, number]) => {
     const [lat, lng] = coords;
-    const url = `https://www.google.com/maps/?rtext=~${lat},${lng}&rtt=auto`;
+    const url = `https://2gis.ru/routeSearch/to/${lng},${lat}`;
     window.open(url, "_blank");
   }, []);
 
@@ -132,10 +131,10 @@ export default function MapPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
-              <span>🗺️</span> Карта вакансий
+              <span>🗺️</span> Карта 2ГИС
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">
-              OpenStreetMap • Поиск адресов и вакансий
+              2ГИС Maps • Поиск адресов и вакансий
             </p>
           </div>
           <button
@@ -158,7 +157,7 @@ export default function MapPage() {
                 if (searchError) setSearchError(null);
               }}
               onKeyDown={(e) => e.key === "Enter" && handleAddressSearch()}
-              placeholder="Введите адрес (напр. Москва, Ленинский проспект 25)..."
+              placeholder="Введите адрес (напр. Тюмень вокзал)..."
               className="flex-1 bg-transparent py-3 text-xs outline-none placeholder-[#5C7A6D] font-bold text-white"
             />
             <button
@@ -191,20 +190,8 @@ export default function MapPage() {
           </motion.div>
         )}
 
-        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 text-[10px] font-black uppercase tracking-wider">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0C1F1A] border border-[#1A3D2E] text-slate-300">
-            <span>🔴</span> <span>Работодатель</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0C1F1A] border border-[#00A86B]/30 text-[#00A86B]">
-            <span>🟢</span> <span>Проверенный</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0C1F1A] border border-[#D4AF37]/30 text-[#D4AF37]">
-            <span>⭐</span> <span>Премиум</span>
-          </div>
-        </div>
-
         <div className="relative flex-1 min-h-[360px] md:min-h-[450px]">
-          <OsmMap
+          <Map
             center={center}
             zoom={zoom}
             markers={SAMPLE_VACANCIES}
@@ -229,18 +216,9 @@ export default function MapPage() {
             >
               <div className="flex justify-between items-start gap-3">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">
-                      {selectedVacancy.type === "premium"
-                        ? "⭐"
-                        : selectedVacancy.type === "verified"
-                        ? "🟢"
-                        : "🔴"}
-                    </span>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">
-                      {selectedVacancy.employerName}
-                    </p>
-                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">
+                    {selectedVacancy.employerName}
+                  </p>
                   <h3 className="font-extrabold text-base leading-tight text-white">
                     {selectedVacancy.title}
                   </h3>
@@ -277,7 +255,7 @@ export default function MapPage() {
                   className="h-12 vaqta-gradient text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg vaqta-glow"
                 >
                   <Navigation size={14} />
-                  <span>Построить маршрут</span>
+                  <span>Маршрут</span>
                 </button>
               </div>
             </motion.div>

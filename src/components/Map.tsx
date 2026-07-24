@@ -1,8 +1,6 @@
 "use client";
 
-import { is2GISAvailable } from "@/services/mapProvider";
 import { Map2GIS } from "./Map2GIS";
-import { MapOSM } from "./MapOSM";
 
 export interface VacancyMarkerData {
   id: string;
@@ -35,7 +33,7 @@ interface MapProps {
 }
 
 export function Map({
-  center = [41.2995, 69.2401], // Tashkent [lat, lng]
+  center = [41.2995, 69.2401], // Tashkent
   zoom = 12,
   markers = [],
   selectedMarkerId = null,
@@ -44,22 +42,18 @@ export function Map({
   className = "w-full h-full min-h-[350px] rounded-[2rem]",
   autoOpenPopup = false,
 }: MapProps) {
-  const mapProps = {
-    center,
-    zoom,
-    markers,
-    selectedMarkerId,
-    onSelectMarker,
-    userLocation,
-    className,
-    autoOpenPopup,
-  };
-
-  if (is2GISAvailable()) {
-    return <Map2GIS {...mapProps} />;
-  }
-
-  return <MapOSM {...mapProps} />;
+  return (
+    <Map2GIS
+      center={center}
+      zoom={zoom}
+      markers={markers}
+      selectedMarkerId={selectedMarkerId}
+      onSelectMarker={onSelectMarker}
+      userLocation={userLocation}
+      className={className}
+      autoOpenPopup={autoOpenPopup}
+    />
+  );
 }
 
 export default Map;

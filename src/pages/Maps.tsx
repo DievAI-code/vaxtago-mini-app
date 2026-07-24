@@ -1,17 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  ArrowLeft, Search, Crosshair, MapPin, Navigation, 
-  Car, Footprints, Share2, Star, Sparkles, Loader2,
-  AlertCircle, ShieldCheck, RefreshCw, Check
+  Search, Crosshair, Navigation, Share2, Star, Loader2,
+  AlertCircle, RefreshCw, Check
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
-import { Map as OsmMap } from "@/components/Map";
+import { Map } from "@/components/Map";
 import { hybridMapSearch, MapSearchResult, RouteDetail } from "@/services/maps/search";
 import { subscription } from "@/services/subscription";
 import { toast } from "sonner";
@@ -19,7 +18,6 @@ import { useLanguage } from "@/context/LanguageProvider";
 
 export default function Maps() {
   const { t } = useLanguage();
-  const nav = useNavigate();
   const [searchParams] = useSearchParams();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -31,11 +29,10 @@ export default function Maps() {
 
   const [searchResults, setSearchResults] = useState<MapSearchResult[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<MapSearchResult | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([41.2995, 69.2401]); // [lat, lng]
+  const [mapCenter, setMapCenter] = useState<[number, number]>([41.2995, 69.2401]);
   const [zoom, setZoom] = useState(13);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
-  const [routeMode, setRouteMode] = useState<"driving" | "foot">("driving");
   const [routeInfo, setRouteInfo] = useState<RouteDetail | null>(null);
   const [buildingRoute, setBuildingRoute] = useState(false);
 
@@ -55,7 +52,7 @@ export default function Maps() {
 
     const access = await subscription.checkUserAccess("maps");
     if (!access.allowed) {
-      toast.error(t("premium.feature_locked") || "Лимит поисков на карте исчерпан. Оформите Premium.");
+      toast.error("Лимит поисков на карте исчерпан.");
       return;
     }
 
@@ -71,16 +68,16 @@ export default function Maps() {
         setSearchResults(results);
         const top = results[0];
         setSelectedLocation(top);
-        setMapCenter([top.latitude, top.longitude]); // [lat, lng]
+        setMapCenter([top.latitude, top.longitude]);
         setZoom(14);
         toast.success(`Найдено: ${top.title}`);
       } else {
         setSearchResults([]);
         setSelectedLocation(null);
-        setSearchError("Объект не найден. Попробуйте написать город и объект подробнее.");
+        setSearchError("По запросу ничего не найдено.");
       }
     } catch {
-      setSearchError("Объект не найден. Попробуйте написать город и объект подробнее.");
+      setSearchError("По запросу ничего не найдено.");
     } finally {
       setIsSearching(false);
     }
@@ -90,7 +87,7 @@ export default function Maps() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude]; // [lat, lng]
+          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
           setUserLocation(coords);
           setMapCenter(coords);
           setZoom(15);
@@ -114,7 +111,7 @@ export default function Maps() {
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
-            const uCoords: [number, number] = [pos.coords.latitude, pos.coords.longitude]; // [lat, lng]
+            const uCoords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
             setUserLocation(uCoords);
             await calculateRoute(uCoords, [selectedLocation.latitude, selectedLocation.longitude]);
           },
@@ -133,14 +130,12 @@ export default function Maps() {
       const detail = await hybridMapSearch.buildRoute({
         from,
         to,
-        mode: routeMode,
+        mode: "driving",
       });
 
       if (detail) {
         setRouteInfo(detail);
         toast.success("Маршрут успешно построен!");
-      } else {
-        toast.info("Маршрут построен по координатам");
       }
     } catch {
       toast.error("Ошибка при построении маршрута");
@@ -151,7 +146,7 @@ export default function Maps() {
 
   const handleShare = () => {
     if (!selectedLocation) return;
-    const shareText = `📍 ${selectedLocation.title}\n🏠 ${selectedLocation.address}\nhttps://www.google.com/maps/?q=${selectedLocation.latitude},${selectedLocation.longitude}`;
+    const shareText = `📍 ${selectedLocation.title}\n🏠 ${selectedLocation.address}\nhttps://2gis.ru/geo/${selectedLocation.longitude},${selectedLocation.latitude}`;
     navigator.clipboard.writeText(shareText);
     setCopied(true);
     toast.success("Ссылка и адрес скопированы");
@@ -250,7 +245,7 @@ export default function Maps() {
         )}
 
         <div className="relative flex-1 min-h-[380px] rounded-[2rem] overflow-hidden border border-[#1A3D2E] shadow-2xl z-10">
-          <OsmMap
+          <Map
             center={mapCenter}
             zoom={zoom}
             markers={
@@ -284,7 +279,7 @@ export default function Maps() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs">📍</span>
                     <span className="text-[9px] font-black uppercase tracking-widest text-[#00A86B]">
-                      OpenStreetMap
+                      2ГИС
                     </span>
                   </div>
                   <h3 className="font-extrabold text-base leading-snug text-white truncate">
@@ -315,39 +310,12 @@ export default function Maps() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-1 border-t border-white/5">
-                <div className="flex items-center gap-2 bg-[#06140F] p-1 rounded-xl border border-[#1A3D2E]">
-                  <button
-                    onClick={() => setRouteMode("driving")}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      routeMode === "driving"
-                        ? "bg-[#00A86B] text-white"
-                        : "text-[#5C7A6D] hover:text-white"
-                    }`}
-                  >
-                    <Car size={14} /> 🚗 Авто
-                  </button>
-                  <button
-                    onClick={() => setRouteMode("foot")}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      routeMode === "foot"
-                        ? "bg-[#00A86B] text-white"
-                        : "text-[#5C7A6D] hover:text-white"
-                    }`}
-                  >
-                    <Footprints size={14} /> 🚶 Пешком
-                  </button>
+              {routeInfo && (
+                <div className="p-2.5 bg-[#00A86B]/10 border border-[#00A86B]/30 rounded-xl flex items-center justify-between text-xs text-[#00A86B] font-bold">
+                  <span>{(routeInfo.distanceMeters / 1000).toFixed(1)} км</span>
+                  <span>~{Math.round(routeInfo.durationSeconds / 60)} мин</span>
                 </div>
-
-                {routeInfo && (
-                  <div className="text-right text-xs font-bold text-[#00A86B]">
-                    <p>{(routeInfo.distanceMeters / 1000).toFixed(1)} км</p>
-                    <p className="text-[10px] text-[#5C7A6D]">
-                      ~{Math.round(routeInfo.durationSeconds / 60)} мин
-                    </p>
-                  </div>
-                )}
-              </div>
+              )}
 
               <button
                 onClick={handleBuildRoute}

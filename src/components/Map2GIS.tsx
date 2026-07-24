@@ -1,35 +1,45 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { mapProvider } from "@/services/mapProvider";
-
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerIconRetina from "leaflet/dist/images/marker-icon-2x.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-const defaultIcon = L.icon({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIconRetina,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-const userIcon = L.divIcon({
-  className: "",
-  html: `<div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow-xl flex items-center justify-center animate-pulse"><div class="w-2.5 h-2.5 rounded-full bg-white"></div></div>`,
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-});
+import { useEffect, useRef, useState } from "react";
+import { get2GISMapKey } from "@/lib/env";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 declare global {
   interface Window {
     DG: any;
   }
+}
+
+let sdkLoadingPromise: Promise<void> | null = null;
+
+function load2GISSDK(apiKey: string): Promise<void> {
+  if (window.DG) {
+    return Promise.resolve();
+  }
+
+  if (sdkLoadingPromise) {
+    return sdkLoadingPromise;
+  }
+
+  sdkLoadingPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `https://maps.api.2gis.ru/2.0/load.js?pkg=full&mode=release&key=${apiKey}`;
+    script.async = true;
+    script.onload = () => {
+      if (window.DG) {
+        resolve();
+      } else {
+        reject(new Error("2GIS SDK failed to load"));
+      }
+    };
+    script.onerror = () => {
+      sdkLoadingPromise = null;
+      reject(new Error("Failed to load 2GIS Maps SDK script"));
+    };
+    document.body.appendChild(script);
+  });
+
+  return sdkLoadingPromise;
 }
 
 interface Map2GISProps {
@@ -41,34 +51,6 @@ interface Map2GISProps {
   userLocation?: [number, number] | null; // [lat, lng]
   className?: string;
   autoOpenPopup?: boolean;
-}
-
-function createVacancyIcon(marker: any, isSelected: boolean): L.DivIcon {
-  let badgeBg = "bg-red-500 text-white border-red-400";
-  let icon = "🔴";
-  if (marker.type === "verified") {
-    badgeBg = "bg-[#00A86B] text-white border-[#00D4A8]";
-    icon = "🟢";
-  } else if (marker.type === "premium") {
-    badgeBg = "bg-[#D4AF37] text-black border-yellow-300 font-bold";
-    icon = "⭐";
-  }
-
-  const scale = isSelected ? "scale-110" : "scale-100";
-  const ring = isSelected ? "ring-4 ring-white" : "";
-  const label = marker.salary || marker.title || "";
-
-  return L.divIcon({
-    className: "",
-    html: `
-      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-2xl border ${badgeBg} ${scale} ${ring} transition-transform cursor-pointer whitespace-nowrap">
-        <span class="text-xs">${icon}</span>
-        <span class="text-[11px] font-black tracking-tight">${label}</span>
-      </div>
-    `,
-    iconSize: [80, 32],
-    iconAnchor: [40, 16],
-  });
 }
 
 export function Map2GIS({
@@ -86,24 +68,53 @@ export function Map2GIS({
   const markerRefs = useRef<Record<string, any>>({});
   const userMarkerRef = useRef<any>(null);
 
-  const apiKey = mapProvider.get2GISKey();
+  const [sdkState, setSdkState] = useState<"loading" | "ready" | "error" | "no_key">("loading");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const apiKey = get2GISMapKey();
 
   useEffect(() => {
     if (!apiKey) {
-      console.error("2ГИС API ключ не настроен");
+      setSdkState("no_key");
       return;
     }
 
-    if (window.DG) {
-      initMap();
-      return;
-    }
+    load2GISSDK(apiKey)
+      .then(() => {
+        setSdkState("ready");
+      })
+      .catch((err) => {
+        console.error("[2GIS SDK]", err);
+        setErrorMessage("Не удалось загрузить карты");
+        setSdkState("error");
+      });
+  }, [apiKey]);
 
-    const script = document.createElement("script");
-    script.src = `https://maps.api.2gis.ru/2.0/load.js?pkg=full&mode=release&key=${apiKey}`;
-    script.async = true;
-    script.onload = initMap;
-    document.body.appendChild(script);
+  useEffect(() => {
+    if (sdkState !== "ready" || !containerRef.current || !window.DG) return;
+
+    window.DG.then(() => {
+      if (!containerRef.current || mapRef.current) return;
+
+      try {
+        const map = window.DG.map(containerRef.current, {
+          center: [center[0], center[1]],
+          zoom: zoom,
+          zoomControl: true,
+          fullscreenControl: false,
+        });
+
+        mapRef.current = map;
+        updateMarkers();
+        if (userLocation) {
+          updateUserMarker();
+        }
+      } catch (e: any) {
+        console.error("Error initializing 2GIS Map:", e);
+        setErrorMessage("Ошибка инициализации карты 2ГИС");
+        setSdkState("error");
+      }
+    });
 
     return () => {
       if (mapRef.current) {
@@ -111,51 +122,28 @@ export function Map2GIS({
         mapRef.current = null;
       }
     };
-  }, [apiKey]);
-
-  const initMap = () => {
-    if (!containerRef.current || mapRef.current || !window.DG) return;
-
-    mapRef.current = window.DG.map(containerRef.current, {
-      center,
-      zoom,
-      scrollWheelZoom: false,
-      backgroundColor: "#06140F",
-    });
-
-    updateMarkers();
-    if (userLocation) {
-      updateUserMarker();
-    }
-    if (autoOpenPopup && markers.length > 0) {
-      const firstMarker = markers[0];
-      const marker = markerRefs.current[firstMarker.id];
-      if (marker) {
-        marker.openPopup();
-      }
-    }
-  };
+  }, [sdkState]);
 
   useEffect(() => {
     if (mapRef.current) {
-      mapRef.current.setView(center, zoom);
+      mapRef.current.setView([center[0], center[1]], zoom);
     }
   }, [center, zoom]);
 
   const updateMarkers = () => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !window.DG) return;
 
-    // Clear old markers
     Object.values(markerRefs.current).forEach((m) => m.remove());
     markerRefs.current = {};
 
     markers.forEach((m) => {
       const isSelected = selectedMarkerId === m.id;
-      const isVacancy = m.type !== undefined && m.salary !== undefined;
-      const icon = isVacancy ? createVacancyIcon(m, isSelected) : defaultIcon;
+      const title = m.title || m.employerName || m.address || "Объект";
+      const salary = m.salary ? ` (${m.salary})` : "";
 
-      const marker = window.DG.marker([m.coordinates[0], m.coordinates[1]], { icon }).addTo(mapRef.current);
-      marker.bindPopup(`<div class="text-black font-semibold text-xs p-1">${m.title || m.employerName || "Marker"}</div>`);
+      const marker = window.DG.marker([m.coordinates[0], m.coordinates[1]]).addTo(mapRef.current);
+
+      marker.bindPopup(`<div style="color:#000; font-weight:600; font-size:12px; padding:4px;">${title}${salary}</div>`);
 
       marker.on("click", () => {
         if (onSelectMarker) {
@@ -164,25 +152,27 @@ export function Map2GIS({
       });
 
       markerRefs.current[m.id] = marker;
+
+      if (isSelected || autoOpenPopup) {
+        marker.openPopup();
+      }
     });
   };
 
   useEffect(() => {
     if (mapRef.current) {
       updateMarkers();
-      if (autoOpenPopup && markers.length > 0) {
-        const marker = markerRefs.current[markers[0].id];
-        if (marker) marker.openPopup();
-      }
     }
   }, [markers, selectedMarkerId, autoOpenPopup]);
 
   const updateUserMarker = () => {
-    if (!mapRef.current || !userLocation) return;
+    if (!mapRef.current || !userLocation || !window.DG) return;
     if (userMarkerRef.current) {
       userMarkerRef.current.remove();
     }
-    userMarkerRef.current = window.DG.marker([userLocation[0], userLocation[1]], { icon: userIcon }).addTo(mapRef.current);
+    const marker = window.DG.marker([userLocation[0], userLocation[1]]).addTo(mapRef.current);
+    marker.bindPopup(`<div style="color:#000; font-weight:700; font-size:12px; padding:4px;">Вы здесь</div>`);
+    userMarkerRef.current = marker;
   };
 
   useEffect(() => {
@@ -191,8 +181,32 @@ export function Map2GIS({
     }
   }, [userLocation]);
 
+  if (sdkState === "no_key") {
+    return (
+      <div className={`flex flex-col items-center justify-center p-6 bg-[#06140F] border border-[#1A3D2E] text-[#5C7A6D] text-xs font-bold text-center gap-2 ${className}`}>
+        <AlertCircle className="text-amber-400" size={24} />
+        <span>Не настроен ключ 2ГИС</span>
+      </div>
+    );
+  }
+
+  if (sdkState === "error") {
+    return (
+      <div className={`flex flex-col items-center justify-center p-6 bg-[#06140F] border border-red-500/20 text-red-400 text-xs font-bold text-center gap-2 ${className}`}>
+        <AlertCircle className="text-red-400" size={24} />
+        <span>{errorMessage || "Не удалось загрузить карты"}</span>
+      </div>
+    );
+  }
+
   return (
     <div className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}>
+      {sdkState === "loading" && (
+        <div className="absolute inset-0 bg-[#06140F] z-10 flex flex-col items-center justify-center gap-2 text-[#00A86B]">
+          <Loader2 className="animate-spin" size={28} />
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">Загрузка карты 2ГИС...</span>
+        </div>
+      )}
       <div ref={containerRef} className="w-full h-full" style={{ background: "#06140F" }} />
     </div>
   );

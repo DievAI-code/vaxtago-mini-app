@@ -8,7 +8,7 @@ export interface MapSearchResult {
   latitude: number;
   longitude: number;
   type?: string;
-  source: "openstreetmap" | "2gis";
+  source: "2gis";
 }
 
 export interface RouteDetail {
@@ -33,7 +33,7 @@ export const hybridMapSearch = {
       address: r.display_name,
       latitude: r.latitude,
       longitude: r.longitude,
-      source: import.meta.env.VITE_2GIS_MAP_KEY ? "2gis" : "openstreetmap",
+      source: "2gis",
     }));
   },
 
