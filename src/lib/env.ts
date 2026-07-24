@@ -23,12 +23,12 @@ export function getSupabaseAnonKey(): string {
   return key;
 }
 
-export function getYandexKey(): string {
-  return (
-    import.meta.env.VITE_YANDEX_MAPS_API_KEY ||
-    import.meta.env.VITE_YANDEX_MAPS_KEY ||
-    ""
-  );
+export function getYandexMapsKey(): string {
+  return import.meta.env.VITE_YANDEX_MAPS_API_KEY || "";
+}
+
+export function getYandexGeocoderKey(): string {
+  return import.meta.env.VITE_YANDEX_GEOCODER_API_KEY || getYandexMapsKey();
 }
 
 /**
@@ -45,7 +45,8 @@ export function logEnvDiagnostics() {
   console.log('[VAQTA ENV] diagnostics:', {
     supabaseUrl: getSupabaseUrl() ? '✅ OK' : '❌ MISSING',
     supabaseKey: getSupabaseAnonKey() ? '✅ OK' : '❌ MISSING',
-    yandexKey: getYandexKey() ? '✅ OK' : '❌ MISSING',
+    yandexMapsKey: getYandexMapsKey() ? '✅ OK' : '❌ MISSING',
+    yandexGeocoderKey: getYandexGeocoderKey() ? '✅ OK' : '❌ MISSING',
     isConfigured: isConfigured()
   });
 }

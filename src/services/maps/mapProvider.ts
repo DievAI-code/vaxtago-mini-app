@@ -1,6 +1,6 @@
 "use client";
 
-import { getYandexKey } from "@/lib/env";
+import { yandexService } from "./yandex";
 
 export type MapProviderType = "yandex" | "openstreetmap";
 
@@ -11,12 +11,7 @@ export interface MapProviderState {
 
 export const mapProvider = {
   getYandexApiKey(): string {
-    return (
-      import.meta.env.VITE_YANDEX_MAPS_API_KEY ||
-      import.meta.env.VITE_YANDEX_MAPS_KEY ||
-      getYandexKey() ||
-      ""
-    );
+    return yandexService.getMapsApiKey();
   },
 
   getProviderState(): MapProviderState {
