@@ -5,34 +5,75 @@ export interface GeocodingResult {
   longitude: number;
   display_name: string;
   name?: string;
-  city?: string;
+  address?: string;
+}
+
+const NOMINATIM_BASE = "https://nominatim.openstreetmap.org/search";
+
+function normalizeQuery(query: string): string {
+  return query.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function swapWords(query: string): string {
+  const words = query.split(" ");
+  if (words.length === 2) {
+    return `${words[1]} ${words[0]}`;
+  }
+  return query;
+}
+
+async function fetchNominatim(query: string): Promise<GeocodingResult[]> {
+  const params = new URLSearchParams({
+    format: "json",
+    q: query,
+    "accept-language": "ru",
+    limit: "5",
+    addressdetails: "1",
+  });
+
+  const url = `${NOMINATIM_BASE}?${params.toString()}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: { "User-Agent": "VAQTA-AI-Geocoder/1.0" },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map((item: any) => ({
+          latitude: parseFloat(item.lat),
+          longitude: parseFloat(item.lon),
+          display_name: item.display_name,
+          name: item.name || query,
+          address: item.display_name,
+        }));
+      }
+    }
+  } catch (err: any) {
+    console.error("[GeocodingService] Nominatim failed:", err?.message || err);
+  }
+
+  return [];
 }
 
 export const geocodingService = {
   async searchAddress(query: string): Promise<GeocodingResult[]> {
-    try {
-      const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&accept-language=ru`;
-      const response = await fetch(osmUrl, {
-        headers: { "User-Agent": "VAQTA-AI-Geocoder/1.0" }
-      });
+    const normalized = normalizeQuery(query);
+    if (!normalized) return [];
 
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data) && data.length > 0) {
-          return data.map((item: any) => ({
-            latitude: parseFloat(item.lat),
-            longitude: parseFloat(item.lon),
-            display_name: item.display_name,
-            name: item.name || query,
-            city: item.address?.city || item.address?.town
-          }));
-        }
+    // 1. Original query
+    let results = await fetchNominatim(normalized);
+
+    // 2. Fallback: swap words if 2 words (e.g., "вокзал тюмень" -> "тюмень вокзал")
+    if (results.length === 0) {
+      const swapped = swapWords(normalized);
+      if (swapped !== normalized) {
+        results = await fetchNominatim(swapped);
       }
-    } catch (err: any) {
-      console.error("[GeocodingService] Nominatim failed:", err?.message || err);
     }
 
-    return [];
+    return results;
   },
 
   async searchAddressFull(query: string): Promise<{ isTooShort: boolean; results: GeocodingResult[]; error: string | null }> {
@@ -45,7 +86,7 @@ export const geocodingService = {
     return {
       isTooShort: false,
       results,
-      error: results.length === 0 ? "К сожалению, объект не найден. Попробуйте изменить запрос." : null
+      error: results.length === 0 ? "Объект не найден. Попробуйте написать город и объект подробнее." : null,
     };
   },
 

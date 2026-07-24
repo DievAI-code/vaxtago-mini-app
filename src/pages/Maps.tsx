@@ -77,10 +77,10 @@ export default function Maps() {
       } else {
         setSearchResults([]);
         setSelectedLocation(null);
-        setSearchError("К сожалению, объект не найден. Попробуйте изменить запрос.");
+        setSearchError("Объект не найден. Попробуйте написать город и объект подробнее.");
       }
     } catch {
-      setSearchError("К сожалению, объект не найден. Попробуйте изменить запрос.");
+      setSearchError("Объект не найден. Попробуйте написать город и объект подробнее.");
     } finally {
       setIsSearching(false);
     }
@@ -265,6 +265,7 @@ export default function Maps() {
                 : []
             }
             userLocation={userLocation}
+            autoOpenPopup={true}
             className="w-full h-full rounded-[2rem]"
           />
         </div>

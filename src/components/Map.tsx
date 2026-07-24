@@ -2,7 +2,7 @@
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -61,6 +61,7 @@ interface MapProps {
   onSelectMarker?: (marker: VacancyMarkerData | MapMarker | any) => void;
   userLocation?: [number, number] | null; // [lat, lng]
   className?: string;
+  autoOpenPopup?: boolean;
 }
 
 function createVacancyIcon(marker: VacancyMarkerData, isSelected: boolean): L.DivIcon {
@@ -99,7 +100,20 @@ export function Map({
   onSelectMarker,
   userLocation,
   className = "w-full h-full min-h-[350px] rounded-[2rem]",
+  autoOpenPopup = false,
 }: MapProps) {
+  const markerRefs = useRef<Record<string, L.Marker | null>>({});
+
+  useEffect(() => {
+    if (autoOpenPopup && markers.length > 0) {
+      const firstMarkerId = markers[0].id;
+      const marker = markerRefs.current[firstMarkerId];
+      if (marker) {
+        marker.openPopup();
+      }
+    }
+  }, [markers, autoOpenPopup]);
+
   return (
     <div className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}>
       <MapContainer
@@ -126,6 +140,9 @@ export function Map({
           return (
             <Marker
               key={m.id}
+              ref={(ref) => {
+                markerRefs.current[m.id] = ref;
+              }}
               position={[m.coordinates[0], m.coordinates[1]]}
               icon={icon}
               eventHandlers={{
