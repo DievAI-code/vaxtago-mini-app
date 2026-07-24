@@ -20,8 +20,8 @@ export interface ChatMessage {
 function sanitizeAiResponse(text: string): string {
   if (!text) return "";
   return text
-    .replace(/я не могу показать карт[ыу]/gi, "Открываю встроенную карту VAQTA AI")
-    .replace(/воспользоваться google maps/gi, "использовать навигатор VAQTA AI")
+    .replace(/я не могу показать карт[ыу]/gi, "Открываю интерактивную карту VAQTA AI...")
+    .replace(/воспользоваться google maps/gi, "использовать карту VAQTA AI")
     .replace(/воспользуйтесь яндекс\.карти|яндекс\.картами|google maps/gi, "картой VAQTA AI");
 }
 
@@ -54,9 +54,14 @@ export function useAiChat() {
     chatHistoryRef.current = newHistory;
 
     try {
-      // 1. Поиск мест и локаций
-      if (detectedAction.action === "MAP_SEARCH" || detectedAction.action === "MAP_ROUTE" || detectedAction.action === "MAP_NEARBY") {
-        const replyText = detectedAction.message || "Ищу местоположение на встроенной карте VAQTA AI...";
+      // 1. Поиск мест и локаций -> Автоматический переход на /maps
+      if (
+        detectedAction.action === "MAP_SEARCH" ||
+        detectedAction.action === "MAP_ROUTE" ||
+        detectedAction.action === "MAP_NEARBY"
+      ) {
+        const queryText = detectedAction.query || detectedAction.destination || message;
+        const replyText = `Нашел объект: "${queryText}". Открываю карту VAQTA AI...`;
 
         const assistantMsg: ChatMessage = {
           role: "assistant",
@@ -70,6 +75,12 @@ export function useAiChat() {
         chatHistoryRef.current = updatedHistory;
 
         setLoading(false);
+
+        // Переход на страницу карт
+        setTimeout(() => {
+          navigate(`/maps?search=${encodeURIComponent(queryText)}`);
+        }, 800);
+
         return replyText;
       }
 
@@ -88,7 +99,7 @@ export function useAiChat() {
         setMessages(updatedHistory);
         chatHistoryRef.current = updatedHistory;
         
-        setTimeout(() => navigate(`/jobs-test?query=${encodeURIComponent(detectedAction.profession || "")}`), 1200);
+        setTimeout(() => navigate(`/jobs-test?query=${encodeURIComponent(detectedAction.profession || "")}`), 1000);
         
         setLoading(false);
         return waitingReply;
