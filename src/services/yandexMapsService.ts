@@ -1,6 +1,6 @@
 "use client";
 
-import { YANDEX_MAPS_API_KEY, YANDEX_GEOCODER_API_KEY } from "@/config/maps";
+import { getYandexMapsKey, getYandexGeocoderKey } from "@/lib/env";
 
 export interface GeocodingResult {
   latitude: number;
@@ -20,12 +20,12 @@ class YandexMapsService {
   private apiKey: string;
 
   constructor() {
-    this.apiKey = YANDEX_GEOCODER_API_KEY;
+    this.apiKey = getYandexGeocoderKey();
   }
 
   async searchAddress(query: string): Promise<GeocodingResult[]> {
     if (!this.apiKey) {
-      console.warn("[YandexMaps] API key is missing");
+      console.warn("[YandexMaps] API key not configured");
       return [];
     }
 
@@ -34,7 +34,7 @@ class YandexMapsService {
       const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error(`Geocoding HTTP error: ${response.status}`);
+        throw new Error(`Geocoding failed: ${response.status}`);
       }
 
       const data = await response.json();
@@ -48,11 +48,11 @@ class YandexMapsService {
           latitude: lat,
           longitude: lng,
           address: geoObject.name,
-          display_name: geoObject.description ? `${geoObject.description}, ${geoObject.name}` : geoObject.name
+          display_name: geoObject.description || geoObject.name
         };
       });
     } catch (error) {
-      console.error("[YandexMaps] Geocoding error:", error);
+      console.error("Geocoding error:", error);
       return [];
     }
   }
@@ -77,9 +77,9 @@ class YandexMapsService {
       const data = await response.json();
       const feature = data.response?.GeoObjectCollection?.featureMember?.[0];
 
-      return feature?.GeoObject?.metaDataProperty?.GeocoderMetaData?.text || feature?.GeoObject?.name || "";
+      return feature?.GeoObject?.name || "";
     } catch (error) {
-      console.error("[YandexMaps] Reverse geocoding error:", error);
+      console.error("Reverse geocoding error:", error);
       return "";
     }
   }

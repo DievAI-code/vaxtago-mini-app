@@ -16,13 +16,14 @@ export function isConfigured(): boolean {
   return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
 }
 
-export const getYandexMapsKey = () => {
-  const key = import.meta.env.VITE_YANDEX_MAPS_API_KEY || "";
-  console.log("[YANDEX MAP KEY EXISTS]", Boolean(key));
+export function getYandexMapsKey(): string {
+  const key = import.meta.env.VITE_YANDEX_MAPS_KEY || "";
+  console.log("[YANDEX MAP KEY]", Boolean(key));
   return key;
-};
+}
 
-export const getYandexGeocoderKey = () => {
-  const key = import.meta.env.VITE_YANDEX_GEOCODER_API_KEY || "";
+export function getYandexGeocoderKey(): string {
+  const key = import.meta.env.VITE_YANDEX_GEOCODER || "";
+  console.log("[YANDEX GEOCODER KEY]", Boolean(key));
   return key;
-};
+}
