@@ -1,12 +1,14 @@
 "use client";
 
+import { geocodingService, GeocodingResult } from "@/services/geocodingService";
+
 export interface MapSearchResult {
   title: string;
   address: string;
   latitude: number;
   longitude: number;
   type?: string;
-  source: "openstreetmap";
+  source: "openstreetmap" | "2gis";
 }
 
 export interface RouteDetail {
@@ -24,20 +26,15 @@ export interface RouteOptions {
 
 export const hybridMapSearch = {
   async searchLocation(query: string): Promise<MapSearchResult[]> {
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&accept-language=ru`);
-      if (res.ok) {
-        const data = await res.json();
-        return data.map((item: any) => ({
-          title: item.display_name.split(",")[0],
-          address: item.display_name,
-          latitude: parseFloat(item.lat),
-          longitude: parseFloat(item.lon),
-          source: "openstreetmap",
-        }));
-      }
-    } catch {}
-    return [];
+    const results = await geocodingService.searchAddress(query);
+    
+    return results.map((r: GeocodingResult) => ({
+      title: r.name || r.display_name.split(",")[0],
+      address: r.display_name,
+      latitude: r.latitude,
+      longitude: r.longitude,
+      source: import.meta.env.VITE_2GIS_MAP_KEY ? "2gis" : "openstreetmap",
+    }));
   },
 
   async searchOrganization(query: string, city?: string): Promise<MapSearchResult[]> {

@@ -22,6 +22,43 @@ function swapWords(query: string): string {
   return query;
 }
 
+async function fetch2GIS(query: string): Promise<GeocodingResult[]> {
+  const key = import.meta.env.VITE_2GIS_MAP_KEY;
+  if (!key) return [];
+
+  try {
+    const url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&key=${key}&fields=items.geometry,items.full_name,items.address_name,items.name&limit=5`;
+    const response = await fetch(url);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.result?.items) {
+        const results: GeocodingResult[] = [];
+        for (const item of data.result.items) {
+          const selection = item.geometry?.selection;
+          if (selection) {
+            const match = selection.match(/POINT\(([\d.]+) ([\d.]+)\)/);
+            if (match) {
+              const lon = parseFloat(match[1]);
+              const lat = parseFloat(match[2]);
+              results.push({
+                latitude: lat,
+                longitude: lon,
+                display_name: item.full_name || item.name || item.address_name || query,
+                name: item.name || query,
+                address: item.full_name || item.address_name || "",
+              });
+            }
+          }
+        }
+        return results;
+      }
+    }
+  } catch (err: any) {
+    console.error("[GeocodingService] 2GIS failed:", err?.message || err);
+  }
+  return [];
+}
+
 async function fetchNominatim(query: string): Promise<GeocodingResult[]> {
   const params = new URLSearchParams({
     format: "json",
@@ -62,10 +99,15 @@ export const geocodingService = {
     const normalized = normalizeQuery(query);
     if (!normalized) return [];
 
-    // 1. Original query
-    let results = await fetchNominatim(normalized);
+    // 1. Try 2GIS Catalog API
+    let results = await fetch2GIS(normalized);
 
-    // 2. Fallback: swap words if 2 words (e.g., "вокзал тюмень" -> "тюмень вокзал")
+    // 2. Fallback to Nominatim if 2GIS fails or returns nothing
+    if (results.length === 0) {
+      results = await fetchNominatim(normalized);
+    }
+
+    // 3. Fallback with swapped words for Russian language (e.g., "вокзал тюмень" -> "тюмень вокзал")
     if (results.length === 0) {
       const swapped = swapWords(normalized);
       if (swapped !== normalized) {
@@ -91,6 +133,22 @@ export const geocodingService = {
   },
 
   async reverseGeocode(lat: number, lng: number): Promise<string> {
+    // Try 2GIS reverse geocoding
+    try {
+      const key = import.meta.env.VITE_2GIS_MAP_KEY;
+      if (key) {
+        const url = `https://catalog.api.2gis.com/3.0/items/geocode?lon=${lng}&lat=${lat}&key=${key}`;
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.result?.items?.[0]) {
+            return data.result.items[0].full_name || data.result.items[0].name || "";
+          }
+        }
+      }
+    } catch {}
+
+    // Fallback to Nominatim reverse geocoding
     try {
       const osmUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ru`;
       const response = await fetch(osmUrl, {
