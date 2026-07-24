@@ -1,8 +1,7 @@
 "use client";
 
-import { TravelIntent, TravelMode } from "./aiCommands";
-
-export type { TravelIntent, TravelMode };
+export type TravelIntent = "route" | "search" | "unknown";
+export type TravelMode = "car" | "walking" | "transport";
 
 export interface AICommandResult {
   intent: TravelIntent;
@@ -85,12 +84,6 @@ export function parseRouteRequest(message: string): AICommandResult {
     mode
   };
 
-  console.log(`[ROUTE PARSER]`);
-  console.log(`INPUT: ${message}`);
-  console.log(`FROM: ${result.from || "USER_LOCATION"}`);
-  console.log(`TO: ${result.to}`);
-  console.log(`MODE: ${result.mode}`);
-
   return result;
 }
 
@@ -101,7 +94,6 @@ export function detectNavigationIntent(message: string): AICommandResult {
   const routeResult = parseRouteRequest(message);
   if (routeResult.intent === "route") return routeResult;
 
-  // Simple search detection fallback
   const searchWords = ["найди", "где", "покажи", "адрес"];
   if (searchWords.some(word => message.toLowerCase().includes(word))) {
     const query = message.toLowerCase().replace(/найди|где находится|покажи на карте|адрес/gi, "").trim();

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Bot, MapPin, User, Camera } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
+import { cn } from "@/lib/utils";
 
 export function BottomNav() {
   const loc = useLocation();

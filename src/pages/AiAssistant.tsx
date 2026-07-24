@@ -2,12 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Bot, X, ImageIcon, Camera, Mic, ChevronLeft } from "lucide-react";
+import { Send, User, Bot, Mic, ChevronLeft } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
 export default function AiAssistant() {
@@ -47,12 +47,18 @@ export default function AiAssistant() {
             key={i}
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
+            className={cn(
+              "flex flex-col",
+              m.role === "user" ? "items-end" : "items-start"
+            )}
           >
-            <div className="flex items-end gap-2 max-w-[85%]">
+            <div className={cn(
+              "flex items-end gap-2 max-w-[85%]",
+              m.role === "user" && "flex-row-reverse"
+            )}>
               {m.role === "assistant" && (
-                <div className="w-6 h-6 rounded-full vaqta-gradient flex items-center justify-center flex-shrink-0 mb-1">
-                  <Bot size={12} />
+                <div className="w-6 h-6 rounded-full vaqta-gradient flex items-center justify-center flex-shrink-0 mb-1 shadow-lg">
+                  <Bot size={12} className="text-white" />
                 </div>
               )}
               
@@ -81,7 +87,6 @@ export default function AiAssistant() {
         )}
       </div>
 
-      {/* Input Panel */}
       <div className="fixed bottom-24 left-0 right-0 px-4 z-50">
         <div className="max-w-2xl mx-auto liquid-glass p-2 flex items-center gap-2 shadow-2xl rounded-[2rem]">
           <button className="p-3 text-[#5C7A6D] hover:text-[#00A86B] transition-colors">
