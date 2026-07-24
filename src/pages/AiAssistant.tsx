@@ -24,7 +24,7 @@ export default function AiAssistant() {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
   }, [messages, isTyping]);
 
@@ -47,17 +47,17 @@ export default function AiAssistant() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#06140F] text-white overflow-hidden">
+    <div className="flex flex-col h-screen-dynamic bg-[#06140F] text-white overflow-hidden">
       <Header title="nav.ai" onMenuClick={() => setIsMenuOpen(true)} />
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar pb-48">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar smooth-scroll pb-32">
         {messages.length === 0 && (
           <div className="text-center py-12 text-[#5C7A6D] space-y-3">
             <Bot size={56} className="mx-auto text-[#00A86B] opacity-50" />
             <div className="space-y-1">
               <p className="text-sm font-black text-white uppercase tracking-widest">{t("chat.welcome")}</p>
-              <p className="text-[10px] uppercase font-bold leading-relaxed px-8">Я помогу найти адрес, построить маршрут или перевести документ</p>
+              <p className="text-[10px] uppercase font-bold leading-relaxed px-8">{t("chat.sub_hint")}</p>
             </div>
           </div>
         )}
@@ -102,7 +102,7 @@ export default function AiAssistant() {
         )}
       </div>
 
-      <div className="fixed bottom-24 left-0 w-full px-6 pb-2">
+      <div className="fixed bottom-20 left-0 w-full px-6 pb-2 z-50">
         <AnimatePresence>
           {attachedImage && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="relative mb-3 inline-block">
@@ -125,6 +125,7 @@ export default function AiAssistant() {
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
             placeholder={t("chat.placeholder")}
             className="flex-1 bg-transparent py-3 text-sm text-white focus:outline-none resize-none max-h-32 min-h-[48px] no-scrollbar font-medium"
+            rows={1}
           />
           <button onClick={handleSend} disabled={!input.trim() && !attachedImage} className="mb-1.5 p-3 bg-[#00A86B] text-white rounded-2xl disabled:opacity-20 transition-all shadow-lg active:scale-95 vaqta-glow">
             <Send size={20} />

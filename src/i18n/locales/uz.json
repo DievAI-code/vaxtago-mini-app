@@ -17,7 +17,7 @@
   "maps": "Xarita",
   "premium": "Premium",
   "settings": "Sozlamalar",
-  "logout": "Chiqish",
+  "logout": "Hisobdan chiqish",
   "errors": "Xatolik yuz berdi",
   "auth": {
     "subtitle": "Ish, hujjatlar va tarjimalar uchun AI yordamchi",
@@ -36,6 +36,7 @@
     "scanner": "Skaner",
     "jobs": "Ishlar",
     "profile": "Profil",
+    "cabinet": "Kabinet",
     "history": "Tarix",
     "premium": "Premium",
     "settings": "Sozlamalar",
@@ -111,7 +112,8 @@
   "chat": {
     "welcome": "Assalomu alaykum! Bugun sizga qanday yordam bera olaman? Men hujjatlar, rasmlar va tarjimalarni tushunaman.",
     "placeholder": "Savolingizni yozing...",
-    "premium_badge": "Premium AI"
+    "premium_badge": "Premium AI",
+    "sub_hint": "Savol bering, foto yuboring yoki kartadan joy talab qiling!"
   },
   "common": {
     "continue": "Davom etish",
@@ -140,7 +142,14 @@
     "user_lang": "Interfeys tili",
     "ai_activity": "AI faolligi",
     "ai_requests": "AI so'rovlari",
-    "logout": "Hisobdan chiqish"
+    "logout": "Hisobdan chiqish",
+    "subscription": "Obuna",
+    "expires": "Amal qilish muddati",
+    "forever": "Cheksiz",
+    "usage": "Foydalanish",
+    "settings": "Sozlamalar",
+    "language": "Til",
+    "admin_panel": "Admin-panel"
   },
   "admin": {
     "title": "Administrator paneli",

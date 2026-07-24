@@ -113,7 +113,8 @@
   "chat": {
     "welcome": "Здравствуйте! Чем я могу вам помочь сегодня? Я понимаю документы, фото и переводы.",
     "placeholder": "Напишите ваш вопрос или адрес...",
-    "premium_badge": "Premium AI"
+    "premium_badge": "Premium AI",
+    "sub_hint": "Задайте вопрос, отправьте фото или попросите найти место на карте!"
   },
   "common": {
     "continue": "Продолжить",
@@ -141,5 +142,21 @@
     "buy": "Купить Premium",
     "active": "Premium активен",
     "inactive": "Неактивен"
+  },
+  "profile": {
+    "user_info": "Информация о пользователе",
+    "user_name": "Имя пользователя",
+    "user_phone": "Номер телефона",
+    "user_lang": "Язык интерфейса",
+    "ai_activity": "Активность AI",
+    "ai_requests": "Запросы к AI",
+    "logout": "Выйти из аккаунта",
+    "subscription": "Подписка",
+    "expires": "Действует до",
+    "forever": "Бессрочно",
+    "usage": "Использование",
+    "settings": "Настройки",
+    "language": "Язык",
+    "admin_panel": "Админ-панель"
   }
 }

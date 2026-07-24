@@ -2,15 +2,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { AppProvider } from "@/lib/theme";
 import { LanguageProvider } from "@/context/LanguageProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NavStackProvider } from "@/components/NavigationStack";
+import { PageTransition } from "@/components/PageTransition";
 import "@/i18n";
 
-// Lazy loading компонентов страниц
 const Index = lazy(() => import("./pages/Index"));
 const Home = lazy(() => import("./pages/Home"));
 const Jobs = lazy(() => import("./pages/Jobs"));
@@ -46,6 +46,40 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return isAdmin ? <>{children}</> : <Navigate to="/admin/login" replace />;
 };
 
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  return (
+    <PageTransition>
+      <Suspense fallback={<div className="min-h-screen-dynamic bg-[#06140F] flex items-center justify-center"><div className="w-10 h-10 border-4 border-[#00A86B]/20 border-t-[#00A86B] animate-spin rounded-full" /></div>}>
+        <Routes location={location} key={location.pathname}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+          <Route path="/admin/integrations" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
+
+          <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
+          <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
+          <Route path="/jobs" element={<PrivateRoute><Jobs /></PrivateRoute>} />
+          <Route path="/jobs-test" element={<PrivateRoute><JobsTest /></PrivateRoute>} />
+          <Route path="/map" element={<PrivateRoute><MapPage /></PrivateRoute>} />
+          <Route path="/maps" element={<PrivateRoute><Maps /></PrivateRoute>} />
+          <Route path="/ai" element={<PrivateRoute><AiAssistant /></PrivateRoute>} />
+          <Route path="/cabinet" element={<PrivateRoute><MyCabinet /></PrivateRoute>} />
+          <Route path="/scanner" element={<PrivateRoute><Scanner /></PrivateRoute>} />
+          <Route path="/ocr" element={<PrivateRoute><OcrTranslator /></PrivateRoute>} />
+          <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
+          <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+          <Route path="/premium" element={<PrivateRoute><Premium /></PrivateRoute>} />
+          <Route path="/tracker" element={<PrivateRoute><MigrationTracker /></PrivateRoute>} />
+          <Route path="/sos" element={<PrivateRoute><SOSLegal /></PrivateRoute>} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </PageTransition>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
@@ -53,32 +87,7 @@ const App = () => (
         <TooltipProvider>
           <NavStackProvider>
             <ErrorBoundary>
-              <Suspense fallback={<div className="min-h-screen bg-[#06140F]" />}>
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/admin/login" element={<AdminLogin />} />
-                  <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                  <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-                  <Route path="/admin/integrations" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
-
-                  <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
-                  <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
-                  <Route path="/jobs" element={<PrivateRoute><Jobs /></PrivateRoute>} />
-                  <Route path="/jobs-test" element={<PrivateRoute><JobsTest /></PrivateRoute>} />
-                  <Route path="/map" element={<PrivateRoute><MapPage /></PrivateRoute>} />
-                  <Route path="/maps" element={<PrivateRoute><Maps /></PrivateRoute>} />
-                  <Route path="/ai" element={<PrivateRoute><AiAssistant /></PrivateRoute>} />
-                  <Route path="/cabinet" element={<PrivateRoute><MyCabinet /></PrivateRoute>} />
-                  <Route path="/scanner" element={<PrivateRoute><Scanner /></PrivateRoute>} />
-                  <Route path="/ocr" element={<PrivateRoute><OcrTranslator /></PrivateRoute>} />
-                  <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
-                  <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-                  <Route path="/premium" element={<PrivateRoute><Premium /></PrivateRoute>} />
-                  <Route path="/tracker" element={<PrivateRoute><MigrationTracker /></PrivateRoute>} />
-                  <Route path="/sos" element={<PrivateRoute><SOSLegal /></PrivateRoute>} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
+              <AnimatedRoutes />
             </ErrorBoundary>
             <Toaster />
             <Sonner position="top-center" richColors />

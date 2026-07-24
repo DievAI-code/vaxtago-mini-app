@@ -19,7 +19,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 z-[100] pointer-events-none pb-[calc(1rem+env(safe-area-inset-bottom))]">
+    <div className="fixed bottom-0 left-0 right-0 p-4 z-[100] pointer-events-none pb-safe">
       <nav className="mx-auto flex items-center justify-around px-1 py-2.5 bg-[#0C1F1A]/95 backdrop-blur-3xl border border-[#1A3D2E] rounded-[2rem] w-full max-w-lg pointer-events-auto shadow-[0_-10px_40px_rgba(0,0,0,0.6)]">
         {ITEMS.map((item) => {
           const active = loc.pathname === item.path || (item.path === "/home" && loc.pathname === "/");
