@@ -72,7 +72,7 @@ export const safeSupabaseUpsertUser = async (phone: string, extraData: Record<st
             last_login: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             subscription_status: 'free',
-            language_code: 'uz',
+            language_code: extraData.language_code || 'ru',
             ...extraData
           },
           {
@@ -90,7 +90,6 @@ export const safeSupabaseUpsertUser = async (phone: string, extraData: Record<st
       lastError = response.error;
       console.warn(`[Supabase Login Attempt ${attempt}/${maxAttempts}] Temporary issue:`, response.error.message || response.error);
 
-      // Временная пауза перед повторной попыткой при сбое сети
       if (attempt < maxAttempts) {
         await new Promise((res) => setTimeout(res, 800 * attempt));
       }
@@ -135,7 +134,7 @@ export const checkSupabaseConnection = async () => {
   if (!supabase) return false;
   
   try {
-    const { data, error } = await supabase.from('users').select('count').limit(1);
+    const { data, error } = await supabase.from('users').select('id').limit(1);
     if (error) {
       logSupabaseError(error, 'Connection Test');
       return false;

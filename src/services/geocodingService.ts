@@ -12,43 +12,75 @@ export interface GeocodingResult {
 
 export const geocodingService = {
   /**
-   * Поиск координат по адресу
+   * Поиск координат по адресу (Yandex -> Nominatim Fallback)
    */
   async searchAddress(query: string): Promise<GeocodingResult[]> {
     const apiKey = getYandexKey();
-    if (!apiKey) {
-      console.warn("Yandex Maps API key is missing.");
-      return [];
-    }
 
-    try {
-      const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${encodeURIComponent(query)}&format=json&results=5&lang=ru_RU`;
-      const response = await fetch(url);
+    // 1. Пробуем Яндекс Геокодер
+    if (apiKey && apiKey.trim().length > 5) {
+      try {
+        const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${encodeURIComponent(query)}&format=json&results=5&lang=ru_RU`;
+        const response = await fetch(url);
 
-      if (response.status === 403) {
-        throw new Error("YANDEX_403");
+        if (response.status === 403) {
+          console.warn("[GeocodingService] Yandex Geocoder 403 Forbidden. Check API Key or Geocoder service in Yandex Console. Falling back to OpenStreetMap...");
+        } else if (response.ok) {
+          const data = await response.json();
+          const members = data.response?.GeoObjectCollection?.featureMember || [];
+
+          if (members.length > 0) {
+            return members.map((m: any) => {
+              const obj = m.GeoObject;
+              const [lng, lat] = obj.Point.pos.split(" ").map(Number);
+              return {
+                latitude: lat,
+                longitude: lng,
+                display_name: obj.metaDataProperty?.GeocoderMetaData?.text || obj.name,
+                name: obj.name,
+                city: obj.description
+              };
+            });
+          }
+        }
+      } catch (error: any) {
+        console.warn("[GeocodingService] Yandex Geocode fetch error, switching to OpenStreetMap:", error?.message || error);
       }
-
-      if (!response.ok) throw new Error("GEOCODE_ERROR");
-
-      const data = await response.json();
-      const members = data.response?.GeoObjectCollection?.featureMember || [];
-
-      return members.map((m: any) => {
-        const obj = m.GeoObject;
-        const [lng, lat] = obj.Point.pos.split(" ").map(Number);
-        return {
-          latitude: lat,
-          longitude: lng,
-          display_name: obj.metaDataProperty.GeocoderMetaData.text,
-          name: obj.name,
-          city: obj.description
-        };
-      });
-    } catch (error: any) {
-      console.error("[GeocodingService]:", error.message);
-      return [];
     }
+
+    // 2. Резервный поиск через OpenStreetMap (Nominatim)
+    try {
+      const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&accept-language=ru`;
+      const response = await fetch(osmUrl, {
+        headers: { "User-Agent": "VAQTA-AI-Geocoder/1.0" }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map((item: any) => {
+            const addrObj = item.address || {};
+            const city = addrObj.city || addrObj.town || addrObj.village || addrObj.state || "";
+            const road = addrObj.road || addrObj.street || "";
+            const house = addrObj.house_number || "";
+            let formattedAddr = [city, road, house].filter(Boolean).join(", ");
+            if (!formattedAddr) formattedAddr = item.display_name;
+
+            return {
+              latitude: parseFloat(item.lat),
+              longitude: parseFloat(item.lon),
+              display_name: formattedAddr,
+              name: item.nameddetails?.name || item.name || query,
+              city: city
+            };
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error("[GeocodingService] Nominatim fallback failed:", err?.message || err);
+    }
+
+    return [];
   },
 
   /**
@@ -64,7 +96,7 @@ export const geocodingService = {
     return {
       isTooShort: false,
       results,
-      error: results.length === 0 ? "Не удалось найти адрес. Уточните город или улицу." : null
+      error: results.length === 0 ? "К сожалению, объект не найден. Попробуйте изменить запрос." : null
     };
   },
 
@@ -73,14 +105,29 @@ export const geocodingService = {
    */
   async reverseGeocode(lat: number, lng: number): Promise<string> {
     const apiKey = getYandexKey();
-    if (!apiKey) return "";
-    try {
-      const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${lng},${lat}&format=json&results=1`;
-      const response = await fetch(url);
-      const data = await response.json();
-      return data.response?.GeoObjectCollection?.featureMember[0]?.GeoObject?.metaDataProperty?.GeocoderMetaData?.text || "";
-    } catch {
-      return "";
+    if (apiKey) {
+      try {
+        const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${lng},${lat}&format=json&results=1`;
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          const addr = data.response?.GeoObjectCollection?.featureMember[0]?.GeoObject?.metaDataProperty?.GeocoderMetaData?.text;
+          if (addr) return addr;
+        }
+      } catch {}
     }
+
+    try {
+      const osmUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ru`;
+      const response = await fetch(osmUrl, {
+        headers: { "User-Agent": "VAQTA-AI-Geocoding/1.0" }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.display_name || "";
+      }
+    } catch {}
+
+    return "";
   }
 };

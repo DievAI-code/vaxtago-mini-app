@@ -24,7 +24,11 @@ export function getSupabaseAnonKey(): string {
 }
 
 export function getYandexKey(): string {
-  return import.meta.env.VITE_YANDEX_MAPS_KEY || "";
+  return (
+    import.meta.env.VITE_YANDEX_MAPS_API_KEY ||
+    import.meta.env.VITE_YANDEX_MAPS_KEY ||
+    ""
+  );
 }
 
 /**

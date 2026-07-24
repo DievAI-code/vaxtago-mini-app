@@ -25,7 +25,7 @@ export interface AccessResult {
 
 let cachedSettings: AppSettings | null = null;
 let lastSettingsFetch = 0;
-const CACHE_TTL_MS = 15000; // 15 sec cache for performance
+const CACHE_TTL_MS = 15000; // 15 sec cache
 
 export const subscription = {
   /**
@@ -37,7 +37,19 @@ export const subscription = {
       return cachedSettings;
     }
 
+    const defaultSettings: AppSettings = {
+      id: "default",
+      premium_mode: "off",
+      ai_limit_free: 10,
+      ocr_limit_free: 5,
+      map_limit_free: 5,
+      jobs_limit_free: 5,
+      updated_at: new Date().toISOString()
+    };
+
     try {
+      if (!supabase) return defaultSettings;
+
       const { data, error } = await supabase
         .from("app_settings")
         .select("*")
@@ -45,31 +57,15 @@ export const subscription = {
         .maybeSingle();
 
       if (error || !data) {
-        return {
-          id: "default",
-          premium_mode: "off",
-          ai_limit_free: 10,
-          ocr_limit_free: 5,
-          map_limit_free: 5,
-          jobs_limit_free: 5,
-          updated_at: new Date().toISOString()
-        };
+        return defaultSettings;
       }
 
       cachedSettings = data as AppSettings;
       lastSettingsFetch = now;
       return cachedSettings;
     } catch (e) {
-      console.error("[Subscription] Error fetching settings:", e);
-      return {
-        id: "default",
-        premium_mode: "off",
-        ai_limit_free: 10,
-        ocr_limit_free: 5,
-        map_limit_free: 5,
-        jobs_limit_free: 5,
-        updated_at: new Date().toISOString()
-      };
+      console.warn("[Subscription] app_settings query fallback:", e);
+      return defaultSettings;
     }
   },
 
@@ -92,10 +88,12 @@ export const subscription = {
 
     const phone = localStorage.getItem("vaxtago_user_phone");
     if (!phone) {
-      return { allowed: false, isPremium: false, remaining: 0, mode, message: "Required authorization" };
+      return { allowed: true, isPremium: false, remaining: 5, mode };
     }
 
     try {
+      if (!supabase) return { allowed: true, isPremium: false, remaining: 5, mode };
+
       const { data: user, error } = await supabase
         .from("users")
         .select("*")
@@ -103,12 +101,12 @@ export const subscription = {
         .maybeSingle();
 
       if (error || !user) {
-        return { allowed: false, isPremium: false, remaining: 0, mode, message: "User not found" };
+        return { allowed: true, isPremium: false, remaining: 5, mode };
       }
 
-      const isUserPremium = user.subscription_status === "premium";
+      const isUserPremium = user.subscription_status === "premium" || user.is_premium === true;
 
-      // 2. Если режим SELECTED USERS — проверяем статус пользователя
+      // 2. Если режим SELECTED USERS
       if (mode === "selected") {
         if (isUserPremium) {
           return { allowed: true, isPremium: true, remaining: Infinity, mode: "selected" };
@@ -174,8 +172,8 @@ export const subscription = {
         mode
       };
     } catch (err) {
-      console.error("[Subscription] Error checking access:", err);
-      return { allowed: true, isPremium: false, remaining: 1, mode };
+      console.warn("[Subscription] Access check fallback:", err);
+      return { allowed: true, isPremium: false, remaining: 5, mode };
     }
   },
 
@@ -184,7 +182,7 @@ export const subscription = {
    */
   async trackUsage(feature: FeatureType): Promise<void> {
     const phone = localStorage.getItem("vaxtago_user_phone");
-    if (!phone) return;
+    if (!phone || !supabase) return;
 
     const columnMap: Record<FeatureType, string> = {
       ai: "ai_requests_used",
@@ -213,7 +211,7 @@ export const subscription = {
         })
         .eq("phone_number", phone);
     } catch (e) {
-      console.error("[Subscription] Track usage error:", e);
+      console.warn("[Subscription] Track usage error:", e);
     }
   },
 
@@ -222,6 +220,7 @@ export const subscription = {
    */
   async updateSettings(newSettings: Partial<AppSettings>, actionLogMessage: string): Promise<boolean> {
     try {
+      if (!supabase) return false;
       const current = await this.getSettings(true);
       const { error } = await supabase
         .from("app_settings")
@@ -233,10 +232,8 @@ export const subscription = {
 
       if (error) throw error;
 
-      // Очищаем кэш
       cachedSettings = null;
 
-      // Логируем действие администратора
       await supabase.from("admin_logs").insert({
         action: actionLogMessage,
         details: JSON.stringify(newSettings)
