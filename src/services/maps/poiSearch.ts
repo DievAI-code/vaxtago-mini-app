@@ -34,18 +34,16 @@ export const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
 };
 
 /**
- * Calculates Euclidean distance squared between two points (for quick proximity sorting)
+ * Calculates distance squared for proximity sorting
  */
 function getDistanceSq(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const dLat = lat1 - lat2;
-  const dLon = lon1 - lon2;
-  return dLat * dLat + dLon * dLon;
+  return Math.pow(lat1 - lat2, 2) + Math.pow(lon1 - lon2, 2);
 }
 
 /**
- * Fetches POI from 2GIS using Catalog API with point & radius query
+ * Specialized 2GIS Catalog fetch for Organizations/Companies
  */
-async function fetch2GISPOI(
+async function fetch2GISOrganization(
   query: string,
   center: { lat: number; lon: number } | null
 ): Promise<POIResult[]> {
@@ -53,14 +51,14 @@ async function fetch2GISPOI(
   if (!key) return [];
 
   try {
-    let url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(
-      query
-    )}&key=${key}&fields=items.geometry,items.full_name,items.address_name,items.name&limit=10`;
+    // Parameters requested: type=branch,company,building and specific fields
+    let url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&key=${key}&type=branch,company,building&fields=items.point,items.name,items.full_name,items.address_name,items.contact_groups&limit=12`;
 
     if (center) {
-      // 2GIS takes point as lon,lat
-      url += `&point=${center.lon},${center.lat}&radius=20000`;
+      url += `&point=${center.lon},${center.lat}&radius=35000`;
     }
+
+    console.log(`[2GIS ATTEMPT] Query: "${query}"`);
 
     const response = await fetch(url);
     if (!response.ok) return [];
@@ -72,7 +70,48 @@ async function fetch2GISPOI(
       .map((item: any) => {
         const lat = item.point?.lat;
         const lon = item.point?.lon;
+        if (lat && lon) {
+          return {
+            latitude: lat,
+            longitude: lon,
+            display_name: item.full_name || item.address_name || item.name,
+            name: item.name || item.full_name || "Организация",
+            address: item.address_name || item.full_name || "",
+            source: "2gis" as const,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as POIResult[];
+  } catch (e) {
+    console.error("[2GIS Org Fetch Error]", e);
+    return [];
+  }
+}
 
+/**
+ * Standard 2GIS Catalog fetch for Generic POIs
+ */
+async function fetch2GISPOI(
+  query: string,
+  center: { lat: number; lon: number } | null
+): Promise<POIResult[]> {
+  const key = get2GISMapKey();
+  if (!key) return [];
+
+  try {
+    let url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&key=${key}&fields=items.geometry,items.full_name,items.address_name,items.name&limit=10`;
+    if (center) url += `&point=${center.lon},${center.lat}&radius=20000`;
+
+    const response = await fetch(url);
+    if (!response.ok) return [];
+    const data = await response.json();
+    const items = data.result?.items || [];
+
+    return items
+      .map((item: any) => {
+        const lat = item.point?.lat;
+        const lon = item.point?.lon;
         if (lat && lon) {
           return {
             latitude: lat,
@@ -86,14 +125,11 @@ async function fetch2GISPOI(
         return null;
       })
       .filter(Boolean) as POIResult[];
-  } catch (e) {
-    console.error("[2GIS POI Fetch Error]", e);
-    return [];
-  }
+  } catch (e) { return []; }
 }
 
 /**
- * Fallback: OpenStreetMap Overpass API (queries railway=station within city radius)
+ * OpenStreetMap Overpass API fallback
  */
 async function fetchOverpassPOI(
   objectType: string,
@@ -101,23 +137,15 @@ async function fetchOverpassPOI(
 ): Promise<POIResult[]> {
   try {
     let tagQuery = '["railway"="station"]';
-    if (objectType === "bus_station") {
-      tagQuery = '["amenity"="bus_station"]';
-    } else if (objectType === "airport") {
-      tagQuery = '["aeroway"="aerodrome"]';
-    }
+    if (objectType === "bus_station") tagQuery = '["amenity"="bus_station"]';
+    else if (objectType === "airport") tagQuery = '["aeroway"="aerodrome"]';
+    else if (objectType === "hospital") tagQuery = '["amenity"="hospital"]';
 
     const overpassQl = `[out:json][timeout:10];(node(around:20000,${center.lat},${center.lon})${tagQuery};way(around:20000,${center.lat},${center.lon})${tagQuery};);out center;`;
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQl)}`;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-
+    const response = await fetch(url);
     if (!response.ok) return [];
-
     const data = await response.json();
     const elements = data.elements || [];
 
@@ -125,84 +153,46 @@ async function fetchOverpassPOI(
       .map((el: any) => {
         const lat = el.lat || el.center?.lat;
         const lon = el.lon || el.center?.lon;
-        const name = el.tags?.name || el.tags?.["name:ru"] || el.tags?.["name:en"];
-
-        if (lat && lon && name) {
-          return {
-            latitude: lat,
-            longitude: lon,
-            display_name: name,
-            name,
-            address: name,
-            source: "overpass" as const,
-          };
+        const name = el.tags?.name || el.tags?.["name:ru"] || "Объект";
+        if (lat && lon) {
+          return { latitude: lat, longitude: lon, display_name: name, name, address: name, source: "overpass" as const };
         }
         return null;
       })
       .filter(Boolean) as POIResult[];
-  } catch (e) {
-    console.error("[Overpass API Fetch Error]", e);
-    return [];
-  }
+  } catch (e) { return []; }
 }
 
 /**
- * Filter & Rank results:
- * 1. Exclude other cities (Тобольск, Ишим, Демьянка when city is Тюмень)
- * 2. Higher score if name contains "вокзал" or "железнодорожный"
- * 3. Proximity to city center coordinates
+ * Filter & Rank results: Prioritize city matches and proximity
  */
-function filterAndRankPOI(
+function filterAndRank(
   results: POIResult[],
   city: string | null,
-  objectType: string,
   center: { lat: number; lon: number } | null
 ): POIResult[] {
-  let filtered = results;
+  if (results.length === 0) return [];
+  const cityLow = city?.toLowerCase() || "";
 
-  if (city) {
-    const cityLow = city.toLowerCase();
-    filtered = filtered.filter((item) => {
-      const text = `${item.name} ${item.display_name} ${item.address}`.toLowerCase();
-
-      if (cityLow === "тюмень") {
-        if (
-          text.includes("тобольск") ||
-          text.includes("ишим") ||
-          text.includes("демьянка") ||
-          text.includes("заводоуковск")
-        ) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }
-
-  return [...filtered].sort((a, b) => {
+  return [...results].sort((a, b) => {
     let scoreA = 0;
     let scoreB = 0;
 
-    const nameA = a.name.toLowerCase();
-    const nameB = b.name.toLowerCase();
+    const textA = `${a.name} ${a.display_name} ${a.address}`.toLowerCase();
+    const textB = `${b.name} ${b.display_name} ${b.address}`.toLowerCase();
 
-    if (objectType === "railway_station") {
-      if (nameA.includes("железнодорожный вокзал") || nameA.includes("пассажирский вокзал")) scoreA += 100;
-      else if (nameA.includes("вокзал")) scoreA += 70;
-
-      if (nameB.includes("железнодорожный вокзал") || nameB.includes("пассажирский вокзал")) scoreB += 100;
-      else if (nameB.includes("вокзал")) scoreB += 70;
-
-      if (city && nameA.includes(city.toLowerCase())) scoreA += 50;
-      if (city && nameB.includes(city.toLowerCase())) scoreB += 50;
+    // 1. City Match Priority
+    if (cityLow) {
+      if (textA.includes(cityLow)) scoreA += 500;
+      if (textB.includes(cityLow)) scoreB += 500;
     }
 
+    // 2. Proximity Priority
     if (center) {
       const distA = getDistanceSq(a.latitude, a.longitude, center.lat, center.lon);
       const distB = getDistanceSq(b.latitude, b.longitude, center.lat, center.lon);
-      // Normalize distance penalty
-      scoreA -= distA * 10;
-      scoreB -= distB * 10;
+      scoreA -= distA * 1000;
+      scoreB -= distB * 1000;
     }
 
     return scoreB - scoreA;
@@ -210,55 +200,82 @@ function filterAndRankPOI(
 }
 
 /**
- * Main POI Search entrypoint
+ * Main Entry Point
  */
 export async function searchPOI({
   city,
   objectType,
   rawQuery,
 }: POISearchParams): Promise<POIResult[]> {
+  const original = rawQuery || "";
+  const low = original.toLowerCase();
   const center = city ? CITY_COORDS[city] || null : null;
 
-  console.log("CITY:", city);
-  console.log("TYPE:", objectType);
-  console.log("CENTER:", center);
+  // Determine Search Type
+  const isOrganization = /епрс|предприятие|завод|ооо|ао|нпс|база|управление|цех|скважин/i.test(low);
+  const typeLabel = isOrganization ? "organization" : objectType;
 
-  let raw2GisResults: POIResult[] = [];
+  console.log(`[ORG SEARCH]`);
+  console.log(`Original: "${original}"`);
+  console.log(`Type: ${typeLabel}`);
+  console.log(`City: ${city || "Not detected"}`);
+  console.log(`Center:`, center);
 
-  if (objectType === "railway_station") {
-    // Attempt 1: Search by category / term around city center
-    const queries = city
-      ? [`Железнодорожный вокзал ${city}`, "железнодорожный вокзал", "вокзал"]
-      : ["железнодорожный вокзал", "вокзал"];
-
-    for (const q of queries) {
-      raw2GisResults = await fetch2GISPOI(q, center);
-      if (raw2GisResults.length > 0) break;
+  if (isOrganization) {
+    // Tiered Organization Search
+    const attempts: string[] = [original];
+    
+    // Attempt 1: Full Name (Expanded) variant is usually already in original if expandedQuery was passed
+    // We add some common logical variations
+    if (city && original.includes(city)) {
+       attempts.push(original.replace(city, "").trim()); // Attempt 1: Name without city
     }
-  } else if (rawQuery) {
-    raw2GisResults = await fetch2GISPOI(rawQuery, center);
+
+    // Identify acronym if present (e.g. ЕПРС)
+    const acronymMatch = low.match(/[а-яё]{2,6}/i);
+    if (acronymMatch && !attempts.includes(acronymMatch[0])) {
+       attempts.push(acronymMatch[0].toUpperCase()); // Attempt 2: Acronym
+    }
+
+    // Add city prefix variant
+    if (city && !original.startsWith(city)) {
+       attempts.push(`${city} ${original.replace(city, "").trim()}`); // Attempt 4: City + Name
+    }
+
+    for (const q of attempts) {
+      const results = await fetch2GISOrganization(q, center);
+      const filtered = filterAndRank(results, city, center);
+      console.log(`Results for "${q}":`, filtered.length);
+      if (filtered.length > 0) {
+        console.log(`FINAL RESULT:`, filtered[0]);
+        return filtered;
+      }
+    }
+
+    return [];
   }
 
-  console.log("2GIS RESULTS:", raw2GisResults);
-
-  let filtered2Gis = filterAndRankPOI(raw2GisResults, city, objectType, center);
-
-  if (filtered2Gis.length > 0) {
-    console.log("OVERPASS RESULTS: [] (2GIS succeeded)");
-    console.log("FINAL RESULT:", filtered2Gis[0]);
-    return filtered2Gis;
+  // Standard Generic POI Search
+  let results: POIResult[] = [];
+  if (objectType === "railway_station") {
+    const queries = city ? [`Железнодорожный вокзал ${city}`, "вокзал"] : ["вокзал"];
+    for (const q of queries) {
+      results = await fetch2GISPOI(q, center);
+      if (results.length > 0) break;
+    }
+  } else {
+    results = await fetch2GISPOI(original, center);
   }
 
-  // Fallback to Overpass API if 2GIS returns 0 results and center is available
-  let overpassResults: POIResult[] = [];
-  if (center) {
-    overpassResults = await fetchOverpassPOI(objectType, center);
+  let finalResults = filterAndRank(results, city, center);
+
+  // Overpass Fallback ONLY for generic POIs
+  if (finalResults.length === 0 && center && !isOrganization) {
+    const overpass = await fetchOverpassPOI(objectType, center);
+    finalResults = filterAndRank(overpass, city, center);
+    console.log(`OVERPASS RESULTS:`, finalResults.length);
   }
 
-  console.log("OVERPASS RESULTS:", overpassResults);
-
-  const filteredOverpass = filterAndRankPOI(overpassResults, city, objectType, center);
-  console.log("FINAL RESULT:", filteredOverpass[0] || null);
-
-  return filteredOverpass;
+  console.log(`FINAL RESULT:`, finalResults[0] || "None");
+  return finalResults;
 }

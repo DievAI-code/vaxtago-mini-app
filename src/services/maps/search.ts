@@ -121,7 +121,6 @@ function cleanPunctuationAndQuotes(text: string): string {
 /**
  * Smart Location Query Parser
  * Parses city, object type, and constructs an optimized search string.
- * Handles: "г.Тюмень", "г. Тюмень", "город Тюмень", "жд вокзал г.Тюмень"
  */
 export function parseLocationQuery(query: string): ParsedLocationQuery {
   const cleanedText = cleanCityPrefixes(query);
@@ -225,31 +224,12 @@ function scoreCandidate(candidate: GeocodingResult, parsed: ParsedLocationQuery)
   // City Match (+100)
   if (parsed.city && isMatchingCity(candidate, parsed.city)) {
     score += 100;
-  } else if (parsed.city) {
-    score -= 100; // Penalty for wrong cities
   }
 
   // Object Type Score Boosts
   if (parsed.objectType === "railway_station") {
-    if (title.includes("железнодорожный вокзал") || title.includes("ж/д вокзал") || title.includes("пассажирский вокзал")) {
-      score += 80;
-    } else if (title.includes("вокзал")) {
-      score += 60;
-    }
-    if (parsed.city && title.includes(parsed.city.toLowerCase())) {
-      score += 40;
-    }
-    if (title.includes("станция") && !title.includes("главный") && !title.includes("вокзал")) {
-      score -= 30;
-    }
-  } else if (parsed.objectType === "bus_station") {
-    if (title.includes("автовокзал") || title.includes("автостанция")) {
-      score += 80;
-    }
-  } else if (parsed.objectType === "airport") {
-    if (title.includes("аэропорт") || title.includes("терминал")) {
-      score += 80;
-    }
+    if (title.includes("железнодорожный вокзал") || title.includes("ж/д вокзал")) score += 80;
+    else if (title.includes("вокзал")) score += 60;
   }
 
   return score;
@@ -264,42 +244,10 @@ export const hybridMapSearch = {
   ): Promise<{ results: MapSearchResult[]; isLowConfidence: boolean; message?: string }> {
     const originalQuery = rawQuery.trim();
     const expandedQuery = expandOrganizationQuery(originalQuery);
-    const cleanedQuery = cleanPunctuationAndQuotes(expandedQuery || originalQuery);
-
-    console.log("ORIGINAL QUERY:", originalQuery);
-    console.log("EXPANDED QUERY:", expandedQuery);
-
+    
+    // We pass the expanded query to the geocoding service which handles tiered attempts
+    const rawResults = await geocodingService.searchAddress(expandedQuery || originalQuery);
     const parsed = parseLocationQuery(expandedQuery || originalQuery);
-
-    // Build list of candidate search queries to attempt sequentially
-    const searchAttempts: string[] = [];
-
-    // Attempt 1: Full expanded query (e.g. "Ермаковское Предприятие по ремонту скважин Нижневартовск")
-    if (expandedQuery) {
-      searchAttempts.push(expandedQuery);
-    }
-
-    // Attempt 2: Original query (e.g. "ЕПРС Нижневартовск")
-    if (!searchAttempts.includes(originalQuery)) {
-      searchAttempts.push(originalQuery);
-    }
-
-    // Attempt 3: Cleaned query (without quotes/punctuation)
-    if (cleanedQuery && !searchAttempts.includes(cleanedQuery)) {
-      searchAttempts.push(cleanedQuery);
-    }
-
-    let rawResults: GeocodingResult[] = [];
-
-    for (const queryVariant of searchAttempts) {
-      console.log("2GIS QUERY:", queryVariant);
-      rawResults = await geocodingService.searchAddress(queryVariant);
-      console.log("RESULTS:", rawResults);
-
-      if (rawResults.length > 0) {
-        break;
-      }
-    }
 
     if (rawResults.length === 0) {
       return {
@@ -309,7 +257,7 @@ export const hybridMapSearch = {
       };
     }
 
-    // Filter by city strictly if city is specified
+    // Filter by city match if city was detected
     let filtered = rawResults;
     if (parsed.city) {
       const cityFiltered = rawResults.filter((item) => isMatchingCity(item, parsed.city!));
@@ -318,7 +266,7 @@ export const hybridMapSearch = {
       }
     }
 
-    // Score and Rank candidates
+    // Score and Rank
     const scored = filtered.map((candidate) => ({
       candidate,
       score: scoreCandidate(candidate, parsed),
@@ -338,18 +286,12 @@ export const hybridMapSearch = {
     }));
 
     const hasExactCityMatch = parsed.city ? sortedResults.some((r) => r.cityMatch) : true;
-    const topScore = sortedResults[0]?.score ?? 0;
-    const isLowConfidence = !hasExactCityMatch || topScore < 50;
-
-    let warningMessage: string | undefined = undefined;
-    if (parsed.city && !hasExactCityMatch) {
-      warningMessage = `В городе (${parsed.city}) точный объект не найден. Возможно вы имели в виду:`;
-    }
+    const isLowConfidence = !hasExactCityMatch || (sortedResults[0]?.score ?? 0) < 50;
 
     return {
       results: sortedResults,
       isLowConfidence,
-      message: warningMessage,
+      message: parsed.city && !hasExactCityMatch ? `В городе (${parsed.city}) точный объект не найден. Возможно вы имели в виду:` : undefined,
     };
   },
 
