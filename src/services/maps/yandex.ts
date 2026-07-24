@@ -53,13 +53,34 @@ export const yandexService = {
     yandexScriptPromise = new Promise<void>((resolve, reject) => {
       const script = document.createElement("script");
       script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(YANDEX_MAPS_API_KEY)}&lang=ru_RU`;
+      console.log("[YANDEX SCRIPT]", script.src);
       script.async = true;
-      script.onload = () => window.ymaps3?.ready.then(() => resolve()).catch(reject);
+      script.onload = async () => {
+        console.log("[YANDEX LOADED]", Boolean(window.ymaps3));
+        if (window.ymaps3) {
+          try {
+            await window.ymaps3.ready;
+            resolve();
+          } catch (e) {
+            console.warn("[Yandex] ymaps3.ready failed", e);
+            reject(e);
+          }
+        } else {
+          reject(new Error("ymaps3 is undefined after script load"));
+        }
+      };
       script.onerror = () => reject(new Error("Network error loading Yandex Maps script"));
       document.head.appendChild(script);
     });
 
-    try { await yandexScriptPromise; return true; } catch { return false; }
+    try {
+      await yandexScriptPromise;
+      return true;
+    } catch (error) {
+      console.warn("[Yandex] Failed to load script, falling back to OSM:", error);
+      yandexScriptPromise = null; // Allow retry on next page load
+      return false;
+    }
   },
 
   async geocode(query: string): Promise<YandexSearchResult[]> {

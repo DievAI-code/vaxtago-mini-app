@@ -5,6 +5,32 @@ import { MapPin } from "lucide-react";
 import { loadYandexMaps } from "@/lib/yandexMaps";
 import { hasYandexMapsKey } from "@/config/maps";
 
+// Leaflet imports for OSM fallback
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerIconRetina from "leaflet/dist/images/marker-icon-2x.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+const customIcon = L.icon({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIconRetina,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [center, zoom, map]);
+  return null;
+}
+
 export interface VacancyMarkerData {
   id: string;
   title: string;
@@ -40,25 +66,34 @@ export function YandexMap({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [useOsmFallback, setUseOsmFallback] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
     if (!hasYandexMapsKey) {
       console.warn("[YandexMap] API Key missing. Rendering fallback UI.");
-      setError("Интерактивная карта временно недоступна.");
+      setUseOsmFallback(true);
       setLoading(false);
       return;
     }
 
     loadYandexMaps()
-      .then(() => {
-        if (!mounted || !mapContainerRef.current) return;
+      .then((success) => {
+        if (!mounted) return;
+
+        if (!success) {
+          console.warn("[YandexMap] Yandex API failed to load. Switching to OpenStreetMap fallback.");
+          setUseOsmFallback(true);
+          setLoading(false);
+          return;
+        }
 
         const ymaps = (window as any).ymaps3;
         if (!ymaps) {
-          throw new Error("YMaps3 API unavailable");
+          setUseOsmFallback(true);
+          setLoading(false);
+          return;
         }
 
         const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer } = ymaps;
@@ -69,9 +104,11 @@ export function YandexMap({
           } catch {}
           mapInstanceRef.current = null;
         }
-        mapContainerRef.current.innerHTML = "";
+        if (mapContainerRef.current) {
+          mapContainerRef.current.innerHTML = "";
+        }
 
-        const map = new YMap(mapContainerRef.current, {
+        const map = new YMap(mapContainerRef.current!, {
           location: {
             center,
             zoom,
@@ -87,7 +124,7 @@ export function YandexMap({
       .catch((err) => {
         if (mounted) {
           console.warn("[YandexMap] Failed to load script or API key missing:", err);
-          setError("Интерактивная карта временно недоступна.");
+          setUseOsmFallback(true);
           setLoading(false);
         }
       });
@@ -118,9 +155,9 @@ export function YandexMap({
   }, [center[0], center[1], zoom]);
 
   useEffect(() => {
-    const ymaps = (window as any).ymaps3;
-    if (!mapInstanceRef.current || !ymaps) return;
+    if (useOsmFallback || !mapInstanceRef.current) return;
 
+    const ymaps = (window as any).ymaps3;
     const { YMapMarker } = ymaps;
     const map = mapInstanceRef.current;
     const markerElements: any[] = [];
@@ -183,8 +220,53 @@ export function YandexMap({
         } catch {}
       });
     };
-  }, [markers, selectedMarkerId, userLocation, onSelectMarker]);
+  }, [markers, selectedMarkerId, userLocation, onSelectMarker, useOsmFallback]);
 
+  // OpenStreetMap Fallback UI
+  if (useOsmFallback) {
+    const lat = center[1];
+    const lng = center[0];
+    const leafletCenter: [number, number] = [lat, lng];
+
+    return (
+      <div className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}>
+        <MapContainer
+          center={leafletCenter}
+          zoom={zoom}
+          scrollWheelZoom={false}
+          className="w-full h-full"
+          style={{ background: "#06140F" }}
+        >
+          <ChangeView center={leafletCenter} zoom={zoom} />
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          />
+          {markers.map((m) => (
+            <Marker
+              key={m.id}
+              position={[m.coordinates[1], m.coordinates[0]]}
+              icon={customIcon}
+              eventHandlers={{
+                click: () => onSelectMarker?.(m),
+              }}
+            >
+              <Popup>
+                <div className="text-black font-semibold text-xs p-1">
+                  {m.title}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+          {userLocation && (
+            <Marker position={[userLocation[1], userLocation[0]]} icon={customIcon} />
+          )}
+        </MapContainer>
+      </div>
+    );
+  }
+
+  // Yandex Map UI
   return (
     <div className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}>
       {loading && (
@@ -193,14 +275,6 @@ export function YandexMap({
           <p className="text-xs font-bold text-[#00A86B] uppercase tracking-widest animate-pulse">
             Загрузка карты...
           </p>
-        </div>
-      )}
-
-      {error && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#06140F] p-6 text-center space-y-2">
-          <MapPin className="w-10 h-10 text-[#00A86B] opacity-60" />
-          <p className="text-sm font-bold text-white">Карта временно недоступна</p>
-          <p className="text-xs text-[#5C7A6D]">Навигация скоро заработает в полном объеме</p>
         </div>
       )}
 

@@ -2,12 +2,8 @@
 
 import { yandexService } from "@/services/maps/yandex";
 
-export function loadYandexMaps(): Promise<void> {
-  return yandexService.loadYandexMaps().then((success) => {
-    if (!success) {
-      throw new Error("Yandex Maps JS API not loaded or key missing");
-    }
-  });
+export function loadYandexMaps(): Promise<boolean> {
+  return yandexService.loadYandexMaps();
 }
 
 export const yandexMapsFallback = {
