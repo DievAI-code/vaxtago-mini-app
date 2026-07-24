@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -31,7 +31,7 @@ export default function Maps() {
 
   const [searchResults, setSearchResults] = useState<MapSearchResult[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<MapSearchResult | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([69.2401, 41.2995]); // [lng, lat]
+  const [mapCenter, setMapCenter] = useState<[number, number]>([41.2995, 69.2401]); // [lat, lng]
   const [zoom, setZoom] = useState(13);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
@@ -71,7 +71,7 @@ export default function Maps() {
         setSearchResults(results);
         const top = results[0];
         setSelectedLocation(top);
-        setMapCenter([top.longitude, top.latitude]);
+        setMapCenter([top.latitude, top.longitude]); // [lat, lng]
         setZoom(14);
         toast.success(`Найдено: ${top.title}`);
       } else {
@@ -90,7 +90,7 @@ export default function Maps() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude]; // [lat, lng]
           setUserLocation(coords);
           setMapCenter(coords);
           setZoom(15);
@@ -114,7 +114,7 @@ export default function Maps() {
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
-            const uCoords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+            const uCoords: [number, number] = [pos.coords.latitude, pos.coords.longitude]; // [lat, lng]
             setUserLocation(uCoords);
             await calculateRoute(uCoords, [selectedLocation.latitude, selectedLocation.longitude]);
           },
@@ -131,7 +131,7 @@ export default function Maps() {
     setBuildingRoute(true);
     try {
       const detail = await hybridMapSearch.buildRoute({
-        from: [from[1], from[0]], // [lat, lng]
+        from,
         to,
         mode: routeMode,
       });
@@ -234,7 +234,7 @@ export default function Maps() {
                 key={i}
                 onClick={() => {
                   setSelectedLocation(res);
-                  setMapCenter([res.longitude, res.latitude]);
+                  setMapCenter([res.latitude, res.longitude]);
                   setZoom(15);
                 }}
                 className={`px-3 py-1.5 rounded-xl border whitespace-nowrap text-[11px] font-bold transition-all ${
@@ -259,7 +259,7 @@ export default function Maps() {
                     {
                       id: "selected-loc",
                       title: selectedLocation.title,
-                      coordinates: [selectedLocation.longitude, selectedLocation.latitude],
+                      coordinates: [selectedLocation.latitude, selectedLocation.longitude],
                     },
                   ]
                 : []

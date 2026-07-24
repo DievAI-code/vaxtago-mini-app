@@ -21,7 +21,7 @@ const SAMPLE_VACANCIES: VacancyMarkerData[] = [
     salary: "180 000 ₽",
     city: "Ташкент",
     address: "улица Амира Темура, 107, Ташкент",
-    coordinates: [69.2831, 41.3322],
+    coordinates: [41.3322, 69.2831], // [lat, lng]
     type: "premium",
     employerName: "ООО 'ПромСтройМонтаж'",
     schedule: "Вахта 30/30 • Проживание + Питание",
@@ -33,7 +33,7 @@ const SAMPLE_VACANCIES: VacancyMarkerData[] = [
     salary: "150 000 ₽",
     city: "Ташкент",
     address: "Проспект Ислама Каримова, 43, Ташкент",
-    coordinates: [69.2605, 41.3111],
+    coordinates: [41.3111, 69.2605], // [lat, lng]
     type: "verified",
     employerName: "Логистика Узбекистан",
     schedule: "Сменный график 15/15",
@@ -45,7 +45,7 @@ const SAMPLE_VACANCIES: VacancyMarkerData[] = [
     salary: "95 000 ₽",
     city: "Ташкент",
     address: "улица Бабура, 55, Ташкент",
-    coordinates: [69.2488, 41.2825],
+    coordinates: [41.2825, 69.2488], // [lat, lng]
     type: "employer",
     employerName: "ИП Диев Д.С.",
     schedule: "Полный день • Предоставляется жильё",
@@ -59,7 +59,7 @@ export default function MapPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [center, setCenter] = useState<[number, number]>([69.2401, 41.2995]);
+  const [center, setCenter] = useState<[number, number]>([41.2995, 69.2401]); // [lat, lng]
   const [zoom, setZoom] = useState(12);
   const [selectedVacancy, setSelectedVacancy] = useState<VacancyMarkerData | null>(SAMPLE_VACANCIES[0]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -80,7 +80,7 @@ export default function MapPage() {
 
       if (res.results && res.results.length > 0) {
         const first = res.results[0];
-        setCenter([first.longitude, first.latitude]);
+        setCenter([first.latitude, first.longitude]); // [lat, lng]
         setZoom(14);
         setSearchError(null);
         toast.success(`Найдено: ${first.display_name.slice(0, 45)}...`);
@@ -101,7 +101,7 @@ export default function MapPage() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude]; // [lat, lng]
           setUserLocation(coords);
           setCenter(coords);
           setZoom(14);
@@ -118,7 +118,7 @@ export default function MapPage() {
   };
 
   const buildRoute = useCallback((coords: [number, number]) => {
-    const [lng, lat] = coords;
+    const [lat, lng] = coords;
     const url = `https://www.google.com/maps/?rtext=~${lat},${lng}&rtt=auto`;
     window.open(url, "_blank");
   }, []);

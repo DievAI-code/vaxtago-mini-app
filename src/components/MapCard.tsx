@@ -16,8 +16,8 @@ interface MapCardProps {
 
 export function MapCard({ address, type = "search", title }: MapCardProps) {
   const { t } = useLanguage();
-  const [coords, setCoords] = useState<[number, number] | null>(null);
-  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const [coords, setCoords] = useState<[number, number] | null>(null); // [lat, lng]
+  const [userPos, setUserPos] = useState<[number, number] | null>(null); // [lat, lng]
   const [loading, setLoading] = useState(true);
   const [routeInfo, setRouteInfo] = useState<{ dist: string; time: string } | null>(null);
 
@@ -32,7 +32,7 @@ export function MapCard({ address, type = "search", title }: MapCardProps) {
       setLoading(true);
       const results = await geocodingService.searchAddress(address!);
       if (results.length > 0) {
-        setCoords([results[0].longitude, results[0].latitude]);
+        setCoords([results[0].latitude, results[0].longitude]);
       }
 
       if (type === "route") {
@@ -50,7 +50,7 @@ export function MapCard({ address, type = "search", title }: MapCardProps) {
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            const up: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+            const up: [number, number] = [pos.coords.latitude, pos.coords.longitude]; // [lat, lng]
             setUserPos(up);
             setRouteInfo({ dist: "—", time: "—" });
             resolve(up);
@@ -117,7 +117,7 @@ export function MapCard({ address, type = "search", title }: MapCardProps) {
         </div>
 
         <button 
-          onClick={() => window.open(`https://www.google.com/maps/?rtext=~${coords[1]},${coords[0]}&rtt=auto`, "_blank")}
+          onClick={() => window.open(`https://www.google.com/maps/?rtext=~${coords[0]},${coords[1]}&rtt=auto`, "_blank")}
           className="w-full h-12 vaqta-gradient rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-lg vaqta-glow"
         >
           <Navigation size={14} />

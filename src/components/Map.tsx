@@ -40,7 +40,7 @@ export interface VacancyMarkerData {
   salary: string;
   city: string;
   address: string;
-  coordinates: [number, number];
+  coordinates: [number, number]; // [lat, lng]
   type: "employer" | "verified" | "premium";
   employerName: string;
   schedule?: string;
@@ -50,18 +50,17 @@ export interface VacancyMarkerData {
 export interface MapMarker {
   id: string;
   title: string;
-  coordinates: [number, number];
+  coordinates: [number, number]; // [lat, lng]
 }
 
 interface MapProps {
-  center?: [number, number];
+  center?: [number, number]; // [lat, lng]
   zoom?: number;
   markers?: VacancyMarkerData[] | MapMarker[] | any[];
   selectedMarkerId?: string | null;
   onSelectMarker?: (marker: VacancyMarkerData | MapMarker | any) => void;
-  userLocation?: [number, number] | null;
+  userLocation?: [number, number] | null; // [lat, lng]
   className?: string;
-  children?: React.ReactNode;
 }
 
 function createVacancyIcon(marker: VacancyMarkerData, isSelected: boolean): L.DivIcon {
@@ -93,29 +92,24 @@ function createVacancyIcon(marker: VacancyMarkerData, isSelected: boolean): L.Di
 }
 
 export function Map({
-  center = [69.2401, 41.2995],
+  center = [41.2995, 69.2401], // Tashkent [lat, lng]
   zoom = 12,
   markers = [],
   selectedMarkerId = null,
   onSelectMarker,
   userLocation,
   className = "w-full h-full min-h-[350px] rounded-[2rem]",
-  children,
 }: MapProps) {
-  const lat = center[1];
-  const lng = center[0];
-  const leafletCenter: [number, number] = [lat, lng];
-
   return (
     <div className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}>
       <MapContainer
-        center={leafletCenter}
+        center={center}
         zoom={zoom}
         scrollWheelZoom={false}
         className="w-full h-full"
         style={{ background: "#06140F" }}
       >
-        <ChangeView center={leafletCenter} zoom={zoom} />
+        <ChangeView center={center} zoom={zoom} />
         <TileLayer
           attribution='&copy; OpenStreetMap &copy; CARTO'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -132,7 +126,7 @@ export function Map({
           return (
             <Marker
               key={m.id}
-              position={[m.coordinates[1], m.coordinates[0]]}
+              position={[m.coordinates[0], m.coordinates[1]]}
               icon={icon}
               eventHandlers={{
                 click: () => {
@@ -152,10 +146,8 @@ export function Map({
         })}
 
         {userLocation && (
-          <Marker position={[userLocation[1], userLocation[0]]} icon={userIcon} />
+          <Marker position={[userLocation[0], userLocation[1]]} icon={userIcon} />
         )}
-
-        {children}
       </MapContainer>
     </div>
   );
