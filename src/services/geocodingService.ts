@@ -18,11 +18,17 @@ export const geocodingService = {
     if (apiKey && apiKey.trim().length > 5) {
       try {
         const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${encodeURIComponent(query)}&format=json&results=5&lang=ru_RU`;
+        console.log("[YANDEX GEOCODER]", {
+          keyExists: !!apiKey,
+          query,
+          url
+        });
+
         const response = await fetch(url);
 
-        if (response.status === 403) {
-          console.warn("[GeocodingService] Yandex Geocoder 403 Forbidden. Check API Key or Geocoder service in Yandex Console. Falling back to OpenStreetMap...");
-        } else if (response.ok) {
+        if (!response.ok) {
+          console.warn(`[GeocodingService] Yandex Geocoder HTTP ${response.status}. Falling back to OpenStreetMap...`);
+        } else {
           const data = await response.json();
           const members = data.response?.GeoObjectCollection?.featureMember || [];
 
@@ -96,9 +102,14 @@ export const geocodingService = {
 
   async reverseGeocode(lat: number, lng: number): Promise<string> {
     const apiKey = getYandexGeocoderKey();
-    if (apiKey) {
+    if (apiKey && apiKey.trim().length > 5) {
       try {
-        const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${lng},${lat}&format=json&results=1`;
+        const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${lng},${lat}&format=json&results=1&lang=ru_RU`;
+        console.log("[YANDEX GEOCODER REVERSE]", {
+          keyExists: !!apiKey,
+          url
+        });
+
         const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();

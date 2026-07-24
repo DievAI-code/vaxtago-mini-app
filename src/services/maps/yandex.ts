@@ -78,7 +78,7 @@ export const yandexService = {
       return true;
     } catch (error) {
       console.warn("[Yandex] Failed to load script, falling back to OSM:", error);
-      yandexScriptPromise = null; // Allow retry on next page load
+      yandexScriptPromise = null;
       return false;
     }
   },
@@ -90,11 +90,17 @@ export const yandexService = {
     if (hasYandexGeocoderKey) {
       try {
         const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(YANDEX_GEOCODER_API_KEY)}&geocode=${encodeURIComponent(target)}&format=json&results=5&lang=ru_RU`;
+        console.log("[YANDEX GEOCODER]", {
+          keyExists: !!YANDEX_GEOCODER_API_KEY,
+          query: target,
+          url
+        });
+
         const res = await fetch(url);
 
-        if (res.status === 403) {
-          console.warn("[Yandex] Geocoder 403: Key limit or invalid service configuration.");
-        } else if (res.ok) {
+        if (!res.ok) {
+          console.warn(`[Yandex] Geocoder HTTP error: ${res.status}. Falling back to OSM.`);
+        } else {
           const data = await res.json();
           const members = data.response?.GeoObjectCollection?.featureMember || [];
           if (members.length > 0) {
@@ -111,23 +117,26 @@ export const yandexService = {
             });
           }
         }
-      } catch {
-        console.warn("[Yandex] Geocoding failed, trying OSM...");
+      } catch (error) {
+        console.warn("[Yandex] Geocoding failed, trying OSM...", error);
       }
     }
 
     // OpenStreetMap fallback
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(target)}&format=json&limit=5&accept-language=ru`);
+      const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(target)}&format=json&limit=5&accept-language=ru`;
+      const res = await fetch(osmUrl, { headers: { "User-Agent": "VAQTA-AI-Geocoder/1.0" } });
       if (res.ok) {
         const data = await res.json();
-        return data.map((item: any) => ({
-          title: item.display_name.split(",")[0],
-          address: item.display_name,
-          latitude: parseFloat(item.lat),
-          longitude: parseFloat(item.lon),
-          source: "openstreetmap",
-        }));
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map((item: any) => ({
+            title: item.display_name.split(",")[0],
+            address: item.display_name,
+            latitude: parseFloat(item.lat),
+            longitude: parseFloat(item.lon),
+            source: "openstreetmap",
+          }));
+        }
       }
     } catch {}
 
