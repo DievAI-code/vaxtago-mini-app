@@ -1,71 +1,100 @@
-'железнодорожный').">
 "use client";
 
-import { TravelMode } from "./maps/routeService";
-
-export interface NavIntent {
-  intent: "route" | "search" | "unknown";
-  from?: { query: string };
-  to?: { query: string };
-  mode: TravelMode;
-  category?: string;
-}
-
-const VOCABULARY: Record<string, string> = {
-  "вокзал": "железнодорожный вокзал",
-  "жд": "железнодорожный",
-  "офис": "организация",
-  "работа": "вакансия",
-  "доехать": "route",
-  "добраться": "route",
-  "путь": "route",
-  "маршрут": "route",
-};
+/**
+ * Types of intents supported by the navigation system
+ */
+export type TravelIntent =
+  | "route"
+  | "search"
+  | "unknown";
 
 /**
- * Detects navigation intent from natural language
+ * Available travel modes for routing
  */
-export function detectNavigationIntent(message: string): NavIntent {
-  const low = message.toLowerCase().trim();
-  
-  // 1. Detect Mode
-  let mode: TravelMode = "car"; // default
-  if (/пешком|ногами|пройти/i.test(low)) mode = "walking";
-  else if (/автобус|маршрутка|метро|транспорт|едет/i.test(low)) mode = "transit";
+export type TravelMode =
+  | "walking"
+  | "car"
+  | "transport";
 
-  // 2. Identify Action
-  const isRoute = /маршрут|как доехать|как добраться|путь|от .* до/i.test(low);
-  
+/**
+ * Structure of the parsed AI command result
+ */
+export interface AICommandResult {
+  intent: TravelIntent;
+  from?: string;
+  to?: string;
+  mode?: TravelMode;
+}
+
+/**
+ * Analyzes user message to detect navigation intents like building a route or searching for a location.
+ * @param message The raw user input string.
+ */
+export function detectNavigationIntent(message: string): AICommandResult {
+  const text = message.toLowerCase().trim();
+
+  // Keywords indicating a routing request
+  const routeWords = [
+    "маршрут",
+    "добраться",
+    "доехать",
+    "путь",
+    "как попасть",
+    "отвези",
+    "довези"
+  ];
+
+  const isRoute = routeWords.some(word => text.includes(word)) || text.includes("от ") && text.includes("до ");
+
   if (isRoute) {
-    // Advanced parsing for "from X to Y"
-    const fromToRegex = /(?:от|с|из)\s+(.+?)\s+(?:до|в|на)\s+(.+)/i;
-    const match = low.match(fromToRegex);
+    // Detect travel mode
+    let mode: TravelMode = "walking"; // Default mode
+    if (text.includes("машин") || text.includes("авто") || text.includes("такси")) {
+      mode = "car";
+    } else if (text.includes("автобус") || text.includes("метро") || text.includes("транспорт") || text.includes("маршрутк")) {
+      mode = "transport";
+    }
+
+    // Try to extract from/to pattern "от [место] до [место]"
+    const fromToMatch = text.match(/(?:от|с|из)\s+(.+?)\s+(?:до|в|на)\s+(.+)/i);
     
-    if (match) {
+    if (fromToMatch) {
       return {
         intent: "route",
-        from: { query: normalizeQuery(match[1]) },
-        to: { query: normalizeQuery(match[2]) },
+        from: fromToMatch[1].trim(),
+        to: fromToMatch[2].trim(),
         mode
       };
     }
 
-    // Fallback: assume destination only
-    const destination = low.replace(/построй маршрут до|маршрут до|как доехать до|как добраться до/gi, "").trim();
+    // Fallback: clean the message to get the destination
+    const destination = text
+      .replace(/построй маршрут до|маршрут до|как доехать до|как добраться до|путь до|довези до|отвези до/gi, "")
+      .trim();
+
     return {
       intent: "route",
-      to: { query: normalizeQuery(destination) },
+      to: destination || message,
       mode
     };
   }
 
-  return { intent: "unknown", mode: "car" };
-}
+  // Keywords for simple search
+  const searchWords = ["найди", "где", "покажи", "адрес"];
+  const isSearch = searchWords.some(word => text.includes(word));
 
-function normalizeQuery(text: string): string {
-  let result = text;
-  for (const [key, val] of Object.entries(VOCABULARY)) {
-    if (result.includes(key)) result = result.replace(key, val);
+  if (isSearch) {
+    const query = text
+      .replace(/найди|где находится|покажи на карте|адрес/gi, "")
+      .trim();
+    
+    return {
+      intent: "search",
+      to: query || text
+    };
   }
-  return result;
+
+  return {
+    intent: "unknown"
+  };
 }
