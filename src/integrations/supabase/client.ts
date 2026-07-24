@@ -51,8 +51,8 @@ export const logSupabaseError = (error: any, context: string = '') => {
 };
 
 /**
- * Безопасный вход: найти пользователя, если нет — создать.
- * Не вызывает ошибку 400 если пользователь отсутствует.
+ * Safe login: find user, if not found — create.
+ * Only inserts confirmed columns to prevent 400 errors.
  */
 export const safeSupabaseLogin = async (phone: string, extraData: Record<string, any> = {}) => {
   const client = getSupabaseClient();
@@ -62,7 +62,7 @@ export const safeSupabaseLogin = async (phone: string, extraData: Record<string,
   if (!cleanPhone) throw new Error("Invalid phone number");
 
   try {
-    // Шаг 1: Попытаться найти пользователя
+    // Step 1: Try to find existing user
     const { data: existing, error: selectErr } = await client
       .from("users")
       .select("*")
@@ -74,7 +74,7 @@ export const safeSupabaseLogin = async (phone: string, extraData: Record<string,
     }
 
     if (existing) {
-      // Обновить last_login
+      // Update last_login and language only
       await client
         .from("users")
         .update({
@@ -87,18 +87,14 @@ export const safeSupabaseLogin = async (phone: string, extraData: Record<string,
       return { data: existing, error: null };
     }
 
-    // Шаг 2: Создать нового пользователя
+    // Step 2: Create new user — only confirmed columns
     const { data: newUser, error: insertErr } = await client
       .from("users")
       .insert({
         phone_number: cleanPhone,
-        role: "user",
         subscription_status: "free",
         ai_requests_used: 0,
-        ai_requests_limit: 10,
-        ocr_requests_used: 0,
         map_requests_used: 0,
-        job_searches_used: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         last_login: new Date().toISOString(),
@@ -108,8 +104,8 @@ export const safeSupabaseLogin = async (phone: string, extraData: Record<string,
       .maybeSingle();
 
     if (insertErr) {
-      // Возможно, пользователь уже был создан параллельно — попробуем ещё раз
-      const { data: fallback, error: fallbackErr } = await client
+      // User might have been created in parallel — try to fetch again
+      const { data: fallback } = await client
         .from("users")
         .select("*")
         .eq("phone_number", cleanPhone)

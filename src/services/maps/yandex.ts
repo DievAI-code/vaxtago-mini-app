@@ -14,7 +14,7 @@ export interface YandexSearchResult {
 export interface YandexRouteResult {
   distanceMeters: number;
   durationSeconds: number;
-  coordinates: [number, number][]; 
+  coordinates: [number, number][];
   source: "yandex" | "osrm";
 }
 
@@ -70,7 +70,7 @@ export const yandexService = {
       try {
         const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(YANDEX_GEOCODER_API_KEY)}&geocode=${encodeURIComponent(target)}&format=json&results=5&lang=ru_RU`;
         const res = await fetch(url);
-        
+
         if (res.status === 403) {
           console.warn("[Yandex] Geocoder 403: Key limit or invalid service configuration.");
         } else if (res.ok) {
@@ -90,17 +90,18 @@ export const yandexService = {
             });
           }
         }
-      } catch (err) {
+      } catch {
         console.warn("[Yandex] Geocoding failed, trying OSM...");
       }
     }
 
+    // OpenStreetMap fallback
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(target)}&format=json&limit=5&accept-language=ru`);
       if (res.ok) {
         const data = await res.json();
         return data.map((item: any) => ({
-          title: item.display_name.split(',')[0],
+          title: item.display_name.split(",")[0],
           address: item.display_name,
           latitude: parseFloat(item.lat),
           longitude: parseFloat(item.lon),

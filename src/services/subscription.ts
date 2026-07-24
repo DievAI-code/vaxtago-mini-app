@@ -62,8 +62,7 @@ export const subscription = {
       cachedSettings = data as AppSettings;
       lastSettingsFetch = now;
       return cachedSettings;
-    } catch (e) {
-      console.warn("[Subscription] app_settings query fallback:", e);
+    } catch {
       return defaultSettings;
     }
   },
@@ -98,31 +97,35 @@ export const subscription = {
     }
 
     if (premiumCheck.expired) {
-      await supabase
-        .from("users")
-        .update({ subscription_status: "free", updated_at: new Date().toISOString() })
-        .eq("id", user.id);
+      try {
+        await supabase
+          .from("users")
+          .update({ subscription_status: "free", updated_at: new Date().toISOString() })
+          .eq("id", user.id);
+      } catch {}
     }
 
-    const lastReset = new Date(user.last_limit_reset || 0);
+    // Daily reset — only update confirmed columns
+    const lastReset = new Date((user as any).last_limit_reset || 0);
     const todayStr = new Date().toDateString();
 
     if (lastReset.toDateString() !== todayStr) {
-      await supabase
-        .from("users")
-        .update({
-          ai_requests_used: 0,
-          ocr_requests_used: 0,
-          map_requests_used: 0,
-          job_searches_used: 0,
-          last_limit_reset: new Date().toISOString(),
-        })
-        .eq("id", user.id);
+      try {
+        await supabase
+          .from("users")
+          .update({
+            ai_requests_used: 0,
+            map_requests_used: 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", user.id);
+      } catch {}
 
-      user.ai_requests_used = 0;
-      user.ocr_requests_used = 0;
-      user.map_requests_used = 0;
-      user.job_searches_used = 0;
+      // Reset in memory
+      (user as any).ai_requests_used = 0;
+      (user as any).map_requests_used = 0;
+      (user as any).ocr_requests_used = 0;
+      (user as any).job_searches_used = 0;
     }
 
     let used = 0;
@@ -130,20 +133,20 @@ export const subscription = {
 
     switch (feature) {
       case "ai":
-        used = user.ai_requests_used || 0;
+        used = (user as any).ai_requests_used || 0;
         limit = settings.ai_limit_free;
         break;
       case "ocr":
-        used = user.ocr_requests_used || 0;
+        used = (user as any).ocr_requests_used || 0;
         limit = settings.ocr_limit_free;
         break;
       case "maps":
       case "routes":
-        used = user.map_requests_used || 0;
+        used = (user as any).map_requests_used || 0;
         limit = settings.map_limit_free;
         break;
       case "jobs":
-        used = user.job_searches_used || 0;
+        used = (user as any).job_searches_used || 0;
         limit = settings.jobs_limit_free;
         break;
     }
@@ -175,23 +178,32 @@ export const subscription = {
     const col = columnMap[feature];
 
     try {
+      // Use select("*") to avoid 400 if a specific column doesn't exist
       const { data: user } = await supabase
         .from("users")
-        .select(col)
+        .select("*")
         .eq("phone_number", phone)
         .maybeSingle();
 
-      const currentUsed = user ? user[col] || 0 : 0;
+      if (!user) return;
 
-      await supabase
+      const currentUsed = (user as any)?.[col] ?? 0;
+
+      // Only update the specific column + updated_at
+      const { error } = await supabase
         .from("users")
         .update({
           [col]: currentUsed + 1,
           updated_at: new Date().toISOString(),
         })
         .eq("phone_number", phone);
-    } catch (e) {
-      console.warn("[Subscription] Track usage error:", e);
+
+      // Silently ignore errors for optional columns that might not exist
+      if (error && (feature === "ocr" || feature === "jobs")) {
+        return; // Don't log — column may not exist in schema
+      }
+    } catch {
+      // Silent catch — don't flood console
     }
   },
 
@@ -211,10 +223,12 @@ export const subscription = {
 
       cachedSettings = null;
 
-      await supabase.from("admin_logs").insert({
-        action: actionLogMessage,
-        details: JSON.stringify(newSettings),
-      });
+      try {
+        await supabase.from("admin_logs").insert({
+          action: actionLogMessage,
+          details: JSON.stringify(newSettings),
+        });
+      } catch {}
 
       return true;
     } catch (err) {
