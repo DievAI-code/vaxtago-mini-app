@@ -29,6 +29,7 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const AdminIntegrations = lazy(() => import("./pages/AdminIntegrations"));
+const AdminMap = lazy(() => import("./pages/AdminMap"));
 
 const queryClient = new QueryClient();
 
@@ -44,7 +45,6 @@ const AnimatedRoutes = () => {
     <PageTransition>
       <Suspense fallback={<div className="min-h-screen-dynamic bg-[#06140F] flex items-center justify-center"><div className="w-10 h-10 border-4 border-[#00A86B]/20 border-t-[#00A86B] animate-spin rounded-full" /></div>}>
         <Routes location={location} key={location.pathname}>
-          {/* Default entry opens Home/AI directly */}
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
           <Route path="/ai" element={<AiAssistant />} />
@@ -56,14 +56,13 @@ const AnimatedRoutes = () => {
           <Route path="/map" element={<Maps />} />
           <Route path="/cabinet" element={<MyCabinet />} />
 
-          {/* Auth & Admin */}
           <Route path="/login" element={<Login />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           <Route path="/admin/integrations" element={<AdminRoute><AdminIntegrations /></AdminRoute>} />
+          <Route path="/admin/map" element={<AdminRoute><AdminMap /></AdminRoute>} />
 
-          {/* Utilities */}
           <Route path="/premium" element={<Premium />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/history" element={<History />} />

@@ -2,16 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Crown, Zap, Scan, Map as MapIcon, Link2, Settings, ArrowRight, RefreshCw } from "lucide-react";
+import { Users, Crown, Zap, Scan, Map as MapIcon, Link2, Settings, ArrowRight, RefreshCw, Globe } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
-import { useLanguage } from "@/context/LanguageProvider";
 import { motion } from "framer-motion";
 
 export default function AdminDashboard() {
   const nav = useNavigate();
-  const [stats, setStats] = useState({ users: 0, premium: 0, ai: 0, ocr: 0 });
+  const [stats, setStats] = useState({ users: 0, premium: 0, ai: 0, ocr: 0, aliases: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadStats(); }, []);
@@ -19,16 +18,19 @@ export default function AdminDashboard() {
   const loadStats = async () => {
     setLoading(true);
     try {
+      if (!supabase) return;
+      
       const { count: userCount } = await supabase.from("users").select("*", { count: "exact", head: true });
       const { count: premCount } = await supabase.from("users").select("*", { count: "exact", head: true }).eq("subscription_status", "premium");
       const { count: aiCount } = await supabase.from("assistant_messages").select("*", { count: "exact", head: true });
-      const { count: ocrCount } = await supabase.from("ocr_history").select("*", { count: "exact", head: true });
+      const { count: aliasCount } = await supabase.from("map_aliases").select("*", { count: "exact", head: true });
 
       setStats({
         users: userCount || 0,
         premium: premCount || 0,
         ai: aiCount || 0,
-        ocr: ocrCount || 0
+        ocr: 0,
+        aliases: aliasCount || 0
       });
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
@@ -36,9 +38,9 @@ export default function AdminDashboard() {
   const MENU = [
     { label: "Users", val: stats.users, icon: Users, color: "text-blue-400", path: "/admin/users" },
     { label: "Premium", val: stats.premium, icon: Crown, color: "text-[#D4AF37]", path: "/admin/users" },
+    { label: "Map Aliases", val: stats.aliases, icon: Globe, color: "text-cyan-400", path: "/admin/map" },
     { label: "Integrations", val: "Check", icon: Link2, color: "text-[#00A86B]", path: "/admin/integrations" },
     { label: "AI Usage", val: stats.ai, icon: Zap, color: "text-[#00A86B]", path: "/admin/settings" },
-    { label: "OCR Ops", val: stats.ocr, icon: Scan, color: "text-purple-400", path: "/admin/settings" },
   ];
 
   return (
