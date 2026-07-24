@@ -2,45 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { get2GISMapKey } from "@/lib/env";
+import { twoGisService } from "@/services/maps/twoGis";
+import { MapOSM } from "./MapOSM";
 import { AlertCircle, Loader2 } from "lucide-react";
-
-declare global {
-  interface Window {
-    DG: any;
-  }
-}
-
-let sdkLoadingPromise: Promise<void> | null = null;
-
-function load2GISSDK(apiKey: string): Promise<void> {
-  if (window.DG) {
-    return Promise.resolve();
-  }
-
-  if (sdkLoadingPromise) {
-    return sdkLoadingPromise;
-  }
-
-  sdkLoadingPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `https://maps.api.2gis.ru/2.0/load.js?pkg=full&mode=release&key=${apiKey}`;
-    script.async = true;
-    script.onload = () => {
-      if (window.DG) {
-        resolve();
-      } else {
-        reject(new Error("2GIS SDK failed to load"));
-      }
-    };
-    script.onerror = () => {
-      sdkLoadingPromise = null;
-      reject(new Error("Failed to load 2GIS Maps SDK script"));
-    };
-    document.body.appendChild(script);
-  });
-
-  return sdkLoadingPromise;
-}
 
 interface Map2GISProps {
   center: [number, number]; // [lat, lng]
@@ -48,7 +12,7 @@ interface Map2GISProps {
   markers?: any[];
   selectedMarkerId?: string | null;
   onSelectMarker?: (marker: any) => void;
-  userLocation?: [number, number] | null; // [lat, lng]
+  userLocation?: [number, number] | null;
   className?: string;
   autoOpenPopup?: boolean;
 }
@@ -65,123 +29,72 @@ export function Map2GIS({
 }: Map2GISProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
-  const markerRefs = useRef<Record<string, any>>({});
-  const userMarkerRef = useRef<any>(null);
-
-  const [sdkState, setSdkState] = useState<"loading" | "ready" | "error" | "no_key">("loading");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [status, setStatus] = useState<"loading" | "ready" | "fallback" | "no_key">("loading");
 
   const apiKey = get2GISMapKey();
 
   useEffect(() => {
     if (!apiKey) {
-      setSdkState("no_key");
+      setStatus("no_key");
       return;
     }
 
-    load2GISSDK(apiKey)
-      .then(() => {
-        setSdkState("ready");
+    let isMounted = true;
+
+    twoGisService
+      .loadSDK()
+      .then((sdk) => {
+        if (!isMounted || !containerRef.current || mapRef.current) return;
+        try {
+          const map = twoGisService.createMap(
+            { container: containerRef.current, center, zoom },
+            sdk
+          );
+          mapRef.current = map;
+          setStatus("ready");
+        } catch (e) {
+          console.warn("[2GIS Map Creation Error] Switching to OpenStreetMap fallback:", e);
+          setStatus("fallback");
+        }
       })
       .catch((err) => {
-        console.error("[2GIS SDK]", err);
-        setErrorMessage("Не удалось загрузить карты");
-        setSdkState("error");
+        console.warn("[2GIS SDK Load Error] Switching to OpenStreetMap fallback:", err);
+        if (isMounted) setStatus("fallback");
       });
-  }, [apiKey]);
-
-  useEffect(() => {
-    if (sdkState !== "ready" || !containerRef.current || !window.DG) return;
-
-    window.DG.then(() => {
-      if (!containerRef.current || mapRef.current) return;
-
-      try {
-        const map = window.DG.map(containerRef.current, {
-          center: [center[0], center[1]],
-          zoom: zoom,
-          zoomControl: true,
-          fullscreenControl: false,
-        });
-
-        mapRef.current = map;
-        updateMarkers();
-        if (userLocation) {
-          updateUserMarker();
-        }
-      } catch (e: any) {
-        console.error("Error initializing 2GIS Map:", e);
-        setErrorMessage("Ошибка инициализации карты 2ГИС");
-        setSdkState("error");
-      }
-    });
 
     return () => {
+      isMounted = false;
       if (mapRef.current) {
-        mapRef.current.remove();
+        try {
+          if (mapRef.current.destroy) mapRef.current.destroy();
+          else if (mapRef.current.remove) mapRef.current.remove();
+        } catch {}
         mapRef.current = null;
       }
     };
-  }, [sdkState]);
+  }, [apiKey]);
 
+  // Handle center / zoom changes
   useEffect(() => {
-    if (mapRef.current) {
-      mapRef.current.setView([center[0], center[1]], zoom);
+    if (mapRef.current && status === "ready") {
+      twoGisService.centerMap(mapRef.current, center, zoom);
     }
-  }, [center, zoom]);
+  }, [center, zoom, status]);
 
-  const updateMarkers = () => {
-    if (!mapRef.current || !window.DG) return;
-
-    Object.values(markerRefs.current).forEach((m) => m.remove());
-    markerRefs.current = {};
+  // Handle marker updates
+  useEffect(() => {
+    if (!mapRef.current || status !== "ready") return;
 
     markers.forEach((m) => {
-      const isSelected = selectedMarkerId === m.id;
+      const coords: [number, number] = m.coordinates || [center[0], center[1]];
       const title = m.title || m.employerName || m.address || "Объект";
-      const salary = m.salary ? ` (${m.salary})` : "";
-
-      const marker = window.DG.marker([m.coordinates[0], m.coordinates[1]]).addTo(mapRef.current);
-
-      marker.bindPopup(`<div style="color:#000; font-weight:600; font-size:12px; padding:4px;">${title}${salary}</div>`);
-
-      marker.on("click", () => {
-        if (onSelectMarker) {
-          onSelectMarker(m);
-        }
+      twoGisService.addMarker(mapRef.current, coords, title, () => {
+        if (onSelectMarker) onSelectMarker(m);
       });
-
-      markerRefs.current[m.id] = marker;
-
-      if (isSelected || autoOpenPopup) {
-        marker.openPopup();
-      }
     });
-  };
+  }, [markers, selectedMarkerId, status]);
 
-  useEffect(() => {
-    if (mapRef.current) {
-      updateMarkers();
-    }
-  }, [markers, selectedMarkerId, autoOpenPopup]);
-
-  const updateUserMarker = () => {
-    if (!mapRef.current || !userLocation || !window.DG) return;
-    if (userMarkerRef.current) {
-      userMarkerRef.current.remove();
-    }
-    const marker = window.DG.marker([userLocation[0], userLocation[1]]).addTo(mapRef.current);
-    marker.bindPopup(`<div style="color:#000; font-weight:700; font-size:12px; padding:4px;">Вы здесь</div>`);
-    userMarkerRef.current = marker;
-  };
-
-  useEffect(() => {
-    if (mapRef.current && userLocation) {
-      updateUserMarker();
-    }
-  }, [userLocation]);
-
-  if (sdkState === "no_key") {
+  if (status === "no_key") {
     return (
       <div className={`flex flex-col items-center justify-center p-6 bg-[#06140F] border border-[#1A3D2E] text-[#5C7A6D] text-xs font-bold text-center gap-2 ${className}`}>
         <AlertCircle className="text-amber-400" size={24} />
@@ -190,24 +103,30 @@ export function Map2GIS({
     );
   }
 
-  if (sdkState === "error") {
+  if (status === "fallback") {
     return (
-      <div className={`flex flex-col items-center justify-center p-6 bg-[#06140F] border border-red-500/20 text-red-400 text-xs font-bold text-center gap-2 ${className}`}>
-        <AlertCircle className="text-red-400" size={24} />
-        <span>{errorMessage || "Не удалось загрузить карты"}</span>
-      </div>
+      <MapOSM
+        center={center}
+        zoom={zoom}
+        markers={markers}
+        selectedMarkerId={selectedMarkerId}
+        onSelectMarker={onSelectMarker}
+        userLocation={userLocation}
+        className={className}
+        autoOpenPopup={autoOpenPopup}
+      />
     );
   }
 
   return (
     <div className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}>
-      {sdkState === "loading" && (
+      {status === "loading" && (
         <div className="absolute inset-0 bg-[#06140F] z-10 flex flex-col items-center justify-center gap-2 text-[#00A86B]">
           <Loader2 className="animate-spin" size={28} />
           <span className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">Загрузка карты 2ГИС...</span>
         </div>
       )}
-      <div ref={containerRef} className="w-full h-full" style={{ background: "#06140F" }} />
+      <div ref={containerRef} className="w-full h-full" style={{ minHeight: "350px", background: "#06140F" }} />
     </div>
   );
 }
