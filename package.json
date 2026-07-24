@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint .",
-    "pnpm:install": "pnpm install"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@radix-ui/react-toast": "^1.2.20",
