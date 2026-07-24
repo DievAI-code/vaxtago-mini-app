@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MapPin } from "lucide-react";
 import { loadYandexMaps } from "@/lib/yandexMaps";
 import { hasYandexMapsKey } from "@/config/maps";
 
@@ -37,7 +36,7 @@ export interface VacancyMarkerData {
   salary: string;
   city: string;
   address: string;
-  coordinates: [number, number]; // [longitude, latitude]
+  coordinates: [number, number];
   type: "employer" | "verified" | "premium";
   employerName: string;
   schedule?: string;
@@ -99,9 +98,7 @@ export function YandexMap({
         const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer } = ymaps;
 
         if (mapInstanceRef.current) {
-          try {
-            mapInstanceRef.current.destroy();
-          } catch {}
+          try { mapInstanceRef.current.destroy(); } catch {}
           mapInstanceRef.current = null;
         }
         if (mapContainerRef.current) {
@@ -109,10 +106,7 @@ export function YandexMap({
         }
 
         const map = new YMap(mapContainerRef.current!, {
-          location: {
-            center,
-            zoom,
-          },
+          location: { center, zoom },
         });
 
         map.addChild(new YMapDefaultSchemeLayer({}));
@@ -121,9 +115,8 @@ export function YandexMap({
         mapInstanceRef.current = map;
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         if (mounted) {
-          console.warn("[YandexMap] Failed to load script or API key missing:", err);
           setUseOsmFallback(true);
           setLoading(false);
         }
@@ -132,9 +125,7 @@ export function YandexMap({
     return () => {
       mounted = false;
       if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current.destroy();
-        } catch {}
+        try { mapInstanceRef.current.destroy(); } catch {}
         mapInstanceRef.current = null;
       }
     };
@@ -143,14 +134,8 @@ export function YandexMap({
   useEffect(() => {
     if (mapInstanceRef.current && center) {
       try {
-        mapInstanceRef.current.setLocation({
-          center,
-          zoom,
-          duration: 300,
-        });
-      } catch (err) {
-        console.warn("[YandexMap] setLocation error:", err);
-      }
+        mapInstanceRef.current.setLocation({ center, zoom, duration: 300 });
+      } catch {}
     }
   }, [center[0], center[1], zoom]);
 
@@ -169,60 +154,40 @@ export function YandexMap({
 
       let badgeBg = "bg-red-500 text-white border-red-400";
       let icon = "🔴";
-      if (m.type === "verified") {
-        badgeBg = "bg-[#00A86B] text-white border-[#00D4A8]";
-        icon = "🟢";
-      } else if (m.type === "premium") {
-        badgeBg = "bg-[#D4AF37] text-black border-yellow-300 font-bold";
-        icon = "⭐";
-      }
+      if (m.type === "verified") { badgeBg = "bg-[#00A86B] text-white border-[#00D4A8]"; icon = "🟢"; }
+      else if (m.type === "premium") { badgeBg = "bg-[#D4AF37] text-black border-yellow-300 font-bold"; icon = "⭐"; }
 
       el.innerHTML = `
-        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-2xl border ${badgeBg} ${
-          isSelected ? "ring-4 ring-white scale-110 z-50" : ""
-        }">
+        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-2xl border ${badgeBg} ${isSelected ? "ring-4 ring-white scale-110 z-50" : ""}">
           <span class="text-xs">${icon}</span>
           <span class="text-[11px] font-black tracking-tight whitespace-nowrap">${m.salary || m.title}</span>
         </div>
       `;
 
-      el.addEventListener("click", () => {
-        onSelectMarker?.(m);
-      });
+      el.addEventListener("click", () => onSelectMarker?.(m));
 
       try {
         const marker = new YMapMarker({ coordinates: m.coordinates }, el);
         map.addChild(marker);
         markerElements.push(marker);
-      } catch (e) {
-        console.warn("Failed to add map marker:", e);
-      }
+      } catch {}
     });
 
     if (userLocation) {
       const uEl = document.createElement("div");
-      uEl.innerHTML = `
-        <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow-xl flex items-center justify-center animate-pulse">
-          <div class="w-2.5 h-2.5 rounded-full bg-white"></div>
-        </div>
-      `;
+      uEl.innerHTML = `<div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow-xl flex items-center justify-center animate-pulse"><div class="w-2.5 h-2.5 rounded-full bg-white"></div></div>`;
       try {
         const userMarker = new YMapMarker({ coordinates: userLocation }, uEl);
         map.addChild(userMarker);
         markerElements.push(userMarker);
-      } catch (e) {}
+      } catch {}
     }
 
     return () => {
-      markerElements.forEach((mk) => {
-        try {
-          map.removeChild(mk);
-        } catch {}
-      });
+      markerElements.forEach((mk) => { try { map.removeChild(mk); } catch {} });
     };
   }, [markers, selectedMarkerId, userLocation, onSelectMarker, useOsmFallback]);
 
-  // OpenStreetMap Fallback UI
   if (useOsmFallback) {
     const lat = center[1];
     const lng = center[0];
@@ -239,7 +204,7 @@ export function YandexMap({
         >
           <ChangeView center={leafletCenter} zoom={zoom} />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            attribution='&copy; OpenStreetMap &copy; CARTO'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
           {markers.map((m) => (
@@ -247,14 +212,10 @@ export function YandexMap({
               key={m.id}
               position={[m.coordinates[1], m.coordinates[0]]}
               icon={customIcon}
-              eventHandlers={{
-                click: () => onSelectMarker?.(m),
-              }}
+              eventHandlers={{ click: () => onSelectMarker?.(m) }}
             >
               <Popup>
-                <div className="text-black font-semibold text-xs p-1">
-                  {m.title}
-                </div>
+                <div className="text-black font-semibold text-xs p-1">{m.title}</div>
               </Popup>
             </Marker>
           ))}
@@ -262,22 +223,21 @@ export function YandexMap({
             <Marker position={[userLocation[1], userLocation[0]]} icon={customIcon} />
           )}
         </MapContainer>
+        <div className="absolute top-2 left-2 z-[1000] bg-[#0C1F1A]/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#1A3D2E] text-[10px] font-bold text-[#00A86B] uppercase tracking-widest pointer-events-none">
+          Карта временно недоступна. Используем резервную карту.
+        </div>
       </div>
     );
   }
 
-  // Yandex Map UI
   return (
     <div className={`relative overflow-hidden bg-[#06140F] border border-[#1A3D2E] shadow-2xl ${className}`}>
       {loading && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#06140F]/90 backdrop-blur-md">
           <div className="w-10 h-10 rounded-full border-4 border-[#00A86B]/20 border-t-[#00A86B] animate-spin mb-3" />
-          <p className="text-xs font-bold text-[#00A86B] uppercase tracking-widest animate-pulse">
-            Загрузка карты...
-          </p>
+          <p className="text-xs font-bold text-[#00A86B] uppercase tracking-widest animate-pulse">Загрузка карты...</p>
         </div>
       )}
-
       <div ref={mapContainerRef} className="w-full h-full min-h-[350px]" />
     </div>
   );

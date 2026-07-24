@@ -14,16 +14,9 @@ export const geocodingService = {
   async searchAddress(query: string): Promise<GeocodingResult[]> {
     const apiKey = getYandexGeocoderKey();
 
-    // 1. Пробуем Яндекс Геокодер
     if (apiKey && apiKey.trim().length > 5) {
       try {
         const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${encodeURIComponent(query)}&format=json&results=5&lang=ru_RU`;
-        console.log("[YANDEX GEOCODER]", {
-          keyExists: !!apiKey,
-          query,
-          url
-        });
-
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -51,7 +44,6 @@ export const geocodingService = {
       }
     }
 
-    // 2. Резервный поиск через OpenStreetMap (Nominatim)
     try {
       const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&accept-language=ru`;
       const response = await fetch(osmUrl, {
@@ -61,22 +53,13 @@ export const geocodingService = {
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
-          return data.map((item: any) => {
-            const addrObj = item.address || {};
-            const city = addrObj.city || addrObj.town || addrObj.village || addrObj.state || "";
-            const road = addrObj.road || addrObj.street || "";
-            const house = addrObj.house_number || "";
-            let formattedAddr = [city, road, house].filter(Boolean).join(", ");
-            if (!formattedAddr) formattedAddr = item.display_name;
-
-            return {
-              latitude: parseFloat(item.lat),
-              longitude: parseFloat(item.lon),
-              display_name: formattedAddr,
-              name: item.nameddetails?.name || item.name || query,
-              city: city
-            };
-          });
+          return data.map((item: any) => ({
+            latitude: parseFloat(item.lat),
+            longitude: parseFloat(item.lon),
+            display_name: item.display_name,
+            name: item.name || query,
+            city: item.address?.city || item.address?.town
+          }));
         }
       }
     } catch (err: any) {
@@ -102,14 +85,9 @@ export const geocodingService = {
 
   async reverseGeocode(lat: number, lng: number): Promise<string> {
     const apiKey = getYandexGeocoderKey();
-    if (apiKey && apiKey.trim().length > 5) {
+    if (apiKey) {
       try {
         const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${lng},${lat}&format=json&results=1&lang=ru_RU`;
-        console.log("[YANDEX GEOCODER REVERSE]", {
-          keyExists: !!apiKey,
-          url
-        });
-
         const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();

@@ -18,7 +18,7 @@ export interface YandexRouteResult {
   source: "yandex" | "osrm";
 }
 
-let yandexScriptPromise: Promise<void> | null = null;
+let yandexScriptPromise: Promise<boolean> | null = null;
 
 function cleanQuery(text: string): string {
   const stopWords = ["покажи", "найди", "где находится", "на карте", "маршрут", "открой", "адрес", "город", "в", "на"];
@@ -41,46 +41,50 @@ export const yandexService = {
 
   async loadYandexMaps(): Promise<boolean> {
     if (!hasYandexMapsKey) {
-      console.warn("[Yandex] API Key missing. Skipping JS API load. Fallback to OSM.");
+      console.warn("[Yandex] Maps API Key missing. Fallback to OSM.");
       return false;
     }
 
     if (window.ymaps3) return true;
     if (yandexScriptPromise) {
-      try { await yandexScriptPromise; return true; } catch { return false; }
+      return yandexScriptPromise;
     }
 
-    yandexScriptPromise = new Promise<void>((resolve, reject) => {
+    yandexScriptPromise = new Promise<boolean>((resolve) => {
       const script = document.createElement("script");
       script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(YANDEX_MAPS_API_KEY)}&lang=ru_RU`;
       console.log("[YANDEX SCRIPT]", script.src);
       script.async = true;
+      
       script.onload = async () => {
-        console.log("[YANDEX LOADED]", Boolean(window.ymaps3));
         if (window.ymaps3) {
           try {
             await window.ymaps3.ready;
-            resolve();
+            console.log("[YANDEX LOADED]", true);
+            resolve(true);
           } catch (e) {
             console.warn("[Yandex] ymaps3.ready failed", e);
-            reject(e);
+            resolve(false);
           }
         } else {
-          reject(new Error("ymaps3 is undefined after script load"));
+          console.warn("[Yandex] ymaps3 is undefined after load");
+          resolve(false);
         }
       };
-      script.onerror = () => reject(new Error("Network error loading Yandex Maps script"));
+      
+      script.onerror = () => {
+        console.warn("[Yandex] Network error loading script. Fallback to OSM.");
+        resolve(false);
+      };
+      
       document.head.appendChild(script);
     });
 
-    try {
-      await yandexScriptPromise;
-      return true;
-    } catch (error) {
-      console.warn("[Yandex] Failed to load script, falling back to OSM:", error);
-      yandexScriptPromise = null;
-      return false;
+    const success = await yandexScriptPromise;
+    if (!success) {
+      yandexScriptPromise = null; // Allow retry
     }
+    return success;
   },
 
   async geocode(query: string): Promise<YandexSearchResult[]> {
@@ -90,16 +94,10 @@ export const yandexService = {
     if (hasYandexGeocoderKey) {
       try {
         const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(YANDEX_GEOCODER_API_KEY)}&geocode=${encodeURIComponent(target)}&format=json&results=5&lang=ru_RU`;
-        console.log("[YANDEX GEOCODER]", {
-          keyExists: !!YANDEX_GEOCODER_API_KEY,
-          query: target,
-          url
-        });
-
         const res = await fetch(url);
 
         if (!res.ok) {
-          console.warn(`[Yandex] Geocoder HTTP error: ${res.status}. Falling back to OSM.`);
+          console.warn(`[Yandex] Geocoder HTTP ${res.status}. Falling back to OSM.`);
         } else {
           const data = await res.json();
           const members = data.response?.GeoObjectCollection?.featureMember || [];
@@ -124,19 +122,16 @@ export const yandexService = {
 
     // OpenStreetMap fallback
     try {
-      const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(target)}&format=json&limit=5&accept-language=ru`;
-      const res = await fetch(osmUrl, { headers: { "User-Agent": "VAQTA-AI-Geocoder/1.0" } });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(target)}&format=json&limit=5&accept-language=ru`);
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          return data.map((item: any) => ({
-            title: item.display_name.split(",")[0],
-            address: item.display_name,
-            latitude: parseFloat(item.lat),
-            longitude: parseFloat(item.lon),
-            source: "openstreetmap",
-          }));
-        }
+        return data.map((item: any) => ({
+          title: item.display_name.split(",")[0],
+          address: item.display_name,
+          latitude: parseFloat(item.lat),
+          longitude: parseFloat(item.lon),
+          source: "openstreetmap",
+        }));
       }
     } catch {}
 

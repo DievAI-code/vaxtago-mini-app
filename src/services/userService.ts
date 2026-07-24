@@ -22,13 +22,6 @@ export interface User {
   last_login?: string;
 }
 
-export interface PremiumCheckResult {
-  isPremium: boolean;
-  allowed: boolean;
-  remaining: number | Infinity;
-  expired: boolean;
-}
-
 export async function getUserByPhone(phone: string): Promise<User | null> {
   const cleanPhone = normalizePhone(phone);
   if (!cleanPhone || !supabase) return null;
@@ -36,7 +29,7 @@ export async function getUserByPhone(phone: string): Promise<User | null> {
   try {
     const { data, error } = await supabase
       .from("users")
-      .select("*")
+      .select("id, phone_number, first_name, language_code, role, subscription_status, subscription_expires_at, ai_requests_used, map_requests_used, created_at, last_login")
       .eq("phone_number", cleanPhone)
       .maybeSingle();
 
@@ -62,14 +55,12 @@ export async function createUser(phone: string): Promise<User | null> {
       .insert({
         phone_number: cleanPhone,
         subscription_status: "free",
-        ai_requests_used: 0,
-        map_requests_used: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         last_login: new Date().toISOString(),
         language_code: "ru",
       })
-      .select()
+      .select("id, phone_number, first_name, language_code, role, subscription_status, subscription_expires_at, created_at, last_login")
       .maybeSingle();
 
     if (error) {
@@ -84,12 +75,6 @@ export async function createUser(phone: string): Promise<User | null> {
   }
 }
 
-export async function findOrCreateUser(phone: string): Promise<User | null> {
-  const existing = await getUserByPhone(phone);
-  if (existing) return existing;
-  return await createUser(phone);
-}
-
 export async function updateUserSubscription(
   userId: string,
   data: {
@@ -99,62 +84,31 @@ export async function updateUserSubscription(
 ): Promise<boolean> {
   if (!supabase) return false;
 
-  // Only include confirmed columns to prevent 400 errors
   const updateData: Record<string, any> = {
     updated_at: new Date().toISOString(),
   };
 
-  if (data.subscription_status !== undefined) {
-    updateData.subscription_status = data.subscription_status;
-  }
-  if (data.subscription_expires_at !== undefined) {
-    updateData.subscription_expires_at = data.subscription_expires_at;
-  }
+  if (data.subscription_status !== undefined) updateData.subscription_status = data.subscription_status;
+  if (data.subscription_expires_at !== undefined) updateData.subscription_expires_at = data.subscription_expires_at;
 
   try {
-    const { error } = await supabase
-      .from("users")
-      .update(updateData)
-      .eq("id", userId);
-
-    if (error) {
-      console.warn("[userService] updateUserSubscription error:", error.message);
-      return false;
-    }
-
+    const { error } = await supabase.from("users").update(updateData).eq("id", userId);
+    if (error) return false;
     return true;
-  } catch (err) {
-    console.warn("[userService] updateUserSubscription exception:", err);
+  } catch {
     return false;
   }
 }
 
-export function checkPremiumAccess(user: User | null): PremiumCheckResult {
-  if (!user) {
-    return { isPremium: false, allowed: false, remaining: 0, expired: false };
-  }
-
+export function checkPremiumAccess(user: User | null): { isPremium: boolean; expired: boolean } {
+  if (!user) return { isPremium: false, expired: false };
   if (user.subscription_status === "premium") {
     if (user.subscription_expires_at) {
-      const expiry = new Date(user.subscription_expires_at);
-      if (expiry <= new Date()) {
-        return { isPremium: false, allowed: false, remaining: 0, expired: true };
+      if (new Date(user.subscription_expires_at) <= new Date()) {
+        return { isPremium: false, expired: true };
       }
     }
-    return { isPremium: true, allowed: true, remaining: Infinity, expired: false };
+    return { isPremium: true, expired: false };
   }
-
-  return { isPremium: false, allowed: false, remaining: 0, expired: false };
-}
-
-export async function updateLastLogin(phone: string): Promise<void> {
-  const cleanPhone = normalizePhone(phone);
-  if (!cleanPhone || !supabase) return;
-
-  try {
-    await supabase
-      .from("users")
-      .update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq("phone_number", cleanPhone);
-  } catch {}
+  return { isPremium: false, expired: false };
 }
