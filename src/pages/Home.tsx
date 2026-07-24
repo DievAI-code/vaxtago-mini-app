@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Send, User, Bot, X, ImageIcon, Camera, Mic, 
-  Briefcase, MapPin, FileText, Sparkles, Languages, Heart 
+  Briefcase, MapPin, Sparkles 
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
@@ -36,8 +36,9 @@ export default function Home() {
     }
   }, [messages, isTyping]);
 
-  const handleSend = async () => {
-    if ((!input.trim() && !attachedImage) || isTyping) return;
+  const handleSend = async (overrideText?: string) => {
+    const textToSend = overrideText !== undefined ? overrideText : input;
+    if ((!textToSend.trim() && !attachedImage) || isTyping) return;
 
     const access = await subscription.checkUserAccess("ai");
     if (!access.allowed) {
@@ -45,47 +46,32 @@ export default function Home() {
       return;
     }
 
-    const userMsg = input.trim();
     setInput("");
     const img = attachedImage;
     setAttachedImage(null);
 
-    await sendMessage(userMsg, img || undefined);
+    await sendMessage(textToSend.trim(), img || undefined);
     await subscription.trackUsage("ai");
   };
 
-  // Requested Action Cards
-  const ACTION_CARDS = [
-    { 
-      label: language === "uz_cyr" ? "🤖 AI ёрдамчи" : "🤖 AI yordamchi", 
-      desc: language === "uz_cyr" ? "Савол ва исталган ёрдам" : "Savol va istalgan yordam",
-      color: "from-[#00A86B] to-[#00D4A8]",
-      action: () => nav("/ai") 
-    },
-    { 
-      label: language === "uz_cyr" ? "📷 Расмдан таржима" : "📷 Rasmdan tarjima", 
-      desc: language === "uz_cyr" ? "Ҳужжат ва чек фотоси" : "Hujjat va chek fotosi",
-      color: "from-[#00A3E0] to-[#2563EB]",
-      action: () => nav("/scanner") 
-    },
-    { 
-      label: language === "uz_cyr" ? "💼 Иш топиш" : "💼 Ish topish", 
-      desc: language === "uz_cyr" ? "Текширилган вакансиялар" : "Tekshirilgan vakansiyalar",
-      color: "from-emerald-600 to-teal-500",
-      action: () => nav("/jobs-test") 
-    },
-    { 
-      label: language === "uz_cyr" ? "📍 Манзил топиш" : "📍 Manzil topish", 
-      desc: language === "uz_cyr" ? "2ГИС харита ва маршрут" : "2GIS xarita va marshrut",
-      color: "from-blue-600 to-indigo-600",
-      action: () => { setInput(language.startsWith("uz") ? "Toshkent vokzali" : "Вокзал Тюмень"); } 
-    },
-    { 
-      label: language === "uz_cyr" ? "📄 Ҳужжат ёрдам" : "📄 Hujjat yordam", 
-      desc: language === "uz_cyr" ? "Патент ва шартнома" : "Patent va shartnoma",
-      color: "from-purple-600 to-pink-600",
-      action: () => nav("/contract-audit") 
-    },
+  const getGreetingText = () => {
+    if (language === "uz_cyr") {
+      return "Ассалому алайкум 👋\nМен иш топиш, ҳужжатлар, таржима ва манзил топишда ёрдам бераман.";
+    }
+    if (language === "uz") {
+      return "Assalomu alaykum 👋\nMen ish topish, hujjatlar, tarjima va manzil topishda yordam beraman.";
+    }
+    if (language === "en") {
+      return "Hello 👋\nI can help you with jobs, documents, translation and locations.";
+    }
+    return "Здравствуйте 👋\nЯ помогу найти работу, перевести документы, найти адрес и разобраться с вопросами.";
+  };
+
+  const MAIN_BUTTONS = [
+    { label: t("buttons.ai") || "🤖 AI", color: "from-[#00A86B] to-[#00D4A8]", action: () => nav("/ai") },
+    { label: t("buttons.scanner") || "📷 Перевод фото", color: "from-purple-600 to-indigo-500", action: () => nav("/scanner") },
+    { label: t("buttons.jobs") || "💼 Работа", color: "from-emerald-600 to-teal-500", action: () => nav("/jobs-test") },
+    { label: t("buttons.maps") || "📍 Карта", color: "from-amber-500 to-orange-500", action: () => nav("/maps") },
   ];
 
   return (
@@ -93,72 +79,52 @@ export default function Home() {
       <Header title="nav.home" onMenuClick={() => setIsMenuOpen(true)} />
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-5 no-scrollbar smooth-scroll pb-36 pt-safe">
+      {/* Main Telegram Chat Container */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar smooth-scroll pb-36 pt-safe">
         
-        {/* Uzbekistan 🇺🇿 ⇄ 🇷🇺 Russia Friendship Welcome Banner */}
+        {/* Top App Welcome Card */}
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="vaqta-glass p-5 border-[#00A86B]/30 bg-gradient-to-br from-[#00A86B]/15 via-[#0C1F1A] to-[#1E40AF]/15 space-y-4 shadow-2xl relative overflow-hidden"
+          className="vaqta-glass p-5 border-[#00A86B]/30 bg-gradient-to-br from-[#00A86B]/15 via-[#0C1F1A] to-[#06140F] space-y-3 shadow-2xl"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full vaqta-friendship-badge">
-              <span className="text-sm">🇺🇿</span>
-              <span className="text-[10px] font-black text-[#00D4A8] uppercase tracking-wider">
-                {language === "uz_cyr" ? "Ўзбекистондан" : "O'zbekistondan"}
-              </span>
-              <span className="text-xs text-slate-400">⇄</span>
-              <span className="text-sm">🇷🇺</span>
-              <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">
-                {language === "uz_cyr" ? "Россияда ёрдамчи" : "Rossiyada yordamchi"}
-              </span>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl vaqta-gradient flex items-center justify-center text-white shadow-xl vaqta-glow flex-shrink-0">
+              <Bot size={28} />
             </div>
-            <div className="w-8 h-8 rounded-full vaqta-gradient flex items-center justify-center text-white shadow-md">
-              <Bot size={18} />
+            <div>
+              <span className="font-black text-white text-lg tracking-tight">
+                VAQTA <span className="text-[#00A86B]">AI</span>
+              </span>
+              <p className="text-[10px] text-[#00A86B] font-black uppercase tracking-widest">
+                🤖 Ақылды көмекши / Умный помощник
+              </p>
             </div>
           </div>
-
-          <div>
-            <h1 className="text-2xl font-black text-white tracking-tight">VAQTA <span className="text-[#00A86B]">AI</span></h1>
-            <p className="text-xs text-slate-300 font-bold mt-1 leading-relaxed">
-              {language === "uz_cyr" 
-                ? "AI ёрдамчи сизга қуйидагилар бўйича ёрдам беради:" 
-                : "AI yordamchi sizga quyidagilar bo'yicha yordam beradi:"}
-            </p>
-            <div className="grid grid-cols-2 gap-2 mt-3 text-[11px] font-bold text-slate-200">
-              <div className="flex items-center gap-1.5"><span className="text-[#00A86B]">•</span> {language.startsWith("uz") ? "Ish qidirish" : "Поиск работы"}</div>
-              <div className="flex items-center gap-1.5"><span className="text-[#00A3E0]">•</span> {language.startsWith("uz") ? "Hujjatlar" : "Документы"}</div>
-              <div className="flex items-center gap-1.5"><span className="text-blue-400">•</span> {language.startsWith("uz") ? "Tarjimalar" : "Переводы"}</div>
-              <div className="flex items-center gap-1.5"><span className="text-emerald-400">•</span> {language.startsWith("uz") ? "2GIS Manzil" : "Поиск адресов"}</div>
-            </div>
-          </div>
+          <h2 className="text-xs font-bold text-slate-100 leading-relaxed whitespace-pre-line">
+            {getGreetingText()}
+          </h2>
         </motion.div>
 
-        {/* Feature Cards Grid */}
+        {/* 4 Big Main Function Buttons */}
         <div className="grid grid-cols-2 gap-3">
-          {ACTION_CARDS.map((card, idx) => (
+          {MAIN_BUTTONS.map((btn, idx) => (
             <motion.button
               key={idx}
               whileTap={{ scale: 0.95 }}
-              onClick={card.action}
-              className={`vaqta-glass p-4 border-[#1A3D2E] flex flex-col items-start gap-2 text-left active:scale-95 transition-all shadow-lg hover:border-[#00A86B]/50 ${idx === 4 ? "col-span-2 flex-row items-center justify-between" : ""}`}
+              onClick={btn.action}
+              className="vaqta-glass p-4 border-[#1A3D2E] flex items-center gap-3 text-left active:scale-95 transition-all shadow-lg hover:border-[#00A86B]/50"
             >
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${card.color} flex items-center justify-center text-white shadow-md flex-shrink-0`}>
-                  <span className="text-base">{card.label.split(" ")[0]}</span>
-                </div>
-                <div>
-                  <h3 className="text-xs font-black text-white leading-tight uppercase tracking-wider">{card.label.slice(2)}</h3>
-                  <p className="text-[10px] text-[#5C7A6D] font-bold">{card.desc}</p>
-                </div>
-              </div>
+              <span className="text-sm font-black text-white leading-tight uppercase tracking-wider">
+                {btn.label}
+              </span>
             </motion.button>
           ))}
         </div>
 
-        {/* Dynamic Chat Stream */}
+        {/* Dynamic Chat Bubbles */}
         {messages.map((m, i) => (
-          <div key={i} className="space-y-3">
+          <div key={i} className="space-y-2">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -172,6 +138,22 @@ export default function Home() {
               </div>
             </motion.div>
 
+            {/* Response action chips */}
+            {m.role === "assistant" && m.chips && m.chips.length > 0 && (
+              <div className="pl-10 flex flex-wrap gap-2 pt-1">
+                {m.chips.map((chip, cIdx) => (
+                  <button
+                    key={cIdx}
+                    onClick={() => handleSend(chip.value)}
+                    className="px-3 py-2 bg-[#00A86B]/15 border border-[#00A86B]/40 text-[#00A86B] hover:bg-[#00A86B] hover:text-white rounded-xl text-xs font-black transition-all active:scale-95 shadow-md"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* 2GIS Map Card embed */}
             {m.role === "assistant" && m.action && (
               <div className="pl-10">
                 <MapCard 
@@ -197,7 +179,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Input Bar */}
+      {/* Bottom Input Area */}
       <div className="fixed bottom-20 left-0 w-full px-3 pb-2 z-50">
         <AnimatePresence>
           {attachedImage && (
@@ -223,12 +205,12 @@ export default function Home() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
-            placeholder={t("chat.placeholder")}
+            placeholder={t("chat_ph") || "Напишите вопрос..."}
             className="flex-1 bg-transparent py-2 text-xs text-white focus:outline-none resize-none max-h-28 min-h-[36px] no-scrollbar font-bold"
             rows={1}
           />
 
-          <button onClick={handleSend} disabled={!input.trim() && !attachedImage} className="p-2.5 bg-[#00A86B] text-white rounded-xl disabled:opacity-20 transition-all shadow-lg active:scale-95 vaqta-glow">
+          <button onClick={() => handleSend()} disabled={!input.trim() && !attachedImage} className="p-2.5 bg-[#00A86B] text-white rounded-xl disabled:opacity-20 transition-all shadow-lg active:scale-95 vaqta-glow">
             <Send size={16} />
           </button>
         </div>

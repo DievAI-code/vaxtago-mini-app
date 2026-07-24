@@ -1,91 +1,66 @@
 {
-  "greeting": "Sizga ish, hujjatlar, tarjima va manzillar bo'yicha yordam beraman",
-  "select_language_title": "Tilni tanlang",
-  "welcome": "VAQTA AI ga xush kelibsiz",
-  "login": "Tizimga kirish",
-  "phone": "Telefon raqami",
-  "continue": "Davom etish",
-  "profile": "Profil",
-  "assistant": "AI yordamchi",
-  "translator": "Rasm tarjima",
-  "documents": "Hujjatlar",
-  "jobs": "Ish qidirish",
-  "maps": "Manzil topish",
-  "premium": "Premium",
-  "settings": "Sozlamalar",
-  "logout": "Chiqish",
-  "errors": "Xatolik yuz berdi",
-  "auth": {
-    "subtitle": "Ish, hujjat va tarjimalar bo'yicha raqamli yordamchi",
-    "phone_label": "Telefon raqami",
-    "phone_placeholder": "+998 (__) ___ __ __",
-    "phone_prompt": "Telefon raqamingizni kiriting",
-    "privacy_note": "Davom etish orqali foydalanish shartlariga rozi bo'lasiz",
-    "select_lang": "Tilni tanlang",
-    "welcome": "Xush kelibsiz",
-    "login_title": "Hisobga kirish"
-  },
+  "app_title": "VAQTA AI",
+  "app_subtitle": "Aqlli yordamchi",
+  "greeting": "Assalomu alaykum 👋\nMen ish topish, hujjatlar, tarjima va manzil topishda yordam beraman.",
+  "chat_ph": "Savol yoki manzilni yozing...",
+  "chat_placeholder": "Savol yoki manzilni yozing...",
   "nav": {
-    "home": "Bosh sahifa",
-    "ai": "AI yordamchi",
-    "scanner": "Tarjima",
+    "home": "AI",
+    "ai": "AI",
+    "scanner": "Rasm tarjima",
     "jobs": "Ish",
+    "map": "Karta",
+    "profile": "Profil",
     "premium": "Premium",
     "settings": "Sozlamalar",
-    "cabinet": "Mening kabinetim",
-    "history": "Tarix",
-    "tracker": "Patent taqvimi",
-    "sos": "Tekshiruvda yordam"
+    "tracker": "Patent",
+    "sos": "Yordam"
   },
-  "home": {
-    "title": "VAQTA AI",
-    "subtitle": "Ish va hayot uchun raqamli yordamchi",
-    "find_job": "Ish qidirish",
-    "check_doc": "Hujjatni tekshirish",
-    "translate_photo": "Rasm tarjima",
-    "find_address": "Manzil topish",
-    "ask_ai": "AI yordamchi",
-    "quick_services": "Tezkor xizmatlar"
-  },
-  "maps": {
-    "open": "Xaritada ochish",
-    "route": "Yo'nalish chizish",
-    "distance": "Masofa",
-    "time": "Yo'l vaqti",
-    "location": "Mening joylashuvim",
-    "search": "Qidirish",
-    "nearby": "Yaqin atrofda",
-    "found_address": "Manzil topildi",
-    "not_found": "Uzr, topilmadi. Shahar nomini ham yozib ko'ring."
-  },
-  "jobs": {
-    "placeholder": "Sizga qanday ish kerak?",
-    "found_count": "Vakansiyalar",
-    "search_title": "Ish qidirish"
+  "buttons": {
+    "ai": "🤖 AI",
+    "scanner": "📷 Rasm tarjima",
+    "jobs": "💼 Ish",
+    "maps": "📍 Karta",
+    "send": "Yuborish",
+    "take_photo": "Kamera",
+    "gallery": "Galereya",
+    "save": "Saqlash",
+    "route": "Marshrut",
+    "open_map": "Xaritada ochish"
   },
   "scanner": {
     "title": "Rasm tarjima",
-    "desc": "Hujjat yoki matn rasmini yuboring — o'zbekchaga o'girib beraman",
-    "upload_area": "Rasm tanlash uchun bosing",
-    "step_ocr": "Matn o'qilmoqda...",
-    "step_translate": "Tarjima qilinmoqda...",
-    "result_ready": "Tarjima tayyor!",
-    "original_text": "Asl matn",
-    "translation": "Tarjima",
-    "new_scan": "Yangi rasm yuborish",
+    "desc": "Hujjat yoki chek fotosini yuboring — o'zbek tiliga o'girib beraman.",
     "take_photo": "Kameradan olish",
-    "gallery": "Galereya"
+    "gallery": "Galereyadan tanlash",
+    "processing": "Matn o'qilmoqda va tarjima qilinmoqda...",
+    "result_ready": "Tarjima tayyor!",
+    "original": "Asl rasm",
+    "translated": "Tarjima qilingan rasm",
+    "download": "Rasmni saqlab olish",
+    "new_scan": "Yangi rasm"
   },
-  "chat": {
-    "welcome": "Sizga ish, hujjatlar, tarjima va manzillar bo'yicha yordam beraman",
-    "placeholder": "Savol yoki manzilni yozing...",
-    "sub_hint": "Savol bering, rasm yuboring yoki manzilni so'rang"
+  "maps": {
+    "title": "2GIS Xarita",
+    "search_ph": "Tyumen vokzal, Moskva metro...",
+    "not_found": "Uzr, topilmadi. Shahar nomini ham yozib ko'ring.",
+    "route": "Marshrut tuzish"
   },
-  "common": {
-    "continue": "Davom etish",
-    "loading": "Yuklanmoqda...",
-    "error": "Xatolik",
-    "done": "Tayyor",
-    "search": "Qidirish"
+  "jobs": {
+    "title": "Ish qidirish",
+    "search_ph": "Kasb va shahar (payvandchi Moskva)...",
+    "found_count": "Vakansiyalar",
+    "apply": "Ariza yuborish"
+  },
+  "premium": {
+    "title": "VAQTA Premium",
+    "subtitle": "Cheksiz AI va rasm tarjima",
+    "buy": "Premium ulash"
+  },
+  "profile": {
+    "title": "Profil",
+    "subscription": "Tarif",
+    "login_prompt": "Saqlash va tarifni oshirish uchun tizimga kiring",
+    "login_btn": "Tizimga kirish"
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Camera, Loader2, Globe, ChevronRight, RefreshCw, CheckCircle, Image as ImageIcon, Download, Share2 } from "lucide-react";
+import { Camera, Loader2, Globe, RefreshCw, CheckCircle, Image as ImageIcon, Download } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { imageTranslationService } from "@/services/imageTranslationService";
@@ -51,12 +51,12 @@ export default function Scanner() {
     a.href = result.translated;
     a.download = "vaqta-translated-doc.jpg";
     a.click();
-    toast.success(t("common.done"));
+    toast.success(t("common.done") || "Готово");
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-36">
-      <Header title="nav.scanner" showBack />
+      <Header title="scanner.title" showBack />
       
       <main className="p-4 space-y-5">
         <div className="vaqta-glass p-3.5 border-[#1A3D2E] flex items-center justify-between">
@@ -117,7 +117,7 @@ export default function Scanner() {
              <div className="vaqta-glass p-4 border-[#00A86B]/30 relative overflow-hidden space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase text-[#00A86B] flex items-center gap-1">
-                    <CheckCircle size={14} /> AI Translation ({targetLang.toUpperCase()})
+                    <CheckCircle size={14} /> {t("scanner.translated")}
                   </span>
                   <button onClick={() => setResult(null)} className="text-xs text-[#5C7A6D] hover:text-white flex items-center gap-1 font-bold">
                     <RefreshCw size={12} /> {t("scanner.new_scan")}
@@ -129,12 +129,12 @@ export default function Scanner() {
                   onClick={handleDownload}
                   className="w-full h-12 bg-[#00A86B] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg vaqta-glow"
                 >
-                  <Download size={16} /> Сақлаб олиш
+                  <Download size={16} /> {t("scanner.download")}
                 </button>
              </div>
 
              <div className="vaqta-glass p-4 border-[#1A3D2E]">
-                <h3 className="text-[10px] font-black uppercase text-[#5C7A6D] mb-2">{t("scanner.original_text")}</h3>
+                <h3 className="text-[10px] font-black uppercase text-[#5C7A6D] mb-2">{t("scanner.original")}</h3>
                 <img src={result.original} className="w-full rounded-2xl max-h-40 object-cover opacity-80" alt="Original" />
              </div>
           </div>
@@ -143,7 +143,7 @@ export default function Scanner() {
         {loading && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex flex-col items-center justify-center gap-4">
             <Loader2 className="animate-spin text-[#00A86B]" size={48} />
-            <p className="text-[#00A86B] font-black uppercase tracking-[0.2em] animate-pulse text-xs">{t("scanner.step_translate")}</p>
+            <p className="text-[#00A86B] font-black uppercase tracking-[0.2em] animate-pulse text-xs">{t("scanner.processing")}</p>
           </div>
         )}
       </main>
