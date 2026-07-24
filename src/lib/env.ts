@@ -1,59 +1,40 @@
 "use client";
 
-/**
- * Модуль валидации окружения.
- * Гарантирует, что приложение не будет делать запросы к 'your-project' шаблонам.
- */
-
 export function getSupabaseUrl(): string {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  if (!url || url.includes("your-project") || url.includes("example")) {
-    console.error("CRITICAL: VITE_SUPABASE_URL is missing or invalid.");
-    return ""; 
-  }
+  const url = import.meta.env.VITE_SUPABASE_URL || "";
+  if (url.includes("your-project")) return "";
   return url;
 }
 
 export function getSupabaseAnonKey(): string {
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  if (!key || key.includes("your-anon-key") || key.includes("example")) {
-    console.error("CRITICAL: VITE_SUPABASE_ANON_KEY is missing or invalid.");
-    return "";
-  }
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+  if (key.includes("your-anon-key")) return "";
   return key;
 }
 
-export function getYandexMapsKey(): string {
-  return import.meta.env.VITE_YANDEX_MAPS_API_KEY || "";
+export function getYandexKey(): string {
+  return import.meta.env.VITE_YANDEX_MAPS_API_KEY || import.meta.env.VITE_YANDEX_MAPS_KEY || "";
 }
 
 export function getYandexGeocoderKey(): string {
-  return import.meta.env.VITE_YANDEX_GEOCODER_API_KEY || getYandexMapsKey();
+  return import.meta.env.VITE_YANDEX_GEOCODER_API_KEY || getYandexKey();
 }
 
-/**
- * Проверка готовности приложения к работе с внешними API
- */
 export function isConfigured(): boolean {
   return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
 }
 
-/**
- * Диагностика переменных окружения
- */
 export function logEnvDiagnostics() {
-  console.log('[VAQTA ENV] diagnostics:', {
-    supabaseUrl: getSupabaseUrl() ? '✅ OK' : '❌ MISSING',
-    supabaseKey: getSupabaseAnonKey() ? '✅ OK' : '❌ MISSING',
-    yandexMapsKey: getYandexMapsKey() ? '✅ OK' : '❌ MISSING',
-    yandexGeocoderKey: getYandexGeocoderKey() ? '✅ OK' : '❌ MISSING',
-    isConfigured: isConfigured()
+  const yKey = getYandexKey();
+  const gKey = getYandexGeocoderKey();
+  
+  console.log('[VAQTA DIAGNOSTICS]', {
+    Supabase: isConfigured() ? '✅ Connected' : '❌ Config Missing',
+    YandexMaps: yKey ? `✅ Key Present (${yKey.slice(0, 4)}...)` : '❌ Key Missing',
+    YandexGeocoder: gKey ? `✅ Key Present (${gKey.slice(0, 4)}...)` : '❌ Fallback to Maps Key'
   });
 }
 
-// Автоматическая диагностика при импорте
 if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    logEnvDiagnostics();
-  }, 1000);
+  logEnvDiagnostics();
 }
