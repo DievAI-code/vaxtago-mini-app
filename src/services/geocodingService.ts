@@ -1,6 +1,6 @@
 "use client";
 
-import { getYandexKey } from "@/lib/env";
+import { YANDEX_GEOCODER_API_KEY } from "@/config/maps";
 
 export interface GeocodingResult {
   latitude: number;
@@ -11,11 +11,8 @@ export interface GeocodingResult {
 }
 
 export const geocodingService = {
-  /**
-   * Поиск координат по адресу (Yandex -> Nominatim Fallback)
-   */
   async searchAddress(query: string): Promise<GeocodingResult[]> {
-    const apiKey = getYandexKey();
+    const apiKey = YANDEX_GEOCODER_API_KEY;
 
     // 1. Пробуем Яндекс Геокодер
     if (apiKey && apiKey.trim().length > 5) {
@@ -83,9 +80,6 @@ export const geocodingService = {
     return [];
   },
 
-  /**
-   * Запрос с полной валидацией ввода для формы
-   */
   async searchAddressFull(query: string): Promise<{ isTooShort: boolean; results: GeocodingResult[]; error: string | null }> {
     const trimmed = query.trim();
     if (trimmed.length < 3) {
@@ -100,11 +94,8 @@ export const geocodingService = {
     };
   },
 
-  /**
-   * Получение адреса по координатам
-   */
   async reverseGeocode(lat: number, lng: number): Promise<string> {
-    const apiKey = getYandexKey();
+    const apiKey = YANDEX_GEOCODER_API_KEY;
     if (apiKey) {
       try {
         const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${lng},${lat}&format=json&results=1`;

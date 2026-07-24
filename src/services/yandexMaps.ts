@@ -1,5 +1,7 @@
 "use client";
 
+import { YANDEX_GEOCODER_API_KEY } from "@/config/maps";
+
 export interface GeocodingResult {
   latitude: number;
   longitude: number;
@@ -18,7 +20,7 @@ class YandexMapsService {
   private apiKey: string;
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_YANDEX_MAPS_KEY || "";
+    this.apiKey = YANDEX_GEOCODER_API_KEY;
   }
 
   async searchAddress(query: string): Promise<GeocodingResult[]> {
@@ -28,9 +30,7 @@ class YandexMapsService {
     }
 
     try {
-      const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${this.apiKey}&geocode=${encodeURIComponent(
-        query
-      )}&format=json&results=5&lang=ru_RU`;
+      const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${this.apiKey}&geocode=${encodeURIComponent(query)}&format=json&results=5&lang=ru_RU`;
       const response = await fetch(url);
 
       if (!response.ok) {
