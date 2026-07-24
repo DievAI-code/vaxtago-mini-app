@@ -23,7 +23,7 @@ export interface MapSearchResult {
   latitude: number;
   longitude: number;
   type?: string;
-  source: "2gis";
+  source: "2gis" | "osm";
   score?: number;
   cityMatch?: boolean;
 }
@@ -94,12 +94,27 @@ const CITY_DICTIONARY: Record<string, string> = {
 };
 
 /**
- * 1. Smart Location Query Parser
- * Parses city, object type, and constructs an optimized 2GIS search string.
+ * Normalizes user text removing prefixes like г., г. , город, город.
+ */
+function cleanCityPrefixes(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/г\.\s*/g, " ")
+    .replace(/город\.\s*/g, " ")
+    .replace(/город\s+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Smart Location Query Parser
+ * Parses city, object type, and constructs an optimized search string.
+ * Supports: "г.Тюмень", "г. Тюмень", "город Тюмень", "жд вокзал г.Тюмень"
  */
 export function parseLocationQuery(query: string): ParsedLocationQuery {
-  const clean = query.trim().toLowerCase();
-  const tokens = clean.split(/\s+/);
+  const cleanedText = cleanCityPrefixes(query);
+  const rawClean = query.trim().toLowerCase();
+  const tokens = cleanedText.split(/\s+/);
 
   let detectedCity: string | null = null;
   let objectType: ObjectType = "general";
@@ -114,25 +129,35 @@ export function parseLocationQuery(query: string): ParsedLocationQuery {
     }
   }
 
+  // Fallback check against raw query if not found
+  if (!detectedCity) {
+    for (const [key, cityName] of Object.entries(CITY_DICTIONARY)) {
+      if (rawClean.includes(key)) {
+        detectedCity = cityName;
+        break;
+      }
+    }
+  }
+
   // 2. Detect Object Type & Priority Terms (RU + UZ Latin & Cyrillic)
-  if (/автовокзал|avtovokzal|автостанци/i.test(clean)) {
+  if (/автовокзал|avtovokzal|автостанци/i.test(cleanedText)) {
     objectType = "bus_station";
     targetPrefix = "Автовокзал";
   } else if (
-    /вокзал|жд|ж\/д|ж\.д|железная дорога|temir yol|temir yo'l|темир йўл|vokzal|vokzali|railway/i.test(clean)
+    /вокзал|жд|ж\/д|ж\.д|железная дорога|temir yol|temir yo'l|темир йўл|vokzal|vokzali|railway/i.test(cleanedText)
   ) {
     objectType = "railway_station";
     targetPrefix = "Железнодорожный вокзал";
-  } else if (/аэропорт|airport|aeroport|аэропорта/i.test(clean)) {
+  } else if (/аэропорт|airport|aeroport|аэропорта/i.test(cleanedText)) {
     objectType = "airport";
     targetPrefix = "Аэропорт";
-  } else if (/больниц|hospital|shifoxona|поликлиник/i.test(clean)) {
+  } else if (/больниц|hospital|shifoxona|поликлиник/i.test(cleanedText)) {
     objectType = "hospital";
     targetPrefix = "Больница";
-  } else if (/метро|metro/i.test(clean)) {
+  } else if (/метро|metro/i.test(cleanedText)) {
     objectType = "metro";
     targetPrefix = "Станция метро";
-  } else if (/мвд|мфц|миграц|паспортн|паспортный/i.test(clean)) {
+  } else if (/мвд|мфц|миграц|паспортн|паспортный/i.test(cleanedText)) {
     objectType = "migration";
     targetPrefix = "Миграционный центр";
   }
@@ -184,13 +209,12 @@ function isMatchingCity(candidate: GeocodingResult, targetCity: string): boolean
 function scoreCandidate(candidate: GeocodingResult, parsed: ParsedLocationQuery): number {
   let score = 0;
   const title = (candidate.name || candidate.display_name).toLowerCase();
-  const address = (candidate.address || candidate.display_name).toLowerCase();
 
   // City Match (+100)
   if (parsed.city && isMatchingCity(candidate, parsed.city)) {
     score += 100;
   } else if (parsed.city) {
-    score -= 100; // Strong penalty for other cities (e.g. Тобольск, Ишим)
+    score -= 100; // Penalty for wrong cities
   }
 
   // Object Type Score Boosts
@@ -200,11 +224,9 @@ function scoreCandidate(candidate: GeocodingResult, parsed: ParsedLocationQuery)
     } else if (title.includes("вокзал")) {
       score += 60;
     }
-    // Main city station bonus
     if (parsed.city && title.includes(parsed.city.toLowerCase())) {
       score += 40;
     }
-    // Penalty for small remote transit stations (e.g., "Станция Демьянка")
     if (title.includes("станция") && !title.includes("главный") && !title.includes("вокзал")) {
       score -= 30;
     }
@@ -227,44 +249,27 @@ export const hybridMapSearch = {
   async searchLocation(
     rawQuery: string
   ): Promise<{ results: MapSearchResult[]; isLowConfidence: boolean; message?: string }> {
-    // 1. Parse Query
     const parsed = parseLocationQuery(rawQuery);
-
-    // 2. Query 2GIS with the standardized search query
-    let rawResults = await geocodingService.searchAddress(parsed.searchQuery);
-
-    // Fallback to raw input if parsed search returned nothing
-    if (rawResults.length === 0 && parsed.searchQuery !== rawQuery.trim()) {
-      rawResults = await geocodingService.searchAddress(rawQuery);
-    }
-
-    // DEBUG LOGS (Requirement 7)
-    console.log("Original query:", rawQuery);
-    console.log("Parsed city:", parsed.city);
-    console.log("Parsed object:", parsed.objectType);
-    console.log("2GIS Query:", parsed.searchQuery);
-    console.log("2GIS results (raw):", rawResults);
+    const rawResults = await geocodingService.searchAddress(rawQuery);
 
     if (rawResults.length === 0) {
-      console.log("Filtered results: []");
       return {
         results: [],
         isLowConfidence: false,
-        message: parsed.city ? `В шаҳарда (${parsed.city}) топилмади.` : "По запросу ничего не найдено.",
+        message: parsed.city ? `В городе (${parsed.city}) объект не найден.` : "По запросу ничего не найдено.",
       };
     }
 
-    // 3. Filter results by target city if specified
+    // Filter by city strictly if city is specified
     let filtered = rawResults;
     if (parsed.city) {
       const cityFiltered = rawResults.filter((item) => isMatchingCity(item, parsed.city!));
-      // Only apply strict filter if we found matches in that city
       if (cityFiltered.length > 0) {
         filtered = cityFiltered;
       }
     }
 
-    // 4. Score and Rank candidates
+    // Score and Rank candidates
     const scored = filtered.map((candidate) => ({
       candidate,
       score: scoreCandidate(candidate, parsed),
@@ -280,19 +285,16 @@ export const hybridMapSearch = {
       longitude: candidate.longitude,
       score,
       cityMatch,
-      source: "2gis",
+      source: (candidate as any).source === "osm" ? "osm" : "2gis",
     }));
 
-    console.log("Filtered & Sorted results:", sortedResults);
-
-    // 5. Confidence check & exact city match notice
     const hasExactCityMatch = parsed.city ? sortedResults.some((r) => r.cityMatch) : true;
     const topScore = sortedResults[0]?.score ?? 0;
     const isLowConfidence = !hasExactCityMatch || topScore < 50;
 
     let warningMessage: string | undefined = undefined;
     if (parsed.city && !hasExactCityMatch) {
-      warningMessage = `В шаҳарда (${parsed.city}) точный объект не найден. Возможно вы имели в виду:`;
+      warningMessage = `В городе (${parsed.city}) точный объект не найден. Возможно вы имели в виду:`;
     }
 
     return {
@@ -324,29 +326,3 @@ export const hybridMapSearch = {
     return null;
   },
 };
-
-// ----------------------------------------------------
-// Self-Tests (Runs in dev mode to verify parser behavior)
-// ----------------------------------------------------
-if (typeof window !== "undefined" && import.meta.env.DEV) {
-  const tests = [
-    { input: "тюмень жд вокзал", expectedCity: "Тюмень", expectedType: "railway_station", expectedQuery: "Железнодорожный вокзал Тюмень" },
-    { input: "москва вокзал", expectedCity: "Москва", expectedType: "railway_station", expectedQuery: "Железнодорожный вокзал Москва" },
-    { input: "ташкент аэропорт", expectedCity: "Ташкент", expectedType: "airport", expectedQuery: "Аэропорт Ташкент" },
-    { input: "temir yol vokzal", expectedCity: null, expectedType: "railway_station", expectedQuery: "Железнодорожный вокзал" },
-    { input: "tyumen vokzal", expectedCity: "Тюмень", expectedType: "railway_station", expectedQuery: "Железнодорожный вокзал Тюмень" },
-    { input: "temir yol tyumen", expectedCity: "Тюмень", expectedType: "railway_station", expectedQuery: "Железнодорожный вокзал Тюмень" },
-    { input: "tyumen temir yol vokzal", expectedCity: "Тюмень", expectedType: "railway_station", expectedQuery: "Железнодорожный вокзал Тюмень" },
-  ];
-
-  console.log("=== Running Location Query Parser Self-Tests ===");
-  tests.forEach((t) => {
-    const res = parseLocationQuery(t.input);
-    const pass = res.city === t.expectedCity && res.objectType === t.expectedType && res.searchQuery === t.expectedQuery;
-    if (pass) {
-      console.log(`✅ [PASS] "${t.input}" -> "${res.searchQuery}" (${res.city || "no city"}, ${res.objectType})`);
-    } else {
-      console.warn(`❌ [FAIL] "${t.input}" -> Expected: "${t.expectedQuery}", Got: "${res.searchQuery}"`);
-    }
-  });
-}

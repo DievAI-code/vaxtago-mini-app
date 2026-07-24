@@ -1,6 +1,7 @@
 "use client";
 
 import { get2GISMapKey } from "@/lib/env";
+import { parseLocationQuery, ParsedLocationQuery } from "./maps/search";
 
 export interface GeocodingResult {
   latitude: number;
@@ -8,116 +9,42 @@ export interface GeocodingResult {
   display_name: string;
   name?: string;
   address?: string;
-}
-
-const KNOWN_CITIES = [
-  { keys: ["тюмень", "tyumen", "тюменда", "тюменга"], name: "Тюмень" },
-  { keys: ["москва", "moskva", "москве", "moskvada"], name: "Москва" },
-  { keys: ["санкт-петербург", "спб", "питер", "spb"], name: "Санкт-Петербург" },
-  { keys: ["казань", "kazan"], name: "Казань" },
-  { keys: ["ташкент", "tashkent", "toshkent"], name: "Ташкент" },
-  { keys: ["екатеринбург", "ekaterinburg"], name: "Екатеринбург" },
-  { keys: ["новосибирск", "novosibirsk"], name: "Новосибирск" },
-  { keys: ["самарканд", "samarkand"], name: "Самарканд" },
-  { keys: ["алматы", "almaty"], name: "Алматы" },
-];
-
-function normalizeQuery(query: string): string {
-  return query.trim().toLowerCase().replace(/\s+/g, " ");
+  source?: "2gis" | "osm";
 }
 
 /**
- * Extracts normalized target city from user input
+ * Generates city adjective for queries (e.g. Тюмень -> Тюменский)
  */
-function detectCity(query: string): string | null {
-  const low = normalizeQuery(query);
-  for (const c of KNOWN_CITIES) {
-    if (c.keys.some((k) => low.includes(k))) {
-      return c.name;
-    }
-  }
-  return null;
+function getCityAdjective(city: string): string {
+  if (city === "Тюмень") return "Тюменский";
+  if (city === "Москва") return "Московский";
+  if (city === "Санкт-Петербург") return "Санкт-Петербургский";
+  if (city === "Казань") return "Казанский";
+  if (city === "Ташкент") return "Ташкентский";
+  if (city === "Екатеринбург") return "Екатеринбургский";
+  if (city === "Новосибирск") return "Новосибирский";
+  return `${city}ский`;
 }
 
 /**
- * Formats user query into a 2GIS-friendly query string
+ * Strict city filter: discards results belonging to other cities (e.g., Тобольск, Ишим, Демьянка)
  */
-function prepareQuery(query: string): string {
-  const q = normalizeQuery(query);
-  const city = detectCity(query);
-
-  let objectPrefix = "";
-
-  if (q.includes("автовокзал") || q.includes("avtovokzal")) {
-    objectPrefix = "автовокзал";
-  } else if (
-    q.includes("вокзал") ||
-    q.includes("жд") ||
-    q.includes("ж/д") ||
-    q.includes("vokzal") ||
-    q.includes("temir yol")
-  ) {
-    objectPrefix = "Железнодорожный вокзал";
-  } else if (q.includes("аэропорт") || q.includes("airport")) {
-    objectPrefix = "аэропорт";
-  }
-
-  if (objectPrefix && city) {
-    return `${objectPrefix} ${city}`;
-  }
-
-  return q;
-}
-
-/**
- * Strict city filter: discards results belonging to other cities (e.g., Тобольск, Ишим)
- */
-function filterByCity(results: GeocodingResult[], targetCity: string): GeocodingResult[] {
+function filterByCityStrict(results: GeocodingResult[], targetCity: string): GeocodingResult[] {
   if (!targetCity) return results;
 
   const cityLow = targetCity.toLowerCase();
 
   return results.filter((item) => {
     const text = `${item.name || ""} ${item.display_name || ""} ${item.address || ""}`.toLowerCase();
-    return text.includes(cityLow);
-  });
-}
-
-/**
- * Sorts results by priority:
- * 1. Target city match
- * 2. Name contains "вокзал"
- * 3. Name contains "железнодорожный"
- */
-function sortResults(results: GeocodingResult[], targetCity: string | null): GeocodingResult[] {
-  const cityLow = targetCity ? targetCity.toLowerCase() : "";
-
-  return [...results].sort((a, b) => {
-    const aText = `${a.name || ""} ${a.display_name || ""}`.toLowerCase();
-    const bText = `${b.name || ""} ${b.display_name || ""}`.toLowerCase();
-
-    let aScore = 0;
-    let bScore = 0;
-
-    // 1. City Match
-    if (cityLow) {
-      if (aText.includes(cityLow)) aScore += 100;
-      if (bText.includes(cityLow)) bScore += 100;
+    
+    // Explicit exclusions when target city is set
+    if (cityLow === "тюмень") {
+      if (text.includes("тобольск") || text.includes("ишим") || text.includes("демьянка") || text.includes("заводоуковск")) {
+        return false;
+      }
     }
 
-    // 2. Contains "вокзал"
-    if (aText.includes("вокзал")) aScore += 50;
-    if (bText.includes("вокзал")) bScore += 50;
-
-    // 3. Contains "железнодорожный" / "пассажирский"
-    if (aText.includes("железнодорожный") || aText.includes("ж/д")) aScore += 30;
-    if (bText.includes("железнодорожный") || bText.includes("ж/д")) bScore += 30;
-
-    // Small remote stop penalty (e.g. "Станция Демьянка")
-    if (aText.includes("станция") && !aText.includes("главный") && !aText.includes("пассажирский") && !aText.includes("вокзал")) aScore -= 20;
-    if (bText.includes("станция") && !bText.includes("главный") && !bText.includes("пассажирский") && !bText.includes("вокзал")) bScore -= 20;
-
-    return bScore - aScore;
+    return text.includes(cityLow);
   });
 }
 
@@ -151,6 +78,7 @@ async function fetch2GISCatalog(query: string): Promise<GeocodingResult[]> {
             display_name: item.full_name || item.address_name || item.name,
             name: item.name,
             address: item.address_name || "",
+            source: "2gis" as const,
           };
         }
         return null;
@@ -162,68 +90,112 @@ async function fetch2GISCatalog(query: string): Promise<GeocodingResult[]> {
   }
 }
 
+/**
+ * Fallback Geocoder using Nominatim OpenStreetMap API
+ */
+async function fetchNominatimOSM(query: string): Promise<GeocodingResult[]> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+      query
+    )}&format=json&addressdetails=1&limit=5&accept-language=ru`;
+
+    const response = await fetch(url, {
+      headers: { "User-Agent": "VAQTA-AI-Geocoder/1.0" },
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.map((item: any) => ({
+      latitude: parseFloat(item.lat),
+      longitude: parseFloat(item.lon),
+      display_name: item.display_name,
+      name: item.nameddetails?.name || item.name || item.display_name.split(",")[0],
+      address: item.display_name,
+      source: "osm" as const,
+    }));
+  } catch (e) {
+    console.error("[Nominatim Fetch Error]", e);
+    return [];
+  }
+}
+
 export const geocodingService = {
   /**
-   * Multi-attempt search with fallbacks, city filtering, and priority ranking
+   * Smart POI-aware search logic
+   */
+  async searchPOI(parsed: ParsedLocationQuery, originalQuery: string): Promise<GeocodingResult[]> {
+    const city = parsed.city;
+    const objectType = parsed.objectType;
+
+    // Generate candidate search queries depending on POI type
+    const candidateQueries: string[] = [];
+
+    if (city && objectType === "railway_station") {
+      const adj = getCityAdjective(city);
+      candidateQueries.push(`${adj} железнодорожный вокзал`);
+      candidateQueries.push(`Железнодорожный вокзал ${city}`);
+      candidateQueries.push(`Железнодорожный вокзал`);
+      candidateQueries.push(`вокзал ${city}`);
+      candidateQueries.push(`вокзал`);
+    } else if (city && objectType === "bus_station") {
+      candidateQueries.push(`Автовокзал ${city}`);
+      candidateQueries.push(`Автовокзал`);
+    } else if (city && objectType === "airport") {
+      candidateQueries.push(`Аэропорт ${city}`);
+      candidateQueries.push(`Аэропорт`);
+    } else if (city && objectType === "hospital") {
+      candidateQueries.push(`Больница ${city}`);
+      candidateQueries.push(`Больница`);
+    } else {
+      if (parsed.searchQuery) candidateQueries.push(parsed.searchQuery);
+      if (originalQuery !== parsed.searchQuery) candidateQueries.push(originalQuery);
+      if (city) candidateQueries.push(city);
+    }
+
+    // 1. Try 2GIS Queries
+    for (const q of candidateQueries) {
+      const rawResults = await fetch2GISCatalog(q);
+      const filteredResults = city ? filterByCityStrict(rawResults, city) : rawResults;
+
+      // Debug Logs (Requirement)
+      console.log("CITY:", city);
+      console.log("OBJECT:", objectType);
+      console.log("QUERY:", q);
+      console.log("RAW RESULTS:", rawResults);
+      console.log("FILTERED RESULTS:", filteredResults);
+
+      if (filteredResults.length > 0) {
+        return filteredResults;
+      }
+    }
+
+    // 2. Fallback to Nominatim OpenStreetMap if 2GIS returns 0 results
+    const fallbackQuery = city && objectType === "railway_station"
+      ? `${getCityAdjective(city)} железнодорожный вокзал`
+      : (parsed.searchQuery || originalQuery);
+
+    console.log("[2GIS yielded 0 results -> FALLBACK to OpenStreetMap Nominatim]");
+    console.log("OSM Fallback Query:", fallbackQuery);
+
+    const osmRaw = await fetchNominatimOSM(fallbackQuery);
+    const osmFiltered = city ? filterByCityStrict(osmRaw, city) : osmRaw;
+
+    console.log("OSM RAW RESULTS:", osmRaw);
+    console.log("OSM FILTERED RESULTS:", osmFiltered);
+
+    return osmFiltered;
+  },
+
+  /**
+   * Main address search interface
    */
   async searchAddress(originalQuery: string): Promise<GeocodingResult[]> {
     const original = originalQuery.trim();
     if (!original) return [];
 
-    const city = detectCity(original);
-    const prepared = prepareQuery(original);
-
-    // Build fallback search queries list
-    const candidateQueries: string[] = [];
-
-    // Attempt 1: Prepared query (e.g., "Железнодорожный вокзал Тюмень")
-    if (prepared) {
-      candidateQueries.push(prepared);
-    }
-
-    // Attempt 2: Original user query (e.g., "покажи вокзал тюмень на карте")
-    if (!candidateQueries.includes(original)) {
-      candidateQueries.push(original);
-    }
-
-    // Attempt 3 & 4: Direct city + object fallbacks
-    if (city) {
-      const isStation = /вокзал|жд|ж\/д|vokzal|temir/i.test(original);
-      if (isStation) {
-        const fallbacks = [`${city} вокзал`, `${city} железная дорога`];
-        for (const fb of fallbacks) {
-          if (!candidateQueries.includes(fb)) {
-            candidateQueries.push(fb);
-          }
-        }
-      }
-    }
-
-    // Execute fallback queries sequentially until we find valid city-filtered candidates
-    let bestResults: GeocodingResult[] = [];
-
-    for (let i = 0; i < candidateQueries.length; i++) {
-      const q = candidateQueries[i];
-      const rawResults = await fetch2GISCatalog(q);
-
-      // Apply city filter if a city was specified
-      let filtered = rawResults;
-      if (city) {
-        filtered = filterByCity(rawResults, city);
-      }
-
-      console.log(`[2GIS ATTEMPT ${i + 1}]`);
-      console.log("query:", q);
-      console.log("results (raw / filtered):", rawResults.length, "/", filtered.length);
-
-      if (filtered.length > 0) {
-        bestResults = sortResults(filtered, city);
-        break; // Stop at first successful query attempt with results in the target city
-      }
-    }
-
-    console.log("[2GIS FINAL RESULT COUNT]:", bestResults.length);
-    return bestResults;
+    const parsed = parseLocationQuery(original);
+    return await this.searchPOI(parsed, original);
   },
 
   async searchAddressFull(query: string) {
