@@ -1,5 +1,7 @@
 "use client";
 
+import { YANDEX_MAPS_KEY, YANDEX_GEOCODER_KEY } from "@/config/maps";
+
 export function getSupabaseUrl(): string {
   const url = import.meta.env.VITE_SUPABASE_URL || "";
   if (url.includes("your-project")) return "";
@@ -13,11 +15,11 @@ export function getSupabaseAnonKey(): string {
 }
 
 export function getYandexKey(): string {
-  return import.meta.env.VITE_YANDEX_MAPS_API_KEY || import.meta.env.VITE_YANDEX_MAPS_KEY || "";
+  return YANDEX_MAPS_KEY;
 }
 
 export function getYandexGeocoderKey(): string {
-  return import.meta.env.VITE_YANDEX_GEOCODER_API_KEY || getYandexKey();
+  return YANDEX_GEOCODER_KEY;
 }
 
 export function isConfigured(): boolean {
@@ -30,11 +32,7 @@ export function logEnvDiagnostics() {
   
   console.log('[VAQTA DIAGNOSTICS]', {
     Supabase: isConfigured() ? '✅ Connected' : '❌ Config Missing',
-    YandexMaps: yKey ? `✅ Key Present (${yKey.slice(0, 4)}...)` : '❌ Key Missing',
+    YandexMaps: yKey ? `✅ Key Present (${yKey.slice(0, 4)}...)` : '❌ Key Missing (Fallback to OSM)',
     YandexGeocoder: gKey ? `✅ Key Present (${gKey.slice(0, 4)}...)` : '❌ Fallback to Maps Key'
   });
-}
-
-if (typeof window !== 'undefined') {
-  logEnvDiagnostics();
 }

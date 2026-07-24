@@ -1,5 +1,7 @@
 "use client";
 
+import { YANDEX_MAPS_KEY, YANDEX_GEOCODER_KEY, HAS_YANDEX_MAPS, HAS_YANDEX_GEOCODER } from "@/config/maps";
+
 export interface YandexSearchResult {
   title: string;
   address: string;
@@ -36,17 +38,16 @@ function cleanQuery(text: string): string {
 
 export const yandexService = {
   getMapsApiKey(): string {
-    return import.meta.env.VITE_YANDEX_MAPS_API_KEY || "";
+    return YANDEX_MAPS_KEY;
   },
 
   getGeocoderApiKey(): string {
-    return import.meta.env.VITE_YANDEX_GEOCODER_API_KEY || this.getMapsApiKey();
+    return YANDEX_GEOCODER_KEY;
   },
 
   async loadYandexMaps(): Promise<boolean> {
-    const key = this.getMapsApiKey();
-    if (!key) {
-      console.warn("[Yandex] API Key missing in environment variables.");
+    if (!HAS_YANDEX_MAPS) {
+      console.warn("[Yandex] API Key missing. Skipping JS API load. Fallback to OSM.");
       return false;
     }
 
@@ -57,10 +58,10 @@ export const yandexService = {
 
     yandexScriptPromise = new Promise<void>((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(key)}&lang=ru_RU`;
+      script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(YANDEX_MAPS_KEY)}&lang=ru_RU`;
       script.async = true;
       script.onload = () => window.ymaps3?.ready.then(() => resolve()).catch(reject);
-      script.onerror = () => reject(new Error("Network error"));
+      script.onerror = () => reject(new Error("Network error loading Yandex Maps script"));
       document.head.appendChild(script);
     });
 
@@ -71,10 +72,9 @@ export const yandexService = {
     const target = cleanQuery(query);
     if (!target) return [];
 
-    const key = this.getGeocoderApiKey();
-    if (key) {
+    if (HAS_YANDEX_GEOCODER) {
       try {
-        const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(key)}&geocode=${encodeURIComponent(target)}&format=json&results=5&lang=ru_RU`;
+        const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${encodeURIComponent(YANDEX_GEOCODER_KEY)}&geocode=${encodeURIComponent(target)}&format=json&results=5&lang=ru_RU`;
         const res = await fetch(url);
         
         if (res.status === 403) {

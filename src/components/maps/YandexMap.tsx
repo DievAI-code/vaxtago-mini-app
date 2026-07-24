@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { loadYandexMaps } from "@/lib/yandexMaps";
+import { HAS_YANDEX_MAPS } from "@/config/maps";
 
 export interface VacancyMarkerData {
   id: string;
@@ -43,6 +44,14 @@ export function YandexMap({
 
   useEffect(() => {
     let mounted = true;
+
+    // Если ключа нет, сразу показываем fallback без попытки загрузки скрипта
+    if (!HAS_YANDEX_MAPS) {
+      console.warn("[YandexMap] API Key missing. Rendering fallback UI.");
+      setError("Интерактивная карта временно недоступна.");
+      setLoading(false);
+      return;
+    }
 
     loadYandexMaps()
       .then(() => {
