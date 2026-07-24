@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { 
-  Car, personStanding as Walking, Bus, Clock, 
+  Car, Footprints, Bus, Clock, 
   Map as MapIcon, ChevronRight, Navigation, ArrowRightLeft 
 } from "lucide-react";
 import { RouteResult, TravelMode } from "@/services/maps/routeService";
@@ -44,7 +44,7 @@ export function RoutePanel({ route, mode, fromName, toName, onModeChange, onStar
               }`}
             >
               {m === "car" && <Car size={16} />}
-              {m === "walking" && <Walking size={16} />}
+              {m === "walking" && <Footprints size={16} />}
               {m === "transit" && <Bus size={16} />}
             </button>
           ))}

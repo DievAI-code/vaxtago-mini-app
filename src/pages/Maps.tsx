@@ -5,7 +5,8 @@ import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, Crosshair, Navigation, Loader2, MapPin, 
-  ArrowRightLeft, AlertCircle, RefreshCw, Mic, MicOff 
+  ArrowRightLeft, AlertCircle, RefreshCw, Mic, MicOff,
+  Footprints, Car
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
@@ -71,7 +72,7 @@ export default function Maps() {
       setLoading(true);
       try {
         // 1. Resolve Destination
-        const toResults = await geocodingService.searchAddress(intent.to?.query || "");
+        const toResults = await geocodingService.searchAddress(intent.to || "");
         if (toResults.length === 0) return toast.error("Место назначения не найдено");
         const to = toResults[0];
         setDestination(to);
@@ -79,7 +80,7 @@ export default function Maps() {
         // 2. Resolve Origin
         let from = origin;
         if (intent.from) {
-          const fromResults = await geocodingService.searchAddress(intent.from.query);
+          const fromResults = await geocodingService.searchAddress(intent.from);
           if (fromResults.length > 0) from = fromResults[0];
         } else if (!userCoords) {
            handleLocateMe(); // try getting GPS
@@ -87,8 +88,8 @@ export default function Maps() {
         
         if (from) {
           setOrigin(from);
-          await calculateRoute(from, to, intent.mode);
-          setMode(intent.mode);
+          await calculateRoute(from, to, (intent.mode as TravelMode) || "car");
+          setMode((intent.mode as TravelMode) || "car");
         } else {
           toast.info("Нажмите кнопку геолокации, чтобы построить маршрут от вас");
         }
@@ -174,7 +175,7 @@ export default function Maps() {
                  <p className="text-xs text-slate-300 font-medium truncate">{destination.address || destination.display_name}</p>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                 <button onClick={() => { setMode("walking"); calculateRoute(origin || { latitude: userCoords![0], longitude: userCoords![1], display_name: "Я", name: "Я" }, destination, "walking"); }} className="h-12 bg-white/5 border border-white/10 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2"><Walking size={14} /> Пешком</button>
+                 <button onClick={() => { setMode("walking"); calculateRoute(origin || { latitude: userCoords![0], longitude: userCoords![1], display_name: "Я", name: "Я" }, destination, "walking"); }} className="h-12 bg-white/5 border border-white/10 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2"><Footprints size={14} /> Пешком</button>
                  <button onClick={() => { setMode("car"); calculateRoute(origin || { latitude: userCoords![0], longitude: userCoords![1], display_name: "Я", name: "Я" }, destination, "car"); }} className="h-12 vaqta-gradient rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2"><Car size={14} /> На машине</button>
               </div>
             </motion.div>
