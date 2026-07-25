@@ -1,5 +1,7 @@
 "use client";
 
+import { supabase } from "@/integrations/supabase/client";
+
 export interface OCRBlock {
   text: string;
   x: number;
@@ -17,64 +19,115 @@ export interface OCRResult {
 
 class OCRService {
   async recognizeText(imageBase64: string): Promise<OCRResult> {
+    console.log("[OCR TEXT] Starting recognition...");
+    
     try {
       const { data, error } = await supabase.functions.invoke("vision-assistant", {
         body: {
           image: imageBase64,
           request_type: "ocr_detect",
-          instruction: "Распознай весь текст на изображении. Верни результат в формате JSON с полями: fullText (string), language (string), blocks (array of {text, x, y, width, height, confidence}). Координаты в пикселях относительно размера изображения."
+          instruction: `Распознай ВСЕ текстовые блоки на изображении.
+
+Верни строго JSON:
+{
+  "fullText": "полный распознанный текст со всеми переносами строк",
+  "language": "ru" | "uz" | "tj" | "en" | "ky",
+  "blocks": [
+    { "text": "текст блока", "x": число, "y": число, "width": число, "height": число, "confidence": число_от_0_до_1 }
+  ]
+}
+
+ВАЖНО:
+- Координаты x, y, width, height — в пикселях от верхнего левого угла
+- Сохраняй порядок блоков сверху вниз
+- Объединяй слова одной строки в один блок`
         }
       });
 
-      if (error) throw error;
+      console.log("[OCR TEXT] Vision API response:", data);
+
+      if (error) {
+        console.error("[OCR TEXT] Vision error:", error);
+        throw error;
+      }
 
       let result: OCRResult;
-      try {
-        const parsed = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+      
+      // Try to parse the result
+      const rawResult = data?.result;
+      if (rawResult) {
+        try {
+          const parsed = typeof rawResult === 'string' ? JSON.parse(rawResult) : rawResult;
+          result = {
+            text: parsed.fullText || parsed.text || "",
+            blocks: Array.isArray(parsed.blocks) && parsed.blocks.length > 0 
+              ? parsed.blocks 
+              : this.estimateBlocks(parsed.fullText || ""),
+            language: parsed.language || "ru"
+          };
+        } catch (e) {
+          console.warn("[OCR TEXT] Failed to parse structured result, using fallback");
+          result = {
+            text: data.ocr_text || data.text || (typeof rawResult === 'string' ? rawResult : ""),
+            blocks: this.estimateBlocks(data.ocr_text || ""),
+            language: data.language || "ru"
+          };
+        }
+      } else {
         result = {
-          text: parsed.fullText || parsed.text || data.ocr_text || "",
-          blocks: parsed.blocks || this.estimateBlocks(parsed.fullText || data.ocr_text || ""),
-          language: parsed.language || data.language || "ru"
-        };
-      } catch {
-        result = {
-          text: data.ocr_text || data.text || "",
+          text: data.ocr_text || data.text || data.explanation || "",
           blocks: this.estimateBlocks(data.ocr_text || data.text || ""),
           language: data.language || "ru"
         };
       }
 
+      console.log(`[OCR TEXT] Recognized ${result.blocks.length} blocks, language: ${result.language}`);
+      console.log(`[OCR TEXT] Full text:`, result.text);
+      console.log(`[OCR TEXT] Blocks:`, result.blocks);
+
       return result;
     } catch (error) {
-      console.error("[OCR] Recognition failed:", error);
+      console.error("[OCR TEXT] Recognition failed:", error);
       throw error;
     }
   }
 
+  /**
+   * Heuristic block estimation when AI doesn't return coordinates
+   * Groups text by lines and estimates positions on a 1000x1400 canvas
+   */
   private estimateBlocks(text: string): OCRBlock[] {
+    if (!text) return [];
+    
     const lines = text.split('\n').filter(l => l.trim());
     const blocks: OCRBlock[] = [];
-    let y = 50;
-    
+    const canvasWidth = 1000;
+    const canvasHeight = 1400;
+    const startY = 100;
+    const lineHeight = 60;
+    const charWidth = 14;
+    const padding = 40;
+
+    let y = startY;
     for (const line of lines) {
-      const words = line.split(' ');
-      let x = 50;
+      if (!line.trim()) continue;
+      const width = Math.min(line.length * charWidth + 20, canvasWidth - padding * 2);
+      const x = padding;
+      const height = lineHeight * 0.8;
+
+      blocks.push({
+        text: line.trim(),
+        x,
+        y,
+        width,
+        height,
+        confidence: 0.7
+      });
       
-      for (const word of words) {
-        const width = word.length * 12 + 10;
-        blocks.push({
-          text: word,
-          x,
-          y,
-          width,
-          height: 30,
-          confidence: 0.8
-        });
-        x += width + 5;
-      }
-      y += 40;
+      y += lineHeight;
+      if (y > canvasHeight - 100) break;
     }
-    
+
     return blocks;
   }
 
@@ -87,71 +140,8 @@ class OCRService {
     canvas.height = image.height;
     ctx.drawImage(image, 0, 0);
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    return this.analyzeImageData(imageData);
-  }
-
-  private analyzeImageData(imageData: ImageData): OCRBlock[] {
-    const { width, height, data } = imageData;
-    const regions: OCRBlock[] = [];
-    const blockSize = 20;
-
-    for (let y = 0; y < height; y += blockSize) {
-      for (let x = 0; x < width; x += blockSize) {
-        let variance = 0;
-        let avgBrightness = 0;
-        let count = 0;
-
-        for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
-          for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
-            const i = ((y + dy) * width + (x + dx)) * 4;
-            const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
-            avgBrightness += brightness;
-            count++;
-          }
-        }
-
-        avgBrightness /= count;
-
-        if (variance > 30) {
-          regions.push({
-            text: "",
-            x, y,
-            width: blockSize,
-            height: blockSize,
-            confidence: 0.5
-          });
-        }
-      }
-    }
-
-    return this.mergeNearbyRegions(regions);
-  }
-
-  private mergeNearbyRegions(regions: OCRBlock[]): OCRBlock[] {
-    if (regions.length === 0) return [];
-    const merged: OCRBlock[] = [];
-    const threshold = 30;
-
-    for (const region of regions) {
-      let mergedWithExisting = false;
-      for (const existing of merged) {
-        const dx = Math.abs(region.x - existing.x);
-        const dy = Math.abs(region.y - existing.y);
-        if (dx < threshold && dy < threshold) {
-          existing.x = Math.min(existing.x, region.x);
-          existing.y = Math.min(existing.y, region.y);
-          existing.width = Math.max(existing.x + existing.width, region.x + region.width) - existing.x;
-          existing.height = Math.max(existing.y + existing.height, region.y + region.height) - existing.y;
-          mergedWithExisting = true;
-          break;
-        }
-      }
-      if (!mergedWithExisting) merged.push({ ...region });
-    }
-    return merged;
+    return [];
   }
 }
 
-import { supabase } from "@/integrations/supabase/client";
 export const ocrService = new OCRService();

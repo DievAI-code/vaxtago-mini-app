@@ -1,5 +1,7 @@
 "use client";
 
+import { supabase } from "@/integrations/supabase/client";
+
 export type LanguageCode = "ru" | "uz" | "tj" | "en" | "ky" | "auto";
 
 export interface TranslationResult {
@@ -11,10 +13,10 @@ export interface TranslationResult {
 class TranslationService {
   private languageNames: Record<string, string> = {
     ru: "Русский",
-    uz: "O'zbek",
-    tj: "Тоҷикӣ",
-    en: "English",
-    ky: "Кыргызча"
+    uz: "Узбекский",
+    tj: "Таджикский",
+    en: "Английский",
+    ky: "Кыргызский"
   };
 
   detectLanguage(text: string): string {
@@ -23,16 +25,20 @@ class TranslationService {
     const cyrillicPattern = /[а-яё]/i;
     const latinPattern = /[a-z]/i;
     
+    // Uzbek specific characters: ў, ғ, қ, ҳ
     if (/[ўғқҳ]/i.test(text)) return "uz";
-    if (/[ҷҳқғ]/i.test(text)) return "tj";
+    // Tajik specific characters: ҷ, ҳ, қ, ғ
+    if (/[ҷ]/i.test(text) && cyrillicPattern.test(text)) return "tj";
+    // Kyrgyz specific characters: ң, ү, ө
     if (/[ңүө]/i.test(text)) return "ky";
+    
     if (cyrillicPattern.test(text) && !latinPattern.test(text)) return "ru";
     if (latinPattern.test(text) && !cyrillicPattern.test(text)) return "en";
     
     if (/[a-z]/i.test(text)) {
       const words = text.toLowerCase().split(/\s+/);
-      const uzbekWords = ["va", "bu", "uchun", "bilan", "qayerda", "qanday", "men", "siz"];
-      const englishWords = ["the", "is", "and", "with", "for", "this", "that", "have"];
+      const uzbekWords = ["va", "bu", "uchun", "bilan", "qayerda", "qanday", "men", "siz", "qilish", "yashash", "manzili"];
+      const englishWords = ["the", "is", "and", "with", "for", "this", "that", "have", "address"];
       const uzbekCount = words.filter(w => uzbekWords.includes(w)).length;
       const englishCount = words.filter(w => englishWords.includes(w)).length;
       if (uzbekCount > englishCount) return "uz";
@@ -47,67 +53,80 @@ class TranslationService {
     sourceLang: string,
     targetLang: string
   ): Promise<TranslationResult> {
+    console.log(`[TRANSLATE] ${sourceLang} → ${targetLang}: "${text.substring(0, 80)}..."`);
+    
     if (!text.trim()) {
       return { translatedText: "", sourceLanguage: sourceLang, targetLanguage: targetLang };
     }
 
     if (sourceLang === targetLang) {
+      console.log("[TRANSLATE] Same language, skipping");
       return { translatedText: text, sourceLanguage: sourceLang, targetLanguage: targetLang };
     }
 
     try {
-      const protectedParts: string[] = [];
-      let processedText = text;
-
-      processedText = processedText.replace(/\d{1,2}[./]\d{1,2}[./]\d{2,4}/g, (match) => {
-        protectedParts.push(match);
-        return `__DATE_${protectedParts.length - 1}__`;
-      });
-
-      processedText = processedText.replace(/[+\d\s()-]{10,20}/g, (match) => {
-        if (match.replace(/\D/g, '').length >= 10) {
-          protectedParts.push(match);
-          return `__PHONE_${protectedParts.length - 1}__`;
-        }
-        return match;
-      });
-
-      processedText = processedText.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, (match) => {
-        protectedParts.push(match);
-        return `__EMAIL_${protectedParts.length - 1}__`;
-      });
-
       const sourceName = this.languageNames[sourceLang] || sourceLang;
       const targetName = this.languageNames[targetLang] || targetLang;
 
+      // Build strong translation prompt
+      const prompt = `Переведи текст с ${sourceName} на ${targetName}.
+
+ПРАВИЛА:
+1. Переведи ТОЛЬКО содержание, без пояснений
+2. Сохрани числа, имена собственные, адреса
+3. Естественный перевод, не дословный
+4. Верни ТОЛЬКО переведённый текст
+
+ИСХОДНЫЙ ТЕКСТ (${sourceName}):
+"""
+${text}
+"""
+
+ПЕРЕВОД (${targetName}):`;
+
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
-          message: `Переведи следующий текст с ${sourceName} на ${targetName}. Сохрани форматирование, даты, номера и адреса без изменений. Переведи естественно, с учетом контекста:\n\n${processedText}`,
+          message: prompt,
           language_code: targetLang,
           user_phone: localStorage.getItem("vaxtago_user_phone") || "anonymous",
-          intent: "TRANSLATION"
+          intent: "TRANSLATION",
+          source_lang: sourceLang,
+          target_lang: targetLang
         }
       });
 
-      if (error) throw error;
-
-      let translated = data?.reply || data?.text || text;
-      translated = translated.replace(/^["']|["']$/g, '').trim();
-
-      for (let i = protectedParts.length - 1; i >= 0; i--) {
-        translated = translated.replace(
-          new RegExp(`__DATE_${i}__|__PHONE_${i}__|__EMAIL_${i}__`, 'g'),
-          protectedParts[i]
-        );
+      if (error) {
+        console.error("[TRANSLATE] API error:", error);
+        throw error;
       }
 
-      return { translatedText: translated, sourceLanguage: sourceLang, targetLanguage: targetLang };
+      let translated = data?.reply || data?.text || data?.message || text;
+      
+      // Clean up AI response - remove common prefixes
+      translated = translated
+        .replace(/^(перевод|translation|переведено|перевод:|translation:)\s*/i, "")
+        .replace(/^["'`]|["'`]$/g, "")
+        .replace(/^[^:]+:\s*/, "") // Remove "Translation:" prefix
+        .trim();
+
+      // Remove quotes that AI sometimes adds
+      if (translated.startsWith('"') && translated.endsWith('"')) {
+        translated = translated.slice(1, -1);
+      }
+
+      console.log(`[TRANSLATE] Result: "${translated.substring(0, 80)}..."`);
+
+      return {
+        translatedText: translated,
+        sourceLanguage: sourceLang,
+        targetLanguage: targetLang
+      };
     } catch (error) {
-      console.error("[Translation] Failed:", error);
+      console.error("[TRANSLATE] Failed:", error);
+      // Fallback: return original text
       return { translatedText: text, sourceLanguage: sourceLang, targetLanguage: targetLang };
     }
   }
 }
 
-import { supabase } from "@/integrations/supabase/client";
 export const translationService = new TranslationService();
