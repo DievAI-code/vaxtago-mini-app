@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Map } from "@/components/Map";
 import { 
   Search, Navigation, Crosshair, MapPin, Bus, Car, 
-  Footprints, Bike, Taxi, Home, Briefcase, Train, Plane,
-  Hospital, Hotel, Utensils, Fuel, Banknote, Loader2,
-  Clock, Ruler, ArrowRight
+  Accessibility, Bike, Home, Briefcase, Train, Plane,
+  Hospital, Hotel, Loader2, Clock, ArrowRight
 } from "lucide-react";
 import { geocodingService } from "@/services/geocodingService";
 import { useLanguage } from "@/context/LanguageProvider";
@@ -45,9 +44,9 @@ export default function Maps() {
 
   const MODES = [
     { id: "car", icon: Car, label: "maps.mode_car" },
-    { id: "walk", icon: Footprints, label: "maps.mode_walk" },
+    { id: "walk", icon: Accessibility, label: "maps.mode_walk" },
     { id: "bus", icon: Bus, label: "maps.mode_bus" },
-    { id: "taxi", icon: Taxi, label: "maps.mode_taxi" },
+    { id: "taxi", icon: Car, label: "maps.mode_taxi" },
     { id: "bike", icon: Bike, label: "maps.mode_bike" },
   ];
 
@@ -74,7 +73,6 @@ export default function Maps() {
         />
       </div>
 
-      {/* Top Controller */}
       <div className="absolute top-24 left-0 right-0 px-6 z-10 space-y-4">
         <div className="liquid-glass p-2 rounded-[2rem] flex items-center gap-3 shadow-2xl">
            <div className="p-3 text-[#0AA86E]"><Search size={22} /></div>
@@ -88,7 +86,6 @@ export default function Maps() {
            {loading && <Loader2 className="animate-spin text-[#0AA86E] mr-4" size={20} />}
         </div>
 
-        {/* Transport Modes */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
           {MODES.map((m) => (
             <button
@@ -107,7 +104,6 @@ export default function Maps() {
           ))}
         </div>
 
-        {/* Quick Points */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {QUICK_POINTS.map((p, i) => (
             <button
@@ -122,14 +118,12 @@ export default function Maps() {
         </div>
       </div>
 
-      {/* Floating Controls */}
       <div className="absolute top-1/2 right-4 -translate-y-1/2 flex flex-col gap-3 z-10">
         <button className="p-4 liquid-glass rounded-2xl text-[#0AA86E] shadow-2xl active:scale-90 transition-all">
           <Crosshair size={24} />
         </button>
       </div>
 
-      {/* Route Detail Panel */}
       <AnimatePresence>
         {selectedDest && (
           <motion.div 

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Search, MapPin, Briefcase, Camera, FileText, Globe, 
   Navigation, Hospital, Train, Plane, Scale, ShieldAlert,
-  Bot, ChevronRight, Sparkles
+  Bot, Sparkles
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { BottomNav } from "@/components/BottomNav";
@@ -36,7 +36,6 @@ export default function Home() {
       <Header title="VAQTA AI" />
 
       <main className="flex-1 overflow-y-auto px-6 pt-4 pb-32 no-scrollbar">
-        {/* Welcome Section */}
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -51,7 +50,6 @@ export default function Home() {
           </div>
           <h2 className="text-2xl font-black text-white leading-tight mb-6">{t("app_question")}</h2>
 
-          {/* Unified AI Command Bar */}
           <div 
             onClick={() => nav("/ai")}
             className="liquid-glass p-4 rounded-[2rem] flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all group"
@@ -64,7 +62,6 @@ export default function Home() {
           </div>
         </motion.section>
 
-        {/* Quick Service Grid */}
         <section className="grid grid-cols-2 gap-4">
           {CATEGORIES.map((cat, idx) => (
             <motion.div
