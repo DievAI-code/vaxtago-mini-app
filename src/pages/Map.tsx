@@ -1,96 +1,129 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Search, Navigation, MapPin, ExternalLink, Crosshair, Briefcase, RefreshCw, AlertCircle 
+  Search, Navigation, Crosshair, MapPin, ExternalLink, 
+  Car, Footprints, Bus, Clock, Ruler, X, Loader2
 } from "lucide-react";
 import { Header } from "@/components/Header";
-import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
-import { Map, VacancyMarkerData } from "@/components/Map";
+import { Map } from "@/components/Map";
 import { geocodingService } from "@/services/geocodingService";
-import { toast } from "sonner";
+import { locationService } from "@/services/locationService";
+import { routeService, TravelMode } from "@/services/maps/routeService";
 import { useLanguage } from "@/context/LanguageProvider";
-
-const SAMPLE_VACANCIES: VacancyMarkerData[] = [
-  {
-    id: "v1",
-    title: "Сварщик НАКС (Вахта)",
-    salary: "180 000 ₽",
-    city: "Ташкент",
-    address: "улица Амира Темура, 107, Ташкент",
-    coordinates: [41.3322, 69.2831],
-    type: "premium",
-    employerName: "ООО 'ПромСтройМонтаж'",
-    schedule: "Вахта 30/30 • Проживание + Питание",
-    url: "https://hh.ru",
-  },
-  {
-    id: "v2",
-    title: "Водитель категории C, E",
-    salary: "150 000 ₽",
-    city: "Ташкент",
-    address: "Проспект Ислама Каримова, 43, Ташкент",
-    coordinates: [41.3111, 69.2605],
-    type: "verified",
-    employerName: "Логистика Узбекистан",
-    schedule: "Сменный график 15/15",
-    url: "https://hh.ru",
-  },
-  {
-    id: "v3",
-    title: "Разнорабочий на производство",
-    salary: "95 000 ₽",
-    city: "Ташкент",
-    address: "улица Бабура, 55, Ташкент",
-    coordinates: [41.2825, 69.2488],
-    type: "employer",
-    employerName: "ИП Диев Д.С.",
-    schedule: "Полный день • Предоставляется жильё",
-    url: "https://hh.ru",
-  },
-];
+import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 export default function MapPage() {
   const { t } = useLanguage();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
   const [center, setCenter] = useState<[number, number]>([41.2995, 69.2401]);
   const [zoom, setZoom] = useState(12);
-  const [selectedVacancy, setSelectedVacancy] = useState<VacancyMarkerData | null>(SAMPLE_VACANCIES[0]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [selectedDest, setSelectedDest] = useState<any>(null);
+  
+  // Route state
+  const [routeMode, setRouteMode] = useState<TravelMode>("car");
+  const [routeInfo, setRouteInfo] = useState<{ dist: string; time: string; coords: [number, number][] } | null>(null);
+  const [isBuildingRoute, setIsBuildingRoute] = useState(false);
+
+  // Handle query params for AI route requests
+  useEffect(() => {
+    const fromParam = searchParams.get("from");
+    const toParam = searchParams.get("to");
+    const modeParam = searchParams.get("mode") as TravelMode | null;
+    
+    if (toParam) {
+      if (modeParam) setRouteMode(modeParam);
+      handleRouteSearch(fromParam || undefined, toParam);
+      // Clear params after processing
+      setSearchParams({});
+    }
+  }, [searchParams]);
+
+  const handleRouteSearch = async (from?: string, to?: string) => {
+    if (!to) return;
+    setIsBuildingRoute(true);
+    
+    try {
+      let fromCoords: [number, number] | null = userLocation;
+      
+      // If "from" is provided and not current location, geocode it
+      if (from && from !== "Текущее местоположение") {
+        const fromResults = await geocodingService.searchAddress(from);
+        if (fromResults.length > 0) {
+          fromCoords = [fromResults[0].latitude, fromResults[0].longitude];
+        }
+      }
+      
+      // If no from coords yet, try to get user location
+      if (!fromCoords && "geolocation" in navigator) {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          fromCoords = [pos.coords.latitude, pos.coords.longitude];
+          setUserLocation(fromCoords);
+        } catch {
+          toast.error("Не удалось определить местоположение. Укажите начальную точку.");
+        }
+      }
+      
+      // Geocode destination
+      const toResults = await geocodingService.searchAddress(to);
+      if (toResults.length === 0) {
+        toast.error("Адрес назначения не найден");
+        return;
+      }
+      
+      const toCoords: [number, number] = [toResults[0].latitude, toResults[0].longitude];
+      setSelectedDest(toResults[0]);
+      setCenter(toCoords);
+      setZoom(14);
+      
+      // Build route if we have from coords
+      if (fromCoords) {
+        const route = await routeService.buildRoute(fromCoords, toCoords, routeMode);
+        if (route) {
+          setRouteInfo({
+            dist: `${route.distanceKm} км`,
+            time: `${route.durationMins} мин`,
+            coords: route.geometry,
+          });
+          toast.success("Маршрут построен!");
+        } else {
+          toast.info("Маршрут сформирован по прямым координатам");
+        }
+      }
+    } catch (err) {
+      toast.error("Ошибка построения маршрута");
+    } finally {
+      setIsBuildingRoute(false);
+    }
+  };
 
   const handleAddressSearch = async () => {
     if (!searchQuery.trim()) return;
     setIsSearching(true);
-    setSearchError(null);
-
     try {
-      const res = await geocodingService.searchAddressFull(searchQuery);
-
-      if (res.isTooShort) {
-        setSearchError("Пожалуйста, введите название места или адрес.");
-        toast.warning("Введите адрес для поиска");
-        return;
-      }
-
-      if (res.results && res.results.length > 0) {
-        const first = res.results[0];
+      const results = await geocodingService.searchAddress(searchQuery);
+      if (results.length > 0) {
+        const first = results[0];
         setCenter([first.latitude, first.longitude]);
-        setZoom(14);
-        setSearchError(null);
-        toast.success(`Найдено: ${first.display_name.slice(0, 45)}...`);
+        setZoom(15);
+        setSelectedDest(first);
+        setRouteInfo(null); // Clear previous route
+        toast.success("Адрес найден");
       } else {
-        const msg = res.error || "По запросу ничего не найдено.";
-        setSearchError(msg);
-        toast.error("По запросу ничего не найдено.");
+        toast.error("Ничего не найдено");
       }
     } catch {
-      setSearchError("Ошибка при поиске адреса.");
-      toast.error("Ошибка при поиске адреса.");
+      toast.error("Ошибка поиска");
     } finally {
       setIsSearching(false);
     }
@@ -106,35 +139,54 @@ export default function MapPage() {
           setZoom(14);
           toast.success("Ваше местоположение определено");
         },
-        (err) => {
-          console.warn("Geolocation error:", err);
-          toast.error("Не удалось определить геопозицию");
-        }
+        () => toast.error("Не удалось определить геопозицию")
       );
-    } else {
-      toast.error("Геолокация не поддерживается вашим браузером");
     }
   };
 
-  const buildRoute = useCallback((coords: [number, number]) => {
-    const [lat, lng] = coords;
-    const url = `https://2gis.ru/routeSearch/to/${lng},${lat}`;
-    window.open(url, "_blank");
-  }, []);
+  const buildRouteToDest = async () => {
+    if (!selectedDest || !userLocation) {
+      toast.info("Определяем ваше местоположение...");
+      handleLocateUser();
+      return;
+    }
+    setIsBuildingRoute(true);
+    try {
+      const toCoords: [number, number] = [selectedDest.latitude, selectedDest.longitude];
+      const route = await routeService.buildRoute(userLocation, toCoords, routeMode);
+      if (route) {
+        setRouteInfo({
+          dist: `${route.distanceKm} км`,
+          time: `${route.durationMins} мин`,
+          coords: route.geometry,
+        });
+        toast.success("Маршрут построен!");
+      }
+    } catch {
+      toast.error("Ошибка построения маршрута");
+    } finally {
+      setIsBuildingRoute(false);
+    }
+  };
+
+  const MODES: { id: TravelMode; icon: any; label: string }[] = [
+    { id: "car", icon: Car, label: "Авто" },
+    { id: "walking", icon: Footprints, label: "Пешком" },
+    { id: "transport", icon: Bus, label: "Транспорт" },
+  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-32">
-      <Header title="nav.map" onMenuClick={() => setIsMenuOpen(true)} />
-      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+      <Header title="nav.map" showBack />
 
       <main className="px-4 mt-2 flex-1 space-y-4 flex flex-col">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
-              <span>🗺️</span> Карта 2ГИС
+              <span>🗺️</span> {t("maps.title") || "Карта"}
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">
-              2ГИС Maps • Поиск адресов и вакансий
+              VAQTA AI Navigation
             </p>
           </div>
           <button
@@ -152,115 +204,116 @@ export default function MapPage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (searchError) setSearchError(null);
-              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddressSearch()}
-              placeholder="Введите адрес (напр. Тюмень вокзал)..."
+              placeholder={t("maps.search_ph") || "Введите адрес..."}
               className="flex-1 bg-transparent py-3 text-xs outline-none placeholder-[#5C7A6D] font-bold text-white"
             />
+            {isSearching && <Loader2 className="animate-spin text-[#00A86B]" size={18} />}
             <button
               onClick={handleAddressSearch}
               disabled={isSearching}
               className="bg-[#00A86B] px-4 py-2.5 rounded-xl text-xs font-black text-white hover:scale-105 transition-transform disabled:opacity-50"
             >
-              {isSearching ? "Поиск..." : "Найти"}
+              {isSearching ? "..." : "Найти"}
             </button>
           </div>
         </div>
 
-        {searchError && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="vaqta-glass p-4 border-amber-500/30 bg-amber-500/5 flex items-center justify-between gap-3"
-          >
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-200 whitespace-pre-line">
-              <AlertCircle size={18} className="text-amber-400 flex-shrink-0" />
-              <span>{searchError}</span>
-            </div>
-            <button
-              onClick={handleAddressSearch}
-              className="px-3 py-1.5 bg-amber-500/20 border border-amber-500/40 text-amber-200 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 hover:bg-amber-500/30 transition-colors flex-shrink-0"
-            >
-              <RefreshCw size={12} />
-              <span>Попробовать снова</span>
-            </button>
-          </motion.div>
-        )}
+        {/* Transport Mode Selector */}
+        <div className="flex gap-2">
+          {MODES.map((m) => {
+            const Icon = m.icon;
+            const active = routeMode === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setRouteMode(m.id)}
+                className={`flex-1 h-10 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-wider transition-all ${
+                  active
+                    ? "bg-[#00A86B] text-white shadow-lg"
+                    : "bg-white/5 text-[#5C7A6D] border border-white/10"
+                }`}
+              >
+                <Icon size={14} />
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
 
         <div className="relative flex-1 min-h-[360px] md:min-h-[450px]">
           <Map
             center={center}
             zoom={zoom}
-            markers={SAMPLE_VACANCIES}
-            selectedMarkerId={selectedVacancy?.id ?? null}
-            onSelectMarker={(v) => {
-              setSelectedVacancy(v as VacancyMarkerData);
-              setCenter(v.coordinates);
-            }}
+            markers={selectedDest ? [{ id: 'dest', title: selectedDest.name, coordinates: [selectedDest.latitude, selectedDest.longitude] }] : []}
             userLocation={userLocation}
             className="w-full h-full rounded-[2.5rem]"
           />
         </div>
 
-        <AnimatePresence mode="wait">
-          {selectedVacancy && (
+        <AnimatePresence>
+          {routeInfo && (
             <motion.div
-              key={selectedVacancy.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="vaqta-glass p-6 border-[#00A86B]/30 space-y-4 shadow-2xl relative overflow-hidden"
+              className="vaqta-glass p-5 border-[#00A86B]/30 space-y-3 shadow-2xl"
             >
-              <div className="flex justify-between items-start gap-3">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">
-                    {selectedVacancy.employerName}
-                  </p>
-                  <h3 className="font-extrabold text-base leading-tight text-white">
-                    {selectedVacancy.title}
-                  </h3>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-black text-[#00A86B]">{selectedVacancy.salary}</p>
-                </div>
+              <div className="flex items-center gap-2 text-[#00A86B]">
+                <Navigation size={18} />
+                <span className="text-xs font-black uppercase tracking-wider">Маршрут построен</span>
               </div>
-
-              <div className="space-y-1.5 text-xs font-medium text-slate-300">
-                <div className="flex items-center gap-2">
-                  <MapPin size={14} className="text-[#00A86B] flex-shrink-0" />
-                  <span className="truncate">{selectedVacancy.address}</span>
-                </div>
-                {selectedVacancy.schedule && (
-                  <div className="flex items-center gap-2 text-[#5C7A6D]">
-                    <Briefcase size={14} className="flex-shrink-0" />
-                    <span>{selectedVacancy.schedule}</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 p-3 bg-white/5 rounded-2xl">
+                  <Clock size={16} className="text-[#D4AF37]" />
+                  <div>
+                    <p className="text-lg font-black">{routeInfo.time}</p>
+                    <p className="text-[9px] uppercase font-bold text-[#5C7A6D]">Время</p>
                   </div>
-                )}
+                </div>
+                <div className="flex items-center gap-2 p-3 bg-white/5 rounded-2xl">
+                  <Ruler size={16} className="text-[#00A86B]" />
+                  <div>
+                    <p className="text-lg font-black">{routeInfo.dist}</p>
+                    <p className="text-[9px] uppercase font-bold text-[#5C7A6D]">Расстояние</p>
+                  </div>
+                </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <button
-                  onClick={() => selectedVacancy.url && window.open(selectedVacancy.url, "_blank")}
-                  className="h-12 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#00A86B] hover:text-white transition-all flex items-center justify-center gap-2 shadow-lg"
-                >
-                  <ExternalLink size={14} />
-                  <span>Открыть вакансию</span>
-                </button>
-
-                <button
-                  onClick={() => buildRoute(selectedVacancy.coordinates)}
-                  className="h-12 vaqta-gradient text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg vaqta-glow"
-                >
-                  <Navigation size={14} />
-                  <span>Маршрут</span>
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  const [lat, lng] = center;
+                  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank");
+                }}
+                className="w-full h-12 vaqta-gradient rounded-2xl text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg"
+              >
+                <ExternalLink size={14} />
+                Открыть в Google Maps
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {selectedDest && !routeInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="vaqta-glass p-5 border-[#1A3D2E] space-y-3"
+          >
+            <div className="flex items-center gap-2">
+              <MapPin size={16} className="text-[#00A86B]" />
+              <span className="text-sm font-bold">{selectedDest.name || selectedDest.display_name}</span>
+            </div>
+            <button
+              onClick={buildRouteToDest}
+              disabled={isBuildingRoute}
+              className="w-full h-12 vaqta-gradient rounded-2xl text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform disabled:opacity-50"
+            >
+              {isBuildingRoute ? <Loader2 className="animate-spin" size={16} /> : <Navigation size={16} />}
+              {isBuildingRoute ? "Строим маршрут..." : "Построить маршрут"}
+            </button>
+          </motion.div>
+        )}
       </main>
 
       <BottomNav />

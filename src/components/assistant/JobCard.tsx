@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Briefcase, MapPin, ExternalLink, CheckCircle2, DollarSign } from "lucide-react";
-import { Card } from "@/components/ui/card";
 
 interface JobCardProps {
   query?: string;
@@ -16,7 +15,6 @@ interface JobCardProps {
 }
 
 export function JobCard({ query, data }: JobCardProps) {
-  // Fallback demo data if real data isn't provided yet
   const job = data || {
     title: query || "Специалист (Вахта)",
     company: "Группа компаний 'Энерго'",

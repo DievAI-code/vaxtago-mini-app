@@ -20,13 +20,9 @@ export interface RouteResult {
 }
 
 export const routeService = {
-  /**
-   * Builds a route between two points using OSRM as primary engine
-   */
   async buildRoute(from: [number, number], to: [number, number], mode: TravelMode): Promise<RouteResult | null> {
     try {
       const profile = mode === "walking" ? "foot" : "car";
-      // OSRM expects [lng, lat]
       const url = `https://router.project-osrm.org/route/v1/${profile}/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson&steps=true`;
 
       const res = await fetch(url);
@@ -47,14 +43,13 @@ export const routeService = {
         }))
       };
 
-      // Mock transit data for prototype purposes if transit mode is selected
       if (mode === "transit") {
         result.transport = {
           line: "Автобус №25",
           stop: "Ближайшая остановка",
           transfer: false
         };
-        result.durationMins += 5; // transit wait time overhead
+        result.durationMins += 5;
       }
 
       return result;

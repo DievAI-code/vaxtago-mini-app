@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Send, Bot, Mic, Plus, MapPin, Briefcase, Camera, 
+  Send, Bot, Mic, MapPin, Briefcase, Camera, 
   Navigation, Sparkles, ChevronRight, Ticket
 } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -13,8 +13,10 @@ import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
 import { processSmartSearch, SmartSearchResult } from "@/lib/smartSearch";
 import { AIActionCard } from "@/components/AIActionCard";
+import { RouteCard } from "@/components/assistant/RouteCard";
 import { MapCard } from "@/components/assistant/MapCard";
 import { JobCard } from "@/components/assistant/JobCard";
+import { detectNavigationIntent } from "@/services/aiCommands";
 import { cn } from "@/lib/utils";
 
 export default function AiAssistant() {
@@ -23,6 +25,7 @@ export default function AiAssistant() {
   const [input, setInput] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [smartResults, setSmartResults] = useState<Record<number, SmartSearchResult>>({});
+  const [routeIntents, setRouteIntents] = useState<Record<number, ReturnType<typeof detectNavigationIntent>>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +38,13 @@ export default function AiAssistant() {
     if (!customText) setInput("");
 
     const msgIndex = messages.length + 1;
+    
+    // Detect route intent
+    const navIntent = detectNavigationIntent(text);
+    if (navIntent.intent === "route") {
+      setRouteIntents((prev) => ({ ...prev, [msgIndex]: navIntent }));
+    }
+    
     const smart = await processSmartSearch(text);
     setSmartResults((prev) => ({ ...prev, [msgIndex]: smart }));
 
@@ -85,6 +95,8 @@ export default function AiAssistant() {
 
           {messages.map((m, i) => {
             const smart = smartResults[i];
+            const routeIntent = routeIntents[i];
+            
             return (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex flex-col", m.role === "user" ? "items-end" : "items-start")}>
                 <div className={cn("px-5 py-3.5 text-xs sm:text-sm font-medium leading-relaxed max-w-[88%] shadow-2xl", m.role === "user" ? "message-user" : "message-ai")}>
@@ -98,6 +110,15 @@ export default function AiAssistant() {
                       actionLabel={smart.suggestedAction?.label}
                       actionRoute={smart.suggestedAction?.route}
                       actionUrl={smart.suggestedAction?.url}
+                    />
+                  )}
+                  
+                  {/* Route Card for route intents */}
+                  {routeIntent?.intent === "route" && routeIntent.to && (
+                    <RouteCard
+                      from={routeIntent.from}
+                      to={routeIntent.to}
+                      mode={routeIntent.mode}
                     />
                   )}
                   

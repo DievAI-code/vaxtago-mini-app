@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
+import { detectNavigationIntent } from "@/services/aiCommands";
 
 export function useVoiceAssistant(onCommand: (text: string) => void) {
   const [isListening, setIsListening] = useState(false);
@@ -32,8 +33,14 @@ export function useVoiceAssistant(onCommand: (text: string) => void) {
     recognition.onresult = (event: any) => {
       const text = event.results[0][0].transcript;
       if (text) {
+        // Check if it's a route command
+        const navIntent = detectNavigationIntent(text);
+        if (navIntent.intent === "route") {
+          toast.success(`Голосовая команда маршрута: "${text}"`);
+        } else {
+          toast.success(`Голосовая команда: "${text}"`);
+        }
         onCommand(text);
-        toast.success(`Голосовая команда: "${text}"`);
       }
     };
 

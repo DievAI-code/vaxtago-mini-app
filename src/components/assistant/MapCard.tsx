@@ -17,7 +17,7 @@ interface MapCardProps {
 export function MapCard({ query, type = "search", onActionComplete }: MapCardProps) {
   const { t } = useLanguage();
   const [location, setLocation] = useState<LocationResult | null>(null);
-  const [userCoords, setUserCoords] = useState<[number, number] | null>(null); // [lat, lng]
+  const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -48,7 +48,7 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            setUserCoords([pos.coords.latitude, pos.coords.longitude]); // [lat, lng]
+            setUserCoords([pos.coords.latitude, pos.coords.longitude]);
           },
           () => {}
         );
@@ -70,7 +70,7 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
-            const uCoords: [number, number] = [pos.coords.latitude, pos.coords.longitude]; // [lat, lng]
+            const uCoords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
             setUserCoords(uCoords);
             const r = await locationService.buildRoute(uCoords, [location.latitude, location.longitude]);
             if (r) {
@@ -111,7 +111,7 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
     );
   }
 
-  const mapCenter: [number, number] = [location.latitude, location.longitude]; // [lat, lng]
+  const mapCenter: [number, number] = [location.latitude, location.longitude];
 
   return (
     <motion.div
