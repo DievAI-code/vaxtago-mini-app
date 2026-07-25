@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAppLifecycle, LifecycleState } from "@/hooks/useAppLifecycle";
-import { appStorage } from "@/lib/appStorage";
+import { saveLastRoute, loadLastRoute } from "@/lib/appStorage";
 
 interface AppLifecycleContextType extends LifecycleState {
   restoreAppState: () => void;
@@ -16,16 +16,16 @@ export function AppLifecycleProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Route saving
+  // Save route on every change
   useEffect(() => {
     if (location.pathname && location.pathname !== "/") {
-      appStorage.saveLastRoute(location.pathname);
+      saveLastRoute(location.pathname);
     }
   }, [location.pathname]);
 
-  // Route restoration on cold boot if needed
+  // Restore route on cold boot
   useEffect(() => {
-    const lastRoute = appStorage.loadLastRoute();
+    const lastRoute = loadLastRoute();
     if (location.pathname === "/" && lastRoute && lastRoute !== "/") {
       console.log(`[VAQTA LIFECYCLE] Restoring route: ${lastRoute}`);
       navigate(lastRoute, { replace: true });

@@ -6,7 +6,7 @@ import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { detectIntent } from "@/lib/aiRouter";
-import { appStorage } from "@/lib/appStorage";
+import { saveAssistantSession, loadAssistantSession } from "@/lib/appStorage";
 import { subscriptionManager } from "@/lib/subscriptionManager";
 
 export interface ChatMessage {
@@ -48,7 +48,7 @@ export function useAiChat() {
   const [loading, setLoading] = useState(false);
   const { language, t } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    const session = appStorage.loadAssistantSession();
+    const session = loadAssistantSession();
     if (session?.messages) {
       return session.messages.map((m) => ({
         role: m.role,
@@ -68,7 +68,7 @@ export function useAiChat() {
 
   useEffect(() => {
     if (messages.length > 0) {
-      appStorage.saveAssistantSession({
+      saveAssistantSession({
         messages: messages.map((m) => ({
           role: m.role,
           content: m.content,
@@ -148,7 +148,7 @@ export function useAiChat() {
 
   useEffect(() => {
     const handleRestore = () => {
-      const session = appStorage.loadAssistantSession();
+      const session = loadAssistantSession();
       if (session?.messages?.length > 0) {
         toast.info(t("ai.restored") || "VAQTA AI восстановлен");
       }

@@ -10,11 +10,10 @@ import {
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { mapsService, TravelMode } from "@/services/maps/mapsService";
-import { appStorage } from "@/lib/appStorage";
+import { saveMapState, getMapState } from "@/lib/appStorage";
 import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
 
-// Ensure 100dvh is used for mobile
 const containerStyle: React.CSSProperties = {
   height: "100dvh",
   minHeight: "100dvh",
@@ -26,11 +25,10 @@ export default function MapPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   
-  // State
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [center, setCenter] = useState<[number, number]>([55.7558, 37.6173]); // Moscow default
+  const [center, setCenter] = useState<[number, number]>([55.7558, 37.6173]);
   const [zoom, setZoom] = useState(12);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [selectedDest, setSelectedDest] = useState<any>(null);
@@ -38,18 +36,15 @@ export default function MapPage() {
   const [routeInfo, setRouteInfo] = useState<{ dist: string; time: string } | null>(null);
   const [isBuildingRoute, setIsBuildingRoute] = useState(false);
 
-  // Initialize map
   useEffect(() => {
     const initMap = async () => {
       if (!mapContainerRef.current) return;
       
-      // Try to restore saved state
-      const savedState = appStorage.getMapState();
+      const savedState = getMapState();
       if (savedState) {
         setCenter(savedState.center);
         setZoom(savedState.zoom);
         
-        // Restore last route if exists
         if (savedState.lastRoute) {
           handleRouteSearch(savedState.lastRoute.from, savedState.lastRoute.to, savedState.lastRoute.mode as TravelMode);
         }
@@ -64,14 +59,12 @@ export default function MapPage() {
       if (success) {
         setIsLoading(false);
         
-        // Check for route params from AI
         const fromParam = searchParams.get("from");
         const toParam = searchParams.get("to");
         const modeParam = searchParams.get("mode") as TravelMode | null;
         
         if (toParam) {
           handleRouteSearch(fromParam || undefined, toParam, modeParam || "car");
-          // Clear params after processing
           setSearchParams({});
         }
       } else {
@@ -82,8 +75,7 @@ export default function MapPage() {
     initMap();
     
     return () => {
-      // Save state before unmounting
-      appStorage.saveMapState({
+      saveMapState({
         center,
         zoom,
         lastRoute: routeInfo ? { from: selectedDest?.name || "", to: selectedDest?.name || "", mode: routeMode } : undefined
@@ -92,10 +84,9 @@ export default function MapPage() {
     };
   }, []);
 
-  // Save state on changes
   useEffect(() => {
     if (!isLoading) {
-      appStorage.saveMapState({
+      saveMapState({
         center,
         zoom,
         lastRoute: routeInfo ? { from: selectedDest?.name || "", to: selectedDest?.name || "", mode: routeMode } : undefined
@@ -121,10 +112,8 @@ export default function MapPage() {
           time: result.duration
         });
         
-        // Display route on map
         mapsService.displayRoute(result);
         
-        // Fit map to show route
         if (result.geometry.length > 0) {
           const bounds = result.geometry;
           const midIndex = Math.floor(bounds.length / 2);
@@ -208,7 +197,6 @@ export default function MapPage() {
     <div className="flex flex-col bg-[#06140F] text-white overflow-hidden" style={containerStyle}>
       <Header title={t("nav.map") || "Карта"} showBack />
       
-      {/* Map Container - uses remaining height */}
       <div className="flex-1 relative">
         <div 
           ref={mapContainerRef}
@@ -225,7 +213,6 @@ export default function MapPage() {
           </div>
         )}
 
-        {/* Search Overlay */}
         <div className="absolute top-4 left-4 right-4 z-10 space-y-3">
           <div className="vaqta-glass p-2 flex items-center gap-2">
             <Search size={18} className="text-[#00A86B] ml-2" />
@@ -249,7 +236,6 @@ export default function MapPage() {
             )}
           </div>
 
-          {/* Transport Modes */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {MODES.map((m) => {
               const Icon = m.icon;
@@ -272,7 +258,6 @@ export default function MapPage() {
           </div>
         </div>
 
-        {/* Locate Button */}
         <button
           onClick={handleLocateUser}
           className="absolute bottom-24 right-4 z-10 p-3 bg-[#06140F] rounded-xl shadow-lg border border-white/10 text-[#00A86B] active:scale-95 transition-transform"
@@ -280,7 +265,6 @@ export default function MapPage() {
           <Crosshair size={20} />
         </button>
 
-        {/* Route Info Panel */}
         <AnimatePresence>
           {routeInfo && (
             <motion.div
