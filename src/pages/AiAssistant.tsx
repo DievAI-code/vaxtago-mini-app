@@ -19,6 +19,8 @@ import { RouteCard } from "@/components/assistant/RouteCard";
 import { MapCard } from "@/components/assistant/MapCard";
 import { JobCard } from "@/components/assistant/JobCard";
 import { detectNavigationIntent } from "@/services/aiCommands";
+import { mapService } from "@/services/maps/mapService";
+import { MapLocation } from "@/services/maps/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -123,14 +125,11 @@ export default function AiAssistant() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [smartResults, setSmartResults] = useState<Record<number, SmartSearchResult>>({});
   const [routeIntents, setRouteIntents] = useState<Record<number, ReturnType<typeof detectNavigationIntent>>>({});
+  const [routePlaces, setRoutePlaces] = useState<Record<number, { from: MapLocation | null, to: MapLocation | null }>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Voice integration
-  const voice = useVoiceAssistant({
-    autoSendToAI: true,
-  });
+  const voice = useVoiceAssistant({ autoSendToAI: true });
 
-  // Обработка голосовых команд (навигация)
   const handleVoiceCommand = (text: string, action?: { type: string; path?: string }) => {
     if (action) {
       if (action.type === "navigate" && action.path) {
@@ -143,17 +142,14 @@ export default function AiAssistant() {
         return;
       }
     }
-    // Иначе — отправляем в AI
     handleSend(text);
   };
 
-  // Озвучка последнего ответа AI
   useEffect(() => {
     if (!voice.settings.autoSpeak) return;
     if (messages.length < 2) return;
     const last = messages[messages.length - 1];
     if (last.role !== "assistant") return;
-    // Озвучиваем только новые ответы (с timestamp > 2 сек назад)
     if (Date.now() - new Date(last.timestamp as any).getTime() < 5000) {
       voice.speak(last.content);
     }
@@ -173,6 +169,11 @@ export default function AiAssistant() {
     const navIntent = detectNavigationIntent(text);
     if (navIntent.intent === "route") {
       setRouteIntents((prev) => ({ ...prev, [msgIndex]: navIntent }));
+      
+      const fromPlace = navIntent.from ? await mapService.searchSingle(navIntent.from, navIntent.city) : null;
+      const toPlace = await mapService.searchSingle(navIntent.to, navIntent.city);
+      
+      setRoutePlaces((prev) => ({ ...prev, [msgIndex]: { from: fromPlace, to: toPlace } }));
     }
 
     const smart = await processSmartSearch(text);
@@ -250,6 +251,7 @@ export default function AiAssistant() {
           {messages.map((m, i) => {
             const smart = smartResults[i];
             const routeIntent = routeIntents[i];
+            const places = routePlaces[i];
 
             return (
               <motion.div
@@ -276,8 +278,8 @@ export default function AiAssistant() {
                   {routeIntent?.intent === "route" && routeIntent.to && (
                     <div className="mt-2">
                       <RouteCard
-                        from={routeIntent.from}
-                        to={routeIntent.to}
+                        from={places?.from?.name || routeIntent.from}
+                        to={places?.to?.name || routeIntent.to}
                         mode={routeIntent.mode}
                         city={routeIntent.city}
                       />
@@ -325,7 +327,6 @@ export default function AiAssistant() {
 
       <div className="fixed bottom-24 left-0 right-0 px-4 sm:px-6 z-50 pointer-events-none">
         <div className="max-w-3xl mx-auto liquid-glass p-2.5 space-y-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.9)] rounded-[2.2rem] pointer-events-auto border-emerald-500/20">
-          {/* Voice bar */}
           <div className="px-1">
             <VoiceControlBar
               onCommand={handleVoiceCommand}
@@ -333,7 +334,6 @@ export default function AiAssistant() {
             />
           </div>
 
-          {/* Text input */}
           <div className="flex items-center gap-2">
             <button
               type="button"
