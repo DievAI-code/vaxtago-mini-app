@@ -1,95 +1,77 @@
 {
   "app_title": "VAQTA AI",
-  "app_subtitle": "Aqlli yordamchi",
-  "greeting": "Assalomu alaykum 👋\nMen ish topish, hujjatlar, tarjima va manzil topishda yordam beraman.",
-  "chat_ph": "Savol yoki manzilni yozing...",
-  "chat_placeholder": "Savol yoki manzilni yozing...",
+  "app_greeting": "Assalomu alaykum 👋",
+  "app_question": "Qanday yordam bera olaman?",
+  "search_placeholder": "VAQTA AI dan so‘rang...",
   "nav": {
     "home": "Asosiy",
-    "ai": "AI Yordamchi",
-    "scanner": "Rasm tarjima",
-    "jobs": "Ish",
+    "ai": "AI Chat",
     "map": "Xarita",
-    "profile": "Profil",
-    "premium": "Premium",
-    "settings": "Sozlamalar",
-    "tracker": "Patent",
-    "sos": "Yordam",
-    "cabinet": "Kabinet",
-    "admin": "Admin"
+    "scanner": "Foto",
+    "profile": "Profil"
   },
-  "buttons": {
-    "ai": "🤖 AI Chat",
-    "scanner": "📷 Rasm tarjima",
-    "jobs": "💼 Ish",
-    "maps": "📍 Xarita",
-    "send": "Yuborish",
-    "take_photo": "Kamera",
-    "gallery": "Galereya",
-    "save": "Saqlash",
-    "route": "Marshrut",
-    "open_map": "Xaritada ochish",
-    "start": "Boshlash",
-    "login": "Kirish",
-    "continue": "Davom etish",
-    "search": "Qidirish",
-    "path": "Yo'l"
-  },
-  "scanner": {
-    "title": "Rasm tarjima",
-    "desc": "Hujjat yoki chek fotosini yuboring — o'zbek tiliga o'girib beraman.",
-    "take_photo": "Kameradan olish",
-    "gallery": "Galereyadan tanlash",
-    "processing": "Matn o'qilmoqda va tarjima qilinmoqda...",
-    "result_ready": "Tarjima tayyor!",
-    "original": "Asl rasm",
-    "translated": "Tarjima qilingan rasm",
-    "download": "Rasmni saqlab olish",
-    "new_scan": "Yangi rasm",
-    "error_ai": "Tarjima qilishda xatolik yuz berdi",
-    "original_text": "Asl matn",
-    "translation": "Tarjima",
-    "step_analyze": "Rasm tahlil qilinmoqda..."
+  "home": {
+    "cat_map": "Xarita",
+    "cat_jobs": "Ish",
+    "cat_photo": "Rasm tarjimasi",
+    "cat_docs": "Hujjatlar",
+    "cat_text": "Matn tarjimasi",
+    "cat_route": "Yo‘nalish",
+    "cat_hospitals": "Shifoxonalar",
+    "cat_stations": "Vokzallar",
+    "cat_airports": "Aeroportlar",
+    "cat_lawyer": "Yurist",
+    "cat_sos": "Yordam",
+    "cat_location": "Joylashuvim"
   },
   "maps": {
-    "title": "2GIS Xarita",
-    "search_ph": "Tyumen vokzal, Moskva metro...",
-    "not_found": "Hech narsa topilmadi. Manzilni aniqroq yozib ko'ring.",
-    "route": "Yo'nalish qurish",
-    "my_location": "Mening joylashuvim",
-    "from": "Qayerdan",
-    "to": "Qayerga",
-    "walking": "Piyoda",
-    "car": "Mashina",
-    "transit": "Transport",
-    "start_route": "Yo'lga chiqish",
-    "destination": "Manzil"
+    "search_ph": "Qidirish",
+    "mode_car": "Avto",
+    "mode_walk": "Piyoda",
+    "mode_bus": "Avtobus",
+    "mode_taxi": "Taksi",
+    "mode_bike": "Velosiped",
+    "point_home": "Uy",
+    "point_work": "Ish",
+    "point_station": "Vokzal",
+    "point_airport": "Aeroport",
+    "point_hospital": "Shifoxona",
+    "point_hotel": "Mehmonxona",
+    "point_cafe": "Kafe",
+    "point_fuel": "Yoqilg‘i",
+    "point_atm": "Bankomat",
+    "route_panel": {
+      "drive": "haydash",
+      "walk": "yurish",
+      "bus": "avtobus",
+      "taxi": "taksi",
+      "dist": "masofa",
+      "time": "vaqt",
+      "cost": "narxi",
+      "start": "Yo‘nalishni boshlash"
+    }
   },
-  "jobs": {
-    "title": "Ish qidirish",
-    "search_ph": "Kasb va shahar (payvandchi Moskva)...",
-    "found_count": "Vakansiyalar",
-    "apply": "Ariza yuborish",
-    "not_connected": "Ish o'rinlari manbasi ulanish bosqichida"
+  "ai": {
+    "welcome": "Assalomu alaykum! Men sizning universal yordamchingizman. Ish topish, yo‘nalish qurish yoki hujjatlarni tarjima qilishda yordam beraman.",
+    "placeholder": "Savol yoki buyruqni yozing...",
+    "hint_jobs": "Ish topish",
+    "hint_route": "Yo‘nalishni ko‘rsatish",
+    "hint_photo": "Rasmni tarjima qilish",
+    "hint_address": "Manzilni topish",
+    "hint_org": "Tashkilotni topish"
   },
-  "chat": {
-    "welcome": "Assalomu alaykum! Bugun sizga qanday yordam bera olaman? Hujjatlar, rasmlar va tarjimalarni tushunaman.",
-    "typing": "AI o'ylamoqda...",
-    "error": "AI bilan aloqa uzildi. Keyinroq urinib ko'ring.",
-    "placeholder": "Biror narsa yozing..."
+  "profile": {
+    "title": "Profilim",
+    "phone": "Telefon",
+    "language": "Til",
+    "premium": "VAQTA Premium",
+    "history": "Tarix",
+    "settings": "Sozlamalar",
+    "logout": "Chiqish"
   },
-  "auth": {
-    "login_title": "Tizimga kirish",
-    "subtitle": "Ish va hayot uchun yordamchingiz",
-    "phone_placeholder": "+7 (___) ___ ____",
-    "select_lang": "Tilni tanlang",
-    "privacy_note": "Davom etish orqali foydalanish shartlariga rozilik berasiz"
-  },
-  "common": {
-    "done": "Tayyor",
-    "error": "Xatolik",
-    "loading": "Yuklanmoqda...",
-    "retry": "Qayta urinish",
-    "close": "Yopish"
+  "founder": {
+    "name": "Diev Dmitry Sergeevich",
+    "title": "VAQTA AI Asoschisi",
+    "desc": "VAQTA AI — odamlarga ish qidirish, hujjatlarni tarjima qilish, navigatsiya va kundalik vazifalarni sun’iy intellekt yordamida hal qilishda yordam berish uchun yaratilgan intellektual platforma."
   }
 }
