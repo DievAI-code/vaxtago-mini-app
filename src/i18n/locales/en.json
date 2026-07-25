@@ -4,6 +4,23 @@
   "app_question": "How can I help you?",
   "search_placeholder": "Ask VAQTA AI...",
   "greeting": "Hello! I am VAQTA AI, your smart assistant.",
+  "settings_lang": "Language",
+  "logout": "Log Out",
+  "ai": {
+    "welcome": "How can I help? Ask a question, send a photo, or search a map location.",
+    "hint_jobs": "Find Job",
+    "hint_route": "Build Route",
+    "hint_photo": "Translate Document",
+    "hint_address": "Find Address",
+    "placeholder": "Ask VAQTA AI...",
+    "error": "AI connection error occurred",
+    "thinking": "Thinking...",
+    "try_again": "Try again",
+    "vision_processing": "Analyzing image...",
+    "document_analysis": "Document Analysis",
+    "translation_complete": "Translation complete",
+    "employer_check": "Employer Check"
+  },
   "nav": {
     "home": "Home",
     "ai": "AI Assistant",
@@ -16,7 +33,9 @@
     "tracker": "Patent",
     "sos": "Help",
     "cabinet": "Cabinet",
-    "admin": "Admin"
+    "admin": "Admin",
+    "history": "History",
+    "contract": "Contract Audit"
   },
   "home": {
     "cat_map": "Map",
@@ -31,7 +50,12 @@
     "cat_lawyer": "Lawyer",
     "cat_sos": "Emergency",
     "cat_location": "My Location",
-    "quick_services": "Quick Services"
+    "quick_services": "Quick Services",
+    "find_job": "Find Job",
+    "check_doc": "Check Document",
+    "translate_photo": "Translate Photo",
+    "find_address": "Find Address",
+    "ask_ai": "Ask AI"
   },
   "founder": {
     "name": "Dmitry Diev",
@@ -53,6 +77,14 @@
     "point_airport": "Airport",
     "point_hospital": "Hospital",
     "point_hotel": "Hotel",
+    "route": "Route",
+    "distance": "Distance",
+    "time": "Travel Time",
+    "location": "My Location",
+    "search": "Address Search",
+    "nearby": "Nearby",
+    "found_address": "Address Found",
+    "job_location": "Job Location",
     "route_panel": {
       "start": "Start Route",
       "time": "Time",
@@ -76,20 +108,121 @@
     "new_scan": "New Scan",
     "error_ai": "AI Error",
     "doc_types": {
-      "job_ad": "Job Vacancy"
+      "job_ad": "Job Vacancy",
+      "contract": "Contract",
+      "passport": "Passport",
+      "patent": "Patent",
+      "unknown": "Document"
     }
   },
   "buttons": {
-    "continue": "Continue"
+    "continue": "Continue",
+    "take_photo": "Take Photo",
+    "gallery": "Gallery"
   },
   "auth": {
     "subtitle": "Your AI Assistant",
     "phone_placeholder": "+7 (___) ___ ____",
-    "privacy_note": "By continuing you agree to the terms"
+    "privacy_note": "By continuing you agree to the terms of service and privacy policy",
+    "phone_label": "Phone Number",
+    "phone_prompt": "Enter your phone number",
+    "select_lang": "Select Language",
+    "welcome": "Welcome",
+    "login_title": "Account Login"
+  },
+  "profile": {
+    "title": "Profile",
+    "subscription": "Subscription",
+    "usage": "Daily Usage",
+    "settings": "Settings",
+    "language": "Language",
+    "admin_panel": "Admin Panel",
+    "expires": "Valid Until",
+    "user_info": "User Info",
+    "user_name": "Username",
+    "user_phone": "Phone Number",
+    "user_lang": "Interface Language"
+  },
+  "premium": {
+    "title": "Premium Subscription",
+    "subtitle": "Maximum protection and speed",
+    "features": "Subscription Benefits",
+    "buy": "Get Premium",
+    "active": "Premium Active",
+    "inactive": "Inactive",
+    "per_month": "month",
+    "feature_locked": "This feature is available in Premium"
+  },
+  "tracker": {
+    "title": "Patent Calendar",
+    "subtitle": "Payment and deadline reminders",
+    "last_paid": "Last patent payment date",
+    "warning_status": "Pay patent urgently!",
+    "safe_status": "Payment up to date",
+    "calculate_90": "90/180 Rule Calculator",
+    "entry_date": "Date of entry to RF",
+    "legal_days": "Remaining allowed days",
+    "monthly_tax": "Regional patent costs"
+  },
+  "sos": {
+    "title": "Emergency Support (SOS)",
+    "subtitle": "If stopped for document verification",
+    "send_coords": "Send coordinates to contacts",
+    "rights_title": "Rights during verification",
+    "phrases_title": "Polite phrases for police officers",
+    "rule_1": "1. Officer must state their name and reason for check.",
+    "rule_2": "2. You have the right to show documents from your hands.",
+    "rule_3": "3. Keep passport, migration card and patent receipts with you.",
+    "rule_4": "4. Remain calm and polite."
+  },
+  "contract": {
+    "title": "Labor Contract Audit",
+    "subtitle": "Upload contract photo — AI finds hidden risks and penalties",
+    "upload": "Upload Document",
+    "ai_prompt": "Analyze labor contract for fines, deductions, and unfair terms.",
+    "fallback_summary": "Contract analyzed.",
+    "ready": "Analysis complete",
+    "analyzing": "Analyzing contract...",
+    "summary": "Contract Summary",
+    "risks": "Identified Risks",
+    "disclaimer": "* Result is for informational purposes only.",
+    "risk_penalty": "Penalties & Deductions",
+    "risk_penalty_d": "Terms found regarding possible wage deductions.",
+    "risk_housing": "Housing Conditions",
+    "risk_housing_d": "Check if housing costs are deducted from salary.",
+    "risk_exit": "Contract Termination",
+    "risk_exit_d": "Pay attention to dismissal terms.",
+    "risk_docs": "Withholding Documents",
+    "risk_docs_d": "Employer has no right to hold your passport.",
+    "risk_general": "Standard Contract",
+    "risk_general_d": "No severe violations detected."
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "login_title": "Admin Login",
+    "enter_pass": "Enter access password",
+    "invalid_pass": "Invalid admin password",
+    "search_user": "Search...",
+    "activate_premium": "Activate Premium",
+    "deactivate_premium": "Disable Premium"
+  },
+  "jobs": {
+    "placeholder": "What job do you need?",
+    "found_count": "Popular Vacancies",
+    "search_title": "Job Search",
+    "apply": "Apply",
+    "save": "Save"
   },
   "common": {
     "done": "Done",
     "error": "Error",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "continue": "Continue",
+    "more": "Details",
+    "save": "Save",
+    "share": "Share",
+    "cancel": "Cancel",
+    "search": "Search",
+    "clear": "Clear"
   }
 }

@@ -4,19 +4,38 @@
   "app_question": "Qanday yordam bera olaman?",
   "search_placeholder": "VAQTA AI dan so‘rang...",
   "greeting": "Assalomu alaykum! Men VAQTA AI, sizning aqlli yordamchingizman.",
+  "settings_lang": "Til",
+  "logout": "Tizimdan chiqish",
+  "ai": {
+    "welcome": "Qanday yordam bera olaman? Savol bering, rasm yuboring yoki xaritadan manzil qidiring.",
+    "hint_jobs": "Ish topish",
+    "hint_route": "Yo'nalish tuzish",
+    "hint_photo": "Hujjatni tarjima qilish",
+    "hint_address": "Manzilni topish",
+    "placeholder": "VAQTA AI dan so'rang...",
+    "error": "AI bilan ulanishda xatolik yuz berdi",
+    "thinking": "O'ylamoqdaman...",
+    "try_again": "Qayta urinib ko'ring",
+    "vision_processing": "Rasm tahlil qilinmoqda...",
+    "document_analysis": "Hujjat tahlili",
+    "translation_complete": "Tarjima yakunlandi",
+    "employer_check": "Ish beruvchini tekshirish"
+  },
   "nav": {
     "home": "Asosiy",
     "ai": "AI Chat",
-    "map": "Xarita",
     "scanner": "Foto",
     "jobs": "Ish",
+    "map": "Xarita",
     "profile": "Profil",
     "premium": "Premium",
     "settings": "Sozlamalar",
     "tracker": "Patent",
     "sos": "Yordam",
     "cabinet": "Kabinet",
-    "admin": "Admin"
+    "admin": "Admin",
+    "history": "Tarix",
+    "contract": "Shartnoma auditi"
   },
   "home": {
     "cat_map": "Xarita",
@@ -31,7 +50,12 @@
     "cat_lawyer": "Yurist",
     "cat_sos": "Yordam",
     "cat_location": "Joylashuvim",
-    "quick_services": "Tezkor xizmatlar"
+    "quick_services": "Tezkor xizmatlar",
+    "find_job": "Ish topish",
+    "check_doc": "Hujjatni tekshirish",
+    "translate_photo": "Rasm tarjimasi",
+    "find_address": "Manzil topish",
+    "ask_ai": "AI ga savol berish"
   },
   "founder": {
     "name": "Diev Dmitry Sergeevich",
@@ -53,6 +77,14 @@
     "point_airport": "Aeroport",
     "point_hospital": "Shifoxona",
     "point_hotel": "Mehmonxona",
+    "route": "Yo'nalish",
+    "distance": "Masofa",
+    "time": "Yo'l vaqti",
+    "location": "Mening joylashuvim",
+    "search": "Manzil qidirish",
+    "nearby": "Yaqin atrofda",
+    "found_address": "Manzil topildi",
+    "job_location": "Ish joyi",
     "route_panel": {
       "start": "Yo‘nalishni boshlash",
       "time": "Vaqt",
@@ -76,20 +108,121 @@
     "new_scan": "Yangi skan",
     "error_ai": "AI xatosi",
     "doc_types": {
-      "job_ad": "Vakansiya"
+      "job_ad": "Vakansiya",
+      "contract": "Shartnoma",
+      "passport": "Pasport",
+      "patent": "Patent",
+      "unknown": "Hujjat"
     }
   },
   "buttons": {
-    "continue": "Davom etish"
+    "continue": "Davom etish",
+    "take_photo": "Rasmga olish",
+    "gallery": "Galereya"
   },
   "auth": {
     "subtitle": "Sizning AI yordamchingiz",
     "phone_placeholder": "+7 (___) ___ ____",
-    "privacy_note": "Davom etish orqali shartlarga rozilik berasiz"
+    "privacy_note": "Davom etish orqali shartlarga rozilik berasiz",
+    "phone_label": "Telefon raqami",
+    "phone_prompt": "Telefon raqamingizni kiriting",
+    "select_lang": "Tilni tanlang",
+    "welcome": "Xush kelibsiz",
+    "login_title": "Tizimga kirish"
+  },
+  "profile": {
+    "title": "Profil",
+    "subscription": "Obuna",
+    "usage": "Kunlik foydalanish",
+    "settings": "Sozlamalar",
+    "language": "Til",
+    "admin_panel": "Boshqaruv paneli",
+    "expires": "Amal qilish muddati",
+    "user_info": "Foydalanuvchi ma'lumoti",
+    "user_name": "Ism",
+    "user_phone": "Telefon raqami",
+    "user_lang": "Interfeys tili"
+  },
+  "premium": {
+    "title": "Premium obuna",
+    "subtitle": "Maksimal himoya va tezlik",
+    "features": "Obuna afzalliklari",
+    "buy": "Premium ulash",
+    "active": "Premium faol",
+    "inactive": "Noo'rin",
+    "per_month": "oy",
+    "feature_locked": "Bu funksiya Premiumda mavjud"
+  },
+  "tracker": {
+    "title": "Patent kalendari",
+    "subtitle": "To'lov va muddat eslatmalari",
+    "last_paid": "Oxirgi to'lov sanasi",
+    "warning_status": "Tezda patentni to'lang!",
+    "safe_status": "To'lov joyida",
+    "calculate_90": "90/180 qoidasi hisobi",
+    "entry_date": "RFga kirish sanasi",
+    "legal_days": "Ruxsat etilgan kunlar qoldi",
+    "monthly_tax": "Hududlar bo'yicha patent narxi"
+  },
+  "sos": {
+    "title": "Shoshilinch yordam (SOS)",
+    "subtitle": "Hujjatlarni tekshirish uchun to'xtatilganda",
+    "send_coords": "Koordinatalarni yuborish",
+    "rights_title": "Hujjatlarni tekshirishdagi huquqlar",
+    "phrases_title": "Xodim uchun xushmuomala iboralar",
+    "rule_1": "1. Xodim o'zini tanishtirishi shart.",
+    "rule_2": "2. Hujjatlarni qo'lingizda ko'rsatish huquqiga egasiz.",
+    "rule_3": "3. Pasport, migratsiya kartasi va patent cheklarini yonningizda tuting.",
+    "rule_4": "4. Xotirjamlik va xushmuomalalikni saqlang."
+  },
+  "contract": {
+    "title": "Mehnat shartnomasi auditi",
+    "subtitle": "Shartnoma rasmini yuklang — AI yashirin xavflarni topadi",
+    "upload": "Hujjat yuklash",
+    "ai_prompt": "Mehnat shartnomasini jarimalar va nohaq shartlar uchun tahlil qiling.",
+    "fallback_summary": "Shartnoma tahlil qilindi.",
+    "ready": "Tahlil yakunlandi",
+    "analyzing": "Shartnoma tahlil qilinmoqda...",
+    "summary": "Shartnoma xulosasi",
+    "risks": "Aniqlangan xavflar",
+    "disclaimer": "* Natija ma'lumot beruvchi xarakterga ega.",
+    "risk_penalty": "Jarimalar va ushlanmalar",
+    "risk_penalty_d": "Oylikdan ushlab qolish shartlari topildi.",
+    "risk_housing": "Yashash sharoitlari",
+    "risk_housing_d": "Uy-joy haqi maoshdan ushlanishini tekshiring.",
+    "risk_exit": "Shartnomani bekor qilish",
+    "risk_exit_d": "Ishdan bo'shash shartlariga e'tibor bering.",
+    "risk_docs": "Hujjatlarni olib qo'yish",
+    "risk_docs_d": "Ish beruvchi pasportingizni olib qo'yishga haqli emas.",
+    "risk_general": "Standart shartnoma",
+    "risk_general_d": "Jiddiy qoidabuzarliklar aniqlanmadi."
+  },
+  "admin": {
+    "title": "Admin paneli",
+    "login_title": "Admin paneliga kirish",
+    "enter_pass": "Parolni kiriting",
+    "invalid_pass": "Noto'g'ri parol",
+    "search_user": "Qidirish...",
+    "activate_premium": "Premium faollashtirish",
+    "deactivate_premium": "Premium o'chirish"
+  },
+  "jobs": {
+    "placeholder": "Sizga qanday ish kerak?",
+    "found_count": "Ommabop vakansiyalar",
+    "search_title": "Ish qidirish",
+    "apply": "Ariza topshirish",
+    "save": "Saqlash"
   },
   "common": {
     "done": "Tayyor",
     "error": "Xato",
-    "loading": "Yuklanmoqda..."
+    "loading": "Yuklanmoqda...",
+    "continue": "Davom etish",
+    "more": "Batafsil",
+    "save": "Saqlash",
+    "share": "Ulashish",
+    "cancel": "Bekor qilish",
+    "search": "Qidirish",
+    "clear": "Tozalash"
   }
 }
