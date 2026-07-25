@@ -2,57 +2,110 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export const imageTranslationService = {
-  async processImage(file: File, targetLang: string): Promise<{ original: string; translated: string }> {
-    const reader = new FileReader();
-    return new Promise((resolve, reject) => {
-      reader.onload = async (e) => {
-        const base64 = e.target?.result as string;
-        try {
-          if (!supabase) {
-            throw new Error("Supabase client not initialized");
-          }
+export interface OCRAnalysis {
+  text: string;
+  translatedText: string;
+  explanation: string;
+  docType: string;
+  language: string;
+  blocks: Array<{
+    text: string;
+    translation: string;
+    box: { x: number; y: number; w: number; h: number };
+  }>;
+}
 
-          const { data, error } = await supabase.functions.invoke("vision-assistant", {
-            body: { image: base64, language: targetLang, request_type: "translate_full" }
-          });
-          
-          if (error) throw error;
-          
-          const translatedImage = await this.generateOverlay(base64, data?.translation || data?.explanation || "Перевод готов", data?.blocks);
-          resolve({ original: base64, translated: translatedImage });
-        } catch (err) {
-          reject(err);
+export const imageTranslationService = {
+  async processDocument(file: File, targetLang: string): Promise<{ original: string; translated: string; analysis: OCRAnalysis }> {
+    const base64 = await this.fileToBase64(file);
+    
+    try {
+      // 1. Call AI Vision for OCR + Layout + Translation
+      const { data, error } = await supabase.functions.invoke("vision-assistant", {
+        body: { 
+          image: base64, 
+          language: targetLang, 
+          request_type: "document_ocr_full" 
         }
+      });
+      
+      if (error) throw error;
+
+      const analysis: OCRAnalysis = {
+        text: data.ocr_text || "",
+        translatedText: data.translation || "",
+        explanation: data.explanation || "Документ успешно распознан.",
+        docType: data.document_type || "unknown",
+        language: data.language || "ru",
+        blocks: data.blocks || []
       };
-      reader.onerror = (e) => reject(e);
+
+      // 2. Generate visually translated image via Canvas
+      const translatedImg = await this.generateTranslatedOverlay(base64, analysis.blocks);
+
+      return {
+        original: base64,
+        translated: translatedImg,
+        analysis
+      };
+    } catch (err) {
+      console.error("[OCR Service] Processing failed:", err);
+      throw err;
+    }
+  },
+
+  async fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   },
 
-  async generateOverlay(base64: string, text: string, blocks?: any[]): Promise<string> {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    
+  async generateTranslatedOverlay(originalBase64: string, blocks: any[]): Promise<string> {
     return new Promise((resolve) => {
+      const img = new Image();
       img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(originalBase64);
+
         canvas.width = img.width;
         canvas.height = img.height;
-        ctx?.drawImage(img, 0, 0);
         
-        if (ctx) {
-          ctx.fillStyle = "rgba(6, 20, 15, 0.85)";
-          ctx.fillRect(0, canvas.height - 150, canvas.width, 150);
+        // Draw original with slight dimming
+        ctx.drawImage(img, 0, 0);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw translated blocks
+        blocks.forEach(block => {
+          if (!block.box) return;
           
-          ctx.fillStyle = "#FFFFFF";
-          ctx.font = "bold 40px Inter, sans-serif";
-          ctx.fillText(text.slice(0, 100), 50, canvas.height - 80);
-        }
-        
-        resolve(canvas.toDataURL("image/jpeg"));
+          const { x, y, w, h } = block.box;
+          
+          // Background patch to cover original text
+          ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeStyle = "rgba(0, 168, 110, 0.3)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x, y, w, h);
+
+          // Text rendering
+          ctx.fillStyle = "#000000";
+          const fontSize = Math.max(12, h * 0.7);
+          ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+          ctx.textBaseline = "middle";
+          
+          // Simple wrap/fit logic
+          const text = block.translation || block.text;
+          ctx.fillText(text, x + 5, y + h / 2, w - 10);
+        });
+
+        resolve(canvas.toDataURL("image/jpeg", 0.9));
       };
-      img.src = base64;
+      img.src = originalBase64;
     });
   }
 };
