@@ -36,6 +36,24 @@ export default function MapPage() {
   const [routeInfo, setRouteInfo] = useState<{ dist: string; time: string } | null>(null);
   const [isBuildingRoute, setIsBuildingRoute] = useState(false);
 
+  // Listen for state restoration
+  useEffect(() => {
+    const handleRestore = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const restoredState = customEvent.detail?.state;
+      
+      if (restoredState?.mapCenter) {
+        console.log("[Map Page] Applying restored map state:", restoredState.mapCenter);
+        setCenter(restoredState.mapCenter);
+        if (restoredState.mapZoom) setZoom(restoredState.mapZoom);
+        toast.success("🗺 Карта восстановлена");
+      }
+    };
+    
+    window.addEventListener("vaqta:state-restored", handleRestore);
+    return () => window.removeEventListener("vaqta:state-restored", handleRestore);
+  }, []);
+
   useEffect(() => {
     const initMap = async () => {
       if (!mapContainerRef.current) return;

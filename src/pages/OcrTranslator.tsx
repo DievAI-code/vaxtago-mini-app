@@ -35,16 +35,40 @@ const LANGUAGES: LanguageOption[] = [
 
 type Step = "upload" | "configure" | "processing" | "result";
 
+const OCR_IMAGE_KEY = "vaqta_ocr_image";
+const OCR_SOURCE_KEY = "vaqta_ocr_source_lang";
+const OCR_TARGET_KEY = "vaqta_ocr_target_lang";
+
 export default function OcrTranslator() {
   const { t } = useLanguage();
   const [step, setStep] = useState<Step>("upload");
-  const [image, setImage] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(OCR_IMAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
   const [translatedImage, setTranslatedImage] = useState<string | null>(null);
   const [ocrBlocks, setOcrBlocks] = useState<OCRBlock[]>([]);
   const [recognizedText, setRecognizedText] = useState<string>("");
   const [detectedLang, setDetectedLang] = useState<string>("ru");
-  const [sourceLang, setSourceLang] = useState<LanguageCode>("auto");
-  const [targetLang, setTargetLang] = useState<LanguageCode>("uz");
+  const [sourceLang, setSourceLang] = useState<LanguageCode>(() => {
+    try {
+      const saved = localStorage.getItem(OCR_SOURCE_KEY);
+      return (saved as LanguageCode) || "auto";
+    } catch {
+      return "auto";
+    }
+  });
+  const [targetLang, setTargetLang] = useState<LanguageCode>(() => {
+    try {
+      const saved = localStorage.getItem(OCR_TARGET_KEY);
+      return (saved as LanguageCode) || "uz";
+    } catch {
+      return "uz";
+    }
+  });
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState("");
@@ -56,6 +80,53 @@ export default function OcrTranslator() {
 
   useEffect(() => {
     checkPremiumStatus();
+  }, []);
+
+  // Persist OCR state
+  useEffect(() => {
+    if (image) {
+      try {
+        localStorage.setItem(OCR_IMAGE_KEY, image);
+      } catch (e) {
+        console.warn("[OCR] Failed to save image:", e);
+      }
+    }
+  }, [image]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(OCR_SOURCE_KEY, sourceLang);
+    } catch (e) {
+      console.warn("[OCR] Failed to save source lang:", e);
+    }
+  }, [sourceLang]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(OCR_TARGET_KEY, targetLang);
+    } catch (e) {
+      console.warn("[OCR] Failed to save target lang:", e);
+    }
+  }, [targetLang]);
+
+  // Listen for lifecycle restoration
+  useEffect(() => {
+    const handleRestore = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const restored = customEvent.detail?.state;
+      
+      if (restored?.ocrImage) {
+        console.log("[OCR] Restoring image from lifecycle event");
+        setImage(restored.ocrImage);
+        if (restored.ocrSourceLang) setSourceLang(restored.ocrSourceLang);
+        if (restored.ocrTargetLang) setTargetLang(restored.ocrTargetLang);
+        setStep("configure");
+        toast.success("📷 Изображение восстановлено");
+      }
+    };
+    
+    window.addEventListener("vaqta:state-restored", handleRestore);
+    return () => window.removeEventListener("vaqta:state-restored", handleRestore);
   }, []);
 
   const checkPremiumStatus = async () => {
@@ -232,6 +303,9 @@ export default function OcrTranslator() {
     setOcrBlocks([]);
     setRecognizedText("");
     setStep("upload");
+    try {
+      localStorage.removeItem(OCR_IMAGE_KEY);
+    } catch {}
   };
 
   const getLanguageOption = (code: LanguageCode): LanguageOption => {
@@ -243,7 +317,6 @@ export default function OcrTranslator() {
       <Header title="AI Lens Переводчик" showBack />
 
       <main className="px-5 space-y-5 mt-2 flex-1">
-        {/* Premium Badge / Usage */}
         {!isPremium && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -264,7 +337,6 @@ export default function OcrTranslator() {
         )}
 
         <AnimatePresence mode="wait">
-          {/* UPLOAD STEP */}
           {step === "upload" && (
             <motion.div
               key="upload"
@@ -345,7 +417,6 @@ export default function OcrTranslator() {
             </motion.div>
           )}
 
-          {/* CONFIGURE STEP */}
           {step === "configure" && image && (
             <motion.div
               key="configure"
@@ -367,7 +438,6 @@ export default function OcrTranslator() {
                 </p>
                 
                 <div className="flex items-center gap-2">
-                  {/* Source Language */}
                   <div className="flex-1">
                     <button
                       onClick={() => setIsLangMenuOpen(true)}
@@ -379,7 +449,6 @@ export default function OcrTranslator() {
                     </button>
                   </div>
 
-                  {/* Swap Button */}
                   <button
                     onClick={swapLanguages}
                     disabled={sourceLang === "auto"}
@@ -388,7 +457,6 @@ export default function OcrTranslator() {
                     <ArrowRightLeft size={20} />
                   </button>
 
-                  {/* Target Language */}
                   <div className="flex-1">
                     <button
                       onClick={() => setIsLangMenuOpen(true)}
@@ -425,7 +493,6 @@ export default function OcrTranslator() {
             </motion.div>
           )}
 
-          {/* PROCESSING STEP */}
           {step === "processing" && (
             <motion.div
               key="processing"
@@ -460,7 +527,6 @@ export default function OcrTranslator() {
             </motion.div>
           )}
 
-          {/* RESULT STEP */}
           {step === "result" && translatedImage && (
             <motion.div
               key="result"
@@ -500,7 +566,6 @@ export default function OcrTranslator() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="grid grid-cols-3 gap-3">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -528,7 +593,6 @@ export default function OcrTranslator() {
                 </motion.button>
               </div>
 
-              {/* Recognized Text */}
               {recognizedText && (
                 <div className="vaqta-glass p-4 border-[#1A3D2E] space-y-2">
                   <p className="text-[10px] font-black uppercase text-[#5C7A6D]">Распознанный текст:</p>
@@ -542,7 +606,6 @@ export default function OcrTranslator() {
         </AnimatePresence>
       </main>
 
-      {/* Language Selector Modal */}
       <AnimatePresence>
         {isLangMenuOpen && (
           <motion.div

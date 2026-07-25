@@ -7,6 +7,7 @@ import { saveLastRoute, loadLastRoute } from "@/lib/appStorage";
 
 interface AppLifecycleContextType extends LifecycleState {
   restoreAppState: () => void;
+  saveAppState: () => void;
 }
 
 const AppLifecycleContext = createContext<AppLifecycleContextType | undefined>(undefined);
@@ -30,6 +31,16 @@ export function AppLifecycleProvider({ children }: { children: ReactNode }) {
       console.log(`[VAQTA LIFECYCLE] Restoring route: ${lastRoute}`);
       navigate(lastRoute, { replace: true });
     }
+  }, []);
+
+  // Trigger restoration on mount
+  useEffect(() => {
+    console.log("[VAQTA LIFECYCLE] AppLifecycleProvider mounted - triggering restoration check");
+    // Small delay to let components mount first
+    const timer = setTimeout(() => {
+      lifecycle.restoreAppState();
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

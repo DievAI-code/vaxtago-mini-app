@@ -146,15 +146,44 @@ export function useAiChat() {
     [language]
   );
 
+  // Listen for state restoration events
   useEffect(() => {
-    const handleRestore = () => {
-      const session = loadAssistantSession();
-      if (session?.messages?.length > 0) {
+    const handleRestore = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const restoredMessages = customEvent.detail?.state?.chatMessages;
+      
+      if (restoredMessages && Array.isArray(restoredMessages) && restoredMessages.length > 0) {
+        console.log(`[AI Chat] Restoring ${restoredMessages.length} messages from lifecycle event`);
+        const loaded = restoredMessages.map((m: any) => ({
+          role: m.role,
+          content: m.content,
+          timestamp: new Date(m.timestamp),
+        }));
+        setMessages(loaded);
+        chatHistoryRef.current = loaded;
         toast.info(t("ai.restored") || "VAQTA AI восстановлен");
+      } else {
+        // Check localStorage as fallback
+        const session = loadAssistantSession();
+        if (session?.messages?.length > 0) {
+          console.log(`[AI Chat] Restoring ${session.messages.length} messages from localStorage`);
+          const loaded = session.messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+            timestamp: new Date(m.timestamp),
+          }));
+          setMessages(loaded);
+          chatHistoryRef.current = loaded;
+        }
       }
     };
+    
+    window.addEventListener("vaqta:state-restored", handleRestore);
     window.addEventListener("vaqta:app-restore", handleRestore);
-    return () => window.removeEventListener("vaqta:app-restore", handleRestore);
+    return () => {
+      window.removeEventListener("vaqta:state-restored", handleRestore);
+      window.removeEventListener("vaqta:app-restore", handleRestore);
+    };
   }, [t]);
 
   const sendMessage = useCallback(
