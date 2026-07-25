@@ -6,6 +6,7 @@ import { useLanguage } from "@/context/LanguageProvider";
 import { useState, useEffect } from "react";
 import { useVoiceAssistant } from "@/hooks/useVoiceAssistant";
 import { voiceService } from "@/services/voice/voiceService";
+import { voiceDebug } from "@/services/voice/voiceDebug";
 import { toast } from "sonner";
 import { VoiceOfflineNotice } from "./VoiceOfflineNotice";
 
@@ -25,19 +26,23 @@ interface VoiceControlBarProps {
 export function VoiceControlBar({ onTranscript, onCommand, onSpeak, autoSend = true, className = "" }: VoiceControlBarProps) {
   const { t } = useLanguage();
   const voice = useVoiceAssistant({
-    onCommand: onTranscript,
+    onCommand: (text: string, action?: any) => {
+      voiceDebug.log("Command Callback", { text, hasAction: !!action });
+
+      // ALWAYS send the transcript to onTranscript (which calls handleSend)
+      // This sends voice through the SAME pipeline as text input
+      if (onTranscript) {
+        onTranscript(text);
+      }
+
+      // Also call onCommand for action-based navigation (backward compat)
+      if (onCommand && action && action.type !== "none") {
+        onCommand(action);
+      }
+    },
     onSpeak: onSpeak,
     autoSendToAI: autoSend,
   });
-
-  // Распознанная команда: выполняем действие (навигация)
-  useEffect(() => {
-    if (!voice.finalText) return;
-    const { command, action } = voice.processText(voice.finalText);
-    if (command && onCommand) {
-      onCommand(action);
-    }
-  }, [voice.finalText]);
 
   const { state, isListening, isSpeaking, supported, partialText, finalText, settings, toggle, continuousMode, setContinuousMode, speak, cancelSpeak } = voice;
 

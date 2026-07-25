@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { voiceService, VoiceLang, VoiceState, VoiceSettings, DEFAULT_VOICE_SETTINGS } from "@/services/voice/voiceService";
 import { detectVoiceCommand, buildCommandAction, CommandAction, VoiceCommand } from "@/services/voice/voiceCommands";
+import { voiceDebug } from "@/services/voice/voiceDebug";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageProvider";
 import type { Lang } from "@/i18n";
@@ -87,11 +88,21 @@ export function useVoiceAssistant(opts: UseVoiceAssistantOptions = {}): UseVoice
   useEffect(() => {
     if (!voiceService) {
       setSupported(false);
+      voiceDebug.log("Error", { message: "voiceService is null" });
       return;
     }
-    setSupported(voiceService.isSupported());
+    const isSupported = voiceService.isSupported();
+    setSupported(isSupported);
+    voiceDebug.log("Microphone", { supported: isSupported });
+
     if (voiceService.isSTTSupported()) {
-      voiceService.hasMicrophonePermission().then(setHasPermission).catch(() => setHasPermission(false));
+      voiceService.hasMicrophonePermission().then((granted) => {
+        setHasPermission(granted);
+        voiceDebug.log("Microphone", { permission: granted ? "granted" : "denied" });
+      }).catch(() => {
+        setHasPermission(false);
+        voiceDebug.log("Microphone", { permission: "error checking" });
+      });
     }
   }, []);
 
@@ -127,66 +138,106 @@ export function useVoiceAssistant(opts: UseVoiceAssistantOptions = {}): UseVoice
   const start = useCallback(() => {
     if (!voiceService) {
       setState("unsupported");
+      voiceDebug.log("Error", { message: "voiceService is null" });
       toast.error("Голос не поддерживается в этом браузере");
       return;
     }
     if (!voiceService.isSTTSupported()) {
       setState("unsupported");
+      voiceDebug.log("Error", { message: "STT not supported" });
       toast.error("Распознавание речи не поддерживается");
       return;
     }
-    setPartialText("");
-    setFinalText("");
-    setState("recording");
-    setIsListening(true);
 
-    if (voiceService.isSpeaking()) voiceService.cancelSpeaking();
-
-    voiceService.startListening({
-      lang: settings.lang,
-      useAppLang: true,
-      singleShot: !continuousModeRef.current,
-      onPartial: (text) => setPartialText(text),
-      onFinal: (text) => {
-        setFinalText(text);
-        setState("processing");
-        const { command, action } = processText(text);
-
-        if (command && action.type !== "none") {
-          onCommandRef.current?.(text, action);
-        } else if (autoSendRef.current) {
-          onCommandRef.current?.(text);
-        }
-        setState("idle");
-        setIsListening(false);
-
-        if (continuousModeRef.current) {
-          setTimeout(() => start(), 600);
-        }
-      },
-      onError: (err) => {
+    // Check permission before starting
+    voiceService.hasMicrophonePermission().then((granted) => {
+      voiceDebug.log("Microphone", { permission: granted ? "granted" : "denied", step: "before_start" });
+      if (!granted) {
+        toast.error("Доступ к микрофону запрещён. Разрешите доступ в настройках браузера.");
         setState("error");
-        setIsListening(false);
-        if (err !== "no-speech" && err !== "aborted") {
-          if (err === "not-allowed" || err === "service-not-allowed") {
-            toast.error("Доступ к микрофону запрещён");
-            setHasPermission(false);
-          } else {
-            toast.error(`Ошибка распознавания: ${err}`);
+        setHasPermission(false);
+        return;
+      }
+
+      setPartialText("");
+      setFinalText("");
+      setState("recording");
+      setIsListening(true);
+
+      voiceDebug.log("Recording", { started: true, lang: settings.lang });
+
+      if (voiceService.isSpeaking()) voiceService.cancelSpeaking();
+
+      voiceService.startListening({
+        lang: settings.lang,
+        useAppLang: true,
+        singleShot: !continuousModeRef.current,
+        onPartial: (text) => {
+          setPartialText(text);
+          voiceDebug.log("Transcript", { text, isFinal: false });
+        },
+        onFinal: (text) => {
+          setFinalText(text);
+          setState("processing");
+          voiceDebug.log("Transcript", { text, isFinal: true });
+          voiceDebug.log("Audio duration", { estimated: "N/A (Web Speech API)" });
+
+          const { command, action } = processText(text);
+
+          voiceDebug.log("Intent", {
+            type: command?.type || "GENERAL_CHAT",
+            confidence: command?.confidence || 0,
+          });
+
+          if (command && action.type !== "none") {
+            voiceDebug.log("Action", { type: action.type, path: action.path });
+            onCommandRef.current?.(text, action);
+          } else if (autoSendRef.current) {
+            voiceDebug.log("Action", { type: "auto_send_to_ai" });
+            onCommandRef.current?.(text);
           }
-        }
-      },
-      onEnd: () => {
-        setIsListening(false);
-        if (state !== "processing") setState("idle");
-      },
+          setState("idle");
+          setIsListening(false);
+
+          if (continuousModeRef.current) {
+            setTimeout(() => start(), 600);
+          }
+        },
+        onError: (err) => {
+          setState("error");
+          setIsListening(false);
+          voiceDebug.log("Error", { error: err });
+
+          if (err !== "no-speech" && err !== "aborted") {
+            if (err === "not-allowed" || err === "service-not-allowed") {
+              toast.error("Доступ к микрофону запрещён");
+              setHasPermission(false);
+              voiceDebug.log("Microphone", { permission: "denied", reason: err });
+            } else {
+              toast.error(`Ошибка распознавания: ${err}`);
+            }
+          } else {
+            voiceDebug.log("Error", { error: err, ignored: true });
+          }
+        },
+        onEnd: () => {
+          setIsListening(false);
+          if (state !== "processing") setState("idle");
+          voiceDebug.log("Recording", { started: false, reason: "onEnd" });
+        },
+      });
+    }).catch((e) => {
+      voiceDebug.log("Error", { error: "permission_check_failed", detail: e });
+      toast.error("Не удалось проверить доступ к микрофону");
+      setState("error");
     });
-  }, [settings.lang, processText]);
+  }, [settings.lang, processText, state]);
 
   const stop = useCallback(() => {
     voiceService?.stopListening();
     setIsListening(false);
     setState("idle");
+    voiceDebug.log("Recording", { started: false, reason: "manual_stop" });
   }, []);
 
   const toggle = useCallback(() => {
@@ -197,6 +248,7 @@ export function useVoiceAssistant(opts: UseVoiceAssistantOptions = {}): UseVoice
   const speak = useCallback((text: string, lang?: VoiceLang) => {
     if (!voiceService) return;
     const useLang = lang || settings.lang;
+    voiceDebug.log("TTS", { text: text.slice(0, 50), lang: useLang });
     voiceService.speak(text, {
       lang: useLang,
       rate: settings.rate,

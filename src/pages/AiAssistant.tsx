@@ -20,6 +20,8 @@ import { MapCard } from "@/components/assistant/MapCard";
 import { JobCard } from "@/components/assistant/JobCard";
 import { PlaceCard } from "@/components/PlaceCard";
 import { processNavigationQuery, type NavigationResult } from "@/services/navigation/navigationEngine";
+import { processVoiceTranscript } from "@/services/voice/voiceProcessor";
+import { voiceDebug } from "@/services/voice/voiceDebug";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -128,19 +130,25 @@ export default function AiAssistant() {
 
   const voice = useVoiceAssistant({ autoSendToAI: true });
 
-  const handleVoiceCommand = (text: string, action?: { type: string; path?: string }) => {
-    if (action) {
-      if (action.type === "navigate" && action.path) {
-        toast.success(action.message || "Выполняю команду");
-        setTimeout(() => navigate(action.path!), 400);
-        return;
-      }
-      if (action.type === "weather") {
-        toast.info("Погода: пока недоступно оффлайн. Откройте AI с этим вопросом.");
-        return;
-      }
+  // Handle voice transcript: process through AI Intent Router (same as text)
+  const handleVoiceTranscript = (text: string) => {
+    voiceDebug.log("Voice Transcript Received", { text });
+    
+    // Process through voice processor for debug logging
+    const result = processVoiceTranscript(text);
+    
+    if (result.transcript) {
+      voiceDebug.log("Sending to handleSend", { 
+        transcript: result.transcript, 
+        intent: result.intent,
+        action: result.action 
+      });
+      // Send through the SAME pipeline as text input
+      handleSend(result.transcript);
+    } else {
+      voiceDebug.log("Error", { message: "Empty transcript after processing" });
+      toast.error("Не удалось распознать речь. Попробуйте ещё раз.");
     }
-    handleSend(text);
   };
 
   useEffect(() => {
@@ -350,7 +358,7 @@ export default function AiAssistant() {
         <div className="max-w-3xl mx-auto liquid-glass p-2.5 space-y-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.9)] rounded-[2.2rem] pointer-events-auto border-emerald-500/20">
           <div className="px-1">
             <VoiceControlBar
-              onCommand={handleVoiceCommand}
+              onTranscript={handleVoiceTranscript}
               autoSend={true}
             />
           </div>
