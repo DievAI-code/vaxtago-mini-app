@@ -3,12 +3,20 @@
   "app_greeting": "Assalomu alaykum 👋",
   "app_question": "Qanday yordam bera olaman?",
   "search_placeholder": "VAQTA AI dan so‘rang...",
+  "greeting": "Assalomu alaykum! Men VAQTA AI, sizning aqlli yordamchingizman.",
   "nav": {
     "home": "Asosiy",
     "ai": "AI Chat",
     "map": "Xarita",
     "scanner": "Foto",
-    "profile": "Profil"
+    "jobs": "Ish",
+    "profile": "Profil",
+    "premium": "Premium",
+    "settings": "Sozlamalar",
+    "tracker": "Patent",
+    "sos": "Yordam",
+    "cabinet": "Kabinet",
+    "admin": "Admin"
   },
   "home": {
     "cat_map": "Xarita",
@@ -22,10 +30,18 @@
     "cat_airports": "Aeroportlar",
     "cat_lawyer": "Yurist",
     "cat_sos": "Yordam",
-    "cat_location": "Joylashuvim"
+    "cat_location": "Joylashuvim",
+    "quick_services": "Tezkor xizmatlar"
+  },
+  "founder": {
+    "name": "Diev Dmitry Sergeevich",
+    "title": "VAQTA AI Asoschisi",
+    "desc": "VAQTA AI — odamlarga ish qidirish, hujjatlarni tarjima qilish, navigatsiya va kundalik vazifalarni sun’iy intellekt yordamida hal qilishda yordam berish uchun yaratilgan intellektual platforma."
   },
   "maps": {
-    "search_ph": "Qidirish",
+    "title": "Xarita",
+    "search_ph": "Manzilni qidirish...",
+    "not_found": "Hech narsa topilmadi",
     "mode_car": "Avto",
     "mode_walk": "Piyoda",
     "mode_bus": "Avtobus",
@@ -37,41 +53,43 @@
     "point_airport": "Aeroport",
     "point_hospital": "Shifoxona",
     "point_hotel": "Mehmonxona",
-    "point_cafe": "Kafe",
-    "point_fuel": "Yoqilg‘i",
-    "point_atm": "Bankomat",
     "route_panel": {
-      "drive": "haydash",
-      "walk": "yurish",
-      "bus": "avtobus",
-      "taxi": "taksi",
-      "dist": "masofa",
-      "time": "vaqt",
-      "cost": "narxi",
-      "start": "Yo‘nalishni boshlash"
+      "start": "Yo‘nalishni boshlash",
+      "time": "Vaqt",
+      "dist": "Masofa"
     }
   },
-  "ai": {
-    "welcome": "Assalomu alaykum! Men sizning universal yordamchingizman. Ish topish, yo‘nalish qurish yoki hujjatlarni tarjima qilishda yordam beraman.",
-    "placeholder": "Savol yoki buyruqni yozing...",
-    "hint_jobs": "Ish topish",
-    "hint_route": "Yo‘nalishni ko‘rsatish",
-    "hint_photo": "Rasmni tarjima qilish",
-    "hint_address": "Manzilni topish",
-    "hint_org": "Tashkilotni topish"
+  "scanner": {
+    "title": "Aqlli OCR skaneri",
+    "desc": "AI yordamida har qanday hujjatni tanib olish, tarjima qilish va tahlil qilish.",
+    "take_photo": "Rasmga olish",
+    "gallery": "Galereyadan",
+    "processing": "AI tahlil qilmoqda...",
+    "result_ready": "Tayyor!",
+    "original": "Asli",
+    "translated_img": "Rasmdagi tarjima",
+    "explanation": "Hujjat tahlili",
+    "download": "Saqlash",
+    "copy": "Nusxa olish",
+    "ask_ai": "AI dan so‘rash",
+    "check_employer": "Kompaniyani tekshirish",
+    "new_scan": "Yangi skan",
+    "error_ai": "AI xatosi",
+    "doc_types": {
+      "job_ad": "Vakansiya"
+    }
   },
-  "profile": {
-    "title": "Profilim",
-    "phone": "Telefon",
-    "language": "Til",
-    "premium": "VAQTA Premium",
-    "history": "Tarix",
-    "settings": "Sozlamalar",
-    "logout": "Chiqish"
+  "buttons": {
+    "continue": "Davom etish"
   },
-  "founder": {
-    "name": "Diev Dmitry Sergeevich",
-    "title": "VAQTA AI Asoschisi",
-    "desc": "VAQTA AI — odamlarga ish qidirish, hujjatlarni tarjima qilish, navigatsiya va kundalik vazifalarni sun’iy intellekt yordamida hal qilishda yordam berish uchun yaratilgan intellektual platforma."
+  "auth": {
+    "subtitle": "Sizning AI yordamchingiz",
+    "phone_placeholder": "+7 (___) ___ ____",
+    "privacy_note": "Davom etish orqali shartlarga rozilik berasiz"
+  },
+  "common": {
+    "done": "Tayyor",
+    "error": "Xato",
+    "loading": "Yuklanmoqda..."
   }
 }

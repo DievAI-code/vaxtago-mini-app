@@ -1,15 +1,15 @@
 {
   "app_title": "VAQTA AI",
-  "app_subtitle": "Smart Assistant",
-  "greeting": "Hello 👋\nI can help you with job search, documents, translation, and navigation.",
-  "chat_ph": "Type your question...",
-  "chat_placeholder": "Type a question or location...",
+  "app_greeting": "Hello 👋",
+  "app_question": "How can I help you?",
+  "search_placeholder": "Ask VAQTA AI...",
+  "greeting": "Hello! I am VAQTA AI, your smart assistant.",
   "nav": {
     "home": "Home",
     "ai": "AI Assistant",
-    "scanner": "Translator",
+    "scanner": "Scanner",
     "jobs": "Jobs",
-    "map": "Maps",
+    "map": "Map",
     "profile": "Profile",
     "premium": "Premium",
     "settings": "Settings",
@@ -18,78 +18,78 @@
     "cabinet": "Cabinet",
     "admin": "Admin"
   },
-  "buttons": {
-    "ai": "🤖 AI Chat",
-    "scanner": "📷 Photo Translate",
-    "jobs": "💼 Jobs",
-    "maps": "📍 Maps",
-    "send": "Send",
-    "take_photo": "Camera",
-    "gallery": "Gallery",
-    "save": "Save",
-    "route": "Route",
-    "open_map": "Open in Maps",
-    "start": "Start",
-    "login": "Login",
-    "continue": "Continue",
-    "search": "Search",
-    "path": "Path"
+  "home": {
+    "cat_map": "Map",
+    "cat_jobs": "Jobs",
+    "cat_photo": "OCR Scanner",
+    "cat_docs": "Documents",
+    "cat_text": "Text Translate",
+    "cat_route": "Route",
+    "cat_hospitals": "Hospitals",
+    "cat_stations": "Stations",
+    "cat_airports": "Airports",
+    "cat_lawyer": "Lawyer",
+    "cat_sos": "Emergency",
+    "cat_location": "My Location",
+    "quick_services": "Quick Services"
   },
-  "scanner": {
-    "title": "Photo Translator",
-    "desc": "Upload a document photo — I will read and translate the text.",
-    "take_photo": "Take Photo",
-    "gallery": "Gallery",
-    "processing": "Recognizing text and translating...",
-    "result_ready": "Result is ready!",
-    "original": "Original Photo",
-    "translated": "Translated Image",
-    "download": "Save Result",
-    "new_scan": "New Scan",
-    "error_ai": "AI error during translation",
-    "original_text": "Original text",
-    "translation": "Translation",
-    "step_analyze": "Analyzing image..."
+  "founder": {
+    "name": "Dmitry Diev",
+    "title": "VAQTA AI Founder",
+    "desc": "VAQTA AI is an intelligent platform designed to help people find jobs, translate documents, navigate, and solve daily tasks using artificial intelligence."
   },
   "maps": {
-    "title": "2GIS Map",
-    "search_ph": "Station Tyumen, Metro Moscow...",
-    "not_found": "Not found. Try specifying city name as well.",
-    "route": "Build Route",
-    "my_location": "My Location",
-    "from": "From",
-    "to": "To",
-    "walking": "Walking",
-    "car": "Driving",
-    "transit": "Transit",
-    "start_route": "Start Navigation",
-    "destination": "Destination"
+    "title": "Maps",
+    "search_ph": "Search address or place...",
+    "not_found": "Nothing found",
+    "mode_car": "Car",
+    "mode_walk": "Walk",
+    "mode_bus": "Bus",
+    "mode_taxi": "Taxi",
+    "mode_bike": "Bike",
+    "point_home": "Home",
+    "point_work": "Work",
+    "point_station": "Station",
+    "point_airport": "Airport",
+    "point_hospital": "Hospital",
+    "point_hotel": "Hotel",
+    "route_panel": {
+      "start": "Start Route",
+      "time": "Time",
+      "dist": "Dist"
+    }
   },
-  "jobs": {
-    "title": "Job Search",
-    "search_ph": "Profession and City (welder Moscow)...",
-    "found_count": "Vacancies",
-    "apply": "Apply",
-    "not_connected": "Job sources are being connected"
+  "scanner": {
+    "title": "Smart OCR Scanner",
+    "desc": "Recognize, translate and analyze any documents with AI.",
+    "take_photo": "Take Photo",
+    "gallery": "From Gallery",
+    "processing": "AI is analyzing...",
+    "result_ready": "Done!",
+    "original": "Original",
+    "translated_img": "Translation",
+    "explanation": "Document Analysis",
+    "download": "Download",
+    "copy": "Copy",
+    "ask_ai": "Ask AI",
+    "check_employer": "Check Employer",
+    "new_scan": "New Scan",
+    "error_ai": "AI Error",
+    "doc_types": {
+      "job_ad": "Job Vacancy"
+    }
   },
-  "chat": {
-    "welcome": "Hello! How can I help you today? I understand documents, photos, and translations.",
-    "typing": "AI is thinking...",
-    "error": "Connection error with AI. Try again later.",
-    "placeholder": "Type something..."
+  "buttons": {
+    "continue": "Continue"
   },
   "auth": {
-    "login_title": "System Login",
-    "subtitle": "Your assistant for work and life",
+    "subtitle": "Your AI Assistant",
     "phone_placeholder": "+7 (___) ___ ____",
-    "select_lang": "Select Language",
-    "privacy_note": "By continuing you agree to the terms of use"
+    "privacy_note": "By continuing you agree to the terms"
   },
   "common": {
     "done": "Done",
     "error": "Error",
-    "loading": "Loading...",
-    "retry": "Retry",
-    "close": "Close"
+    "loading": "Loading..."
   }
 }
