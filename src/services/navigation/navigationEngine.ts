@@ -22,9 +22,17 @@ export interface NavigationResult {
 export async function processNavigationQuery(
   text: string
 ): Promise<NavigationResult | null> {
+  console.log(`[VAQTA ROUTE] Input: "${text}"`);
+  
   const intent = parseNavigationIntent(text);
+  console.log(`[VAQTA ROUTE] Intent: ${intent.type}`, { 
+    from: intent.from, 
+    to: intent.to, 
+    city: intent.city 
+  });
 
   if (intent.type === "unknown") {
+    console.log(`[VAQTA ROUTE] No navigation intent detected`);
     return null;
   }
 
@@ -36,13 +44,20 @@ export async function processNavigationQuery(
   let routeInfo: RouteInfo | null = null;
 
   if (intent.type === "route" && intent.to) {
+    console.log(`[VAQTA ROUTE] Processing route: from="${intent.from || "current"}", to="${intent.to}", city="${intent.city || "none"}"`);
+
     if (intent.from) {
+      console.log(`[VAQTA ROUTE] Searching FROM: "${intent.from}"`);
       fromPlace = await resolvePlace(intent.from, intent.city) || undefined;
+      console.log(`[VAQTA ROUTE] Found FROM:`, fromPlace?.name || "NOT FOUND");
     }
 
+    console.log(`[VAQTA ROUTE] Searching TO: "${intent.to}"`);
     toPlace = await resolvePlace(intent.to, intent.city) || undefined;
+    console.log(`[VAQTA ROUTE] Found TO:`, toPlace?.name || "NOT FOUND");
 
     if (fromPlace && toPlace) {
+      console.log(`[VAQTA ROUTE] Building route from "${fromPlace.name}" to "${toPlace.name}"`);
       routeInfo = await buildRouteInfo(fromPlace, toPlace, intent.mode || "car");
     }
 
@@ -53,7 +68,9 @@ export async function processNavigationQuery(
       provider: recommendedProvider,
     });
   } else if ((intent.type === "place_search" || intent.type === "nearby_search") && intent.query) {
+    console.log(`[VAQTA ROUTE] Searching place: "${intent.query}"`);
     toPlace = await resolvePlace(intent.query, intent.city) || undefined;
+    console.log(`[VAQTA ROUTE] Found place:`, toPlace?.name || "NOT FOUND");
   }
 
   let formattedDistance: string | undefined;
@@ -63,6 +80,7 @@ export async function processNavigationQuery(
     const formatted = formatRouteInfo(routeInfo);
     formattedDistance = formatted.distance;
     formattedDuration = formatted.duration;
+    console.log(`[VAQTA ROUTE] Route built: ${formattedDistance}, ${formattedDuration}`);
   }
 
   return {
