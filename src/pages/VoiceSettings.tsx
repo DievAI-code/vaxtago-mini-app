@@ -17,8 +17,6 @@ const LANGS: { code: VoiceLang; label: string; flag: string }[] = [
   { code: "ru-RU", label: "Русский", flag: "🇷🇺" },
   { code: "uz-UZ", label: "O'zbekcha", flag: "🇺🇿" },
   { code: "en-US", label: "English", flag: "🇬🇧" },
-  { code: "tg-TJ", label: "Тоҷикӣ", flag: "🇹🇯" },
-  { code: "ky-KG", label: "Кыргызча", flag: "🇰🇬" },
 ];
 
 export default function VoiceSettings() {
@@ -52,8 +50,6 @@ export default function VoiceSettings() {
       "ru-RU": "Привет! Я VAQTA AI. Голосовой помощник работает.",
       "uz-UZ": "Salom! Men VAQTA AI yordamchisiman. Ovoz ishlayapti.",
       "en-US": "Hello! I'm VAQTA AI. Voice assistant is working.",
-      "tg-TJ": "Салом! Ман VAQTA AI ҳастам.",
-      "ky-KG": "Салам! Мен VAQTA AI жардамчысымын.",
     };
     voice.speak(samples[lang], lang);
   };

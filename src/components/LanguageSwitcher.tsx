@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
 const LANGUAGES: { code: Lang; name: string; flag: string }[] = [
-  { code: "uz", name: "O'zbekcha", flag: "🇺🇿" },
+  { code: "uz_lat", name: "O'zbekcha", flag: "🇺🇿" },
   { code: "uz_cyr", name: "Ўзбекча", flag: "🇺🇿" },
   { code: "ru", name: "Русский", flag: "🇷🇺" },
   { code: "en", name: "English", flag: "🇬🇧" },

@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { imageTranslationService, ProcessResult } from "@/services/imageTranslationService";
 
-type LanguageCode = "ru" | "uz" | "tj" | "en" | "ky" | "auto";
+type LanguageCode = "ru" | "uz_lat" | "uz_cyr" | "en" | "auto";
 
 interface LanguageOption {
   code: LanguageCode;
@@ -27,9 +27,8 @@ interface LanguageOption {
 const LANGUAGES: LanguageOption[] = [
   { code: "auto", name: "Auto", nativeName: "Авто", flag: "🔍" },
   { code: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺" },
-  { code: "uz", name: "Uzbek", nativeName: "O'zbekcha", flag: "🇺🇿" },
-  { code: "tj", name: "Tajik", nativeName: "Тоҷикӣ", flag: "🇹🇯" },
-  { code: "ky", name: "Kyrgyz", nativeName: "Кыргызча", flag: "🇰🇬" },
+  { code: "uz_lat", name: "Uzbek (Latin)", nativeName: "O'zbekcha", flag: "🇺🇿" },
+  { code: "uz_cyr", name: "Uzbek (Cyrillic)", nativeName: "Ўзбекча", flag: "🇺🇿" },
   { code: "en", name: "English", nativeName: "English", flag: "🇬🇧" },
 ];
 
@@ -61,7 +60,7 @@ export default function OcrTranslator() {
   const [result, setResult] = useState<ProcessResult | null>(null);
 
   const [sourceLanguage, setSourceLanguage] = useState<LanguageCode>("ru");
-  const [targetLanguage, setTargetLanguage] = useState<LanguageCode>("uz");
+  const [targetLanguage, setTargetLanguage] = useState<LanguageCode>("uz_lat");
   const [effectiveSource, setEffectiveSource] = useState<string>("ru");
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -129,7 +128,7 @@ export default function OcrTranslator() {
     setProgressPercent(15);
 
     try {
-      const target = targetLanguage === "auto" ? "uz" : targetLanguage;
+      const target = targetLanguage === "auto" ? "uz_lat" : targetLanguage;
       const processResult = await imageTranslationService.processWithAI(originalImage, target);
 
       setProgressPercent(80);
