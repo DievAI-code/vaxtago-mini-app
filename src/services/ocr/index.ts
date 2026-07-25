@@ -1,3 +1,3 @@
 export { ocrService, OCRBlock, OCRResult } from './ocrService';
-export { translationService, TranslationResult, LanguagePair } from './translationService';
-export { imageReplaceService, TextReplacement, ReplacementOptions } from './imageReplaceService';
+export { translationService, TranslationResult, LanguageCode } from './translationService';
+export { imageTranslator, TextReplacement, TranslationRequest } from './imageTranslator';

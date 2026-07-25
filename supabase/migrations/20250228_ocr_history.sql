@@ -7,25 +7,24 @@ CREATE TABLE IF NOT EXISTS ocr_history (
   source_language TEXT NOT NULL,
   target_language TEXT NOT NULL,
   recognized_text TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  
-  CONSTRAINT idx_ocr_history_user_id FOREIGN KEY (user_id) REFERENCES users(phone_number)
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Index for recent lookups
+CREATE INDEX IF NOT EXISTS idx_ocr_history_user_id ON ocr_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_ocr_history_created_at ON ocr_history(created_at DESC);
 
--- Row Level Security
 ALTER TABLE ocr_history ENABLE ROW LEVEL SECURITY;
 
--- Users can only see their own history
 CREATE POLICY "Users can view own OCR history"
   ON ocr_history FOR SELECT
   USING (user_id = auth.uid()::text);
 
--- Users can only insert their own records
 CREATE POLICY "Users can insert own OCR history"
   ON ocr_history FOR INSERT
   WITH CHECK (user_id = auth.uid()::text);
 
-COMMENT ON TABLE ocr_history IS 'Stores user OCR translation history with image previews';
+CREATE POLICY "Users can delete own OCR history"
+  ON ocr_history FOR DELETE
+  USING (user_id = auth.uid()::text);
+
+COMMENT ON TABLE ocr_history IS 'Stores user OCR translation history';

@@ -1,6 +1,6 @@
 "use client";
 
-export type LanguagePair = "ru-uz" | "uz-ru" | "ru-tj" | "tj-ru" | "ru-en" | "en-ru";
+export type LanguageCode = "ru" | "uz" | "tj" | "en" | "ky" | "auto";
 
 export interface TranslationResult {
   translatedText: string;
@@ -13,110 +13,99 @@ class TranslationService {
     ru: "Русский",
     uz: "O'zbek",
     tj: "Тоҷикӣ",
-    en: "English"
+    en: "English",
+    ky: "Кыргызча"
   };
 
+  detectLanguage(text: string): string {
+    if (!text || text.length < 3) return "ru";
+    
+    const cyrillicPattern = /[а-яё]/i;
+    const latinPattern = /[a-z]/i;
+    
+    if (/[ўғқҳ]/i.test(text)) return "uz";
+    if (/[ҷҳқғ]/i.test(text)) return "tj";
+    if (/[ңүө]/i.test(text)) return "ky";
+    if (cyrillicPattern.test(text) && !latinPattern.test(text)) return "ru";
+    if (latinPattern.test(text) && !cyrillicPattern.test(text)) return "en";
+    
+    if (/[a-z]/i.test(text)) {
+      const words = text.toLowerCase().split(/\s+/);
+      const uzbekWords = ["va", "bu", "uchun", "bilan", "qayerda", "qanday", "men", "siz"];
+      const englishWords = ["the", "is", "and", "with", "for", "this", "that", "have"];
+      const uzbekCount = words.filter(w => uzbekWords.includes(w)).length;
+      const englishCount = words.filter(w => englishWords.includes(w)).length;
+      if (uzbekCount > englishCount) return "uz";
+      if (englishCount > 0) return "en";
+    }
+    
+    return "ru";
+  }
+
   async translate(
-    text: string, 
-    sourceLang: string, 
+    text: string,
+    sourceLang: string,
     targetLang: string
   ): Promise<TranslationResult> {
     if (!text.trim()) {
-      return {
-        translatedText: "",
-        sourceLanguage: sourceLang,
-        targetLanguage: targetLang
-      };
+      return { translatedText: "", sourceLanguage: sourceLang, targetLanguage: targetLang };
+    }
+
+    if (sourceLang === targetLang) {
+      return { translatedText: text, sourceLanguage: sourceLang, targetLanguage: targetLang };
     }
 
     try {
-      // Use AI assistant for translation
+      const protectedParts: string[] = [];
+      let processedText = text;
+
+      processedText = processedText.replace(/\d{1,2}[./]\d{1,2}[./]\d{2,4}/g, (match) => {
+        protectedParts.push(match);
+        return `__DATE_${protectedParts.length - 1}__`;
+      });
+
+      processedText = processedText.replace(/[+\d\s()-]{10,20}/g, (match) => {
+        if (match.replace(/\D/g, '').length >= 10) {
+          protectedParts.push(match);
+          return `__PHONE_${protectedParts.length - 1}__`;
+        }
+        return match;
+      });
+
+      processedText = processedText.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, (match) => {
+        protectedParts.push(match);
+        return `__EMAIL_${protectedParts.length - 1}__`;
+      });
+
+      const sourceName = this.languageNames[sourceLang] || sourceLang;
+      const targetName = this.languageNames[targetLang] || targetLang;
+
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
-          message: `Переведи следующий текст с ${this.languageNames[sourceLang] || sourceLang} на ${this.languageNames[targetLang] || targetLang}. Сохрани форматирование, даты, номера и адреса без изменений. Переведи естественно, с учетом контекста документа:\n\n${text}`,
+          message: `Переведи следующий текст с ${sourceName} на ${targetName}. Сохрани форматирование, даты, номера и адреса без изменений. Переведи естественно, с учетом контекста:\n\n${processedText}`,
           language_code: targetLang,
-          user_phone: localStorage.getItem("vaxtago_user_phone") || "unknown",
+          user_phone: localStorage.getItem("vaxtago_user_phone") || "anonymous",
           intent: "TRANSLATION"
         }
       });
 
       if (error) throw error;
 
-      // Clean up the translation (remove quotes if AI added them)
       let translated = data?.reply || data?.text || text;
       translated = translated.replace(/^["']|["']$/g, '').trim();
 
-      return {
-        translatedText: translated,
-        sourceLanguage: sourceLang,
-        targetLanguage: targetLang
-      };
+      for (let i = protectedParts.length - 1; i >= 0; i--) {
+        translated = translated.replace(
+          new RegExp(`__DATE_${i}__|__PHONE_${i}__|__EMAIL_${i}__`, 'g'),
+          protectedParts[i]
+        );
+      }
+
+      return { translatedText: translated, sourceLanguage: sourceLang, targetLanguage: targetLang };
     } catch (error) {
       console.error("[Translation] Failed:", error);
-      // Fallback: return original with note
-      return {
-        translatedText: `[Перевод недоступен] ${text}`,
-        sourceLanguage: sourceLang,
-        targetLanguage: targetLang
-      };
+      return { translatedText: text, sourceLanguage: sourceLang, targetLanguage: targetLang };
     }
-  }
-
-  // Translate with preservation of special formats
-  async translateDocument(
-    text: string,
-    sourceLang: string,
-    targetLang: string
-  ): Promise<TranslationResult> {
-    // Pre-process: protect dates, numbers, codes
-    const protectedParts: string[] = [];
-    let processedText = text;
-
-    // Protect dates (DD.MM.YYYY, DD/MM/YYYY, etc.)
-    processedText = processedText.replace(/\d{1,2}[./]\d{1,2}[./]\d{2,4}/g, (match) => {
-      protectedParts.push(match);
-      return `__DATE_${protectedParts.length - 1}__`;
-    });
-
-    // Protect phone numbers
-    processedText = processedText.replace(/[+\d\s()-]{10,20}/g, (match) => {
-      if (match.replace(/\D/g, '').length >= 10) {
-        protectedParts.push(match);
-        return `__PHONE_${protectedParts.length - 1}__`;
-      }
-      return match;
-    });
-
-    // Protect email addresses
-    processedText = processedText.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, (match) => {
-      protectedParts.push(match);
-      return `__EMAIL_${protectedParts.length - 1}__`;
-    });
-
-    // Translate
-    const result = await this.translate(processedText, sourceLang, targetLang);
-
-    // Restore protected parts
-    let restoredText = result.translatedText;
-    for (let i = protectedParts.length - 1; i >= 0; i--) {
-      restoredText = restoredText.replace(
-        new RegExp(`__DATE_${i}__|__PHONE_${i}__|__EMAIL_${i}__`, 'g'),
-        protectedParts[i]
-      );
-    }
-
-    return {
-      ...result,
-      translatedText: restoredText
-    };
-  }
-
-  detectLanguage(text: string): string {
-    // Simple detection based on character ranges
-    if (/[ўғқҳ]/i.test(text)) return "uz";
-    if (/[ҷҳқғ]/i.test(text)) return "tj";
-    if (/[а-яё]/i.test(text)) return "ru";
-    return "en";
   }
 }
 

@@ -18,28 +18,25 @@ export interface OCRResult {
 class OCRService {
   async recognizeText(imageBase64: string): Promise<OCRResult> {
     try {
-      // Call vision-assistant Edge Function for OCR
       const { data, error } = await supabase.functions.invoke("vision-assistant", {
         body: {
           image: imageBase64,
           request_type: "ocr_detect",
-          instruction: "Распознай весь текст на изображении и верни результат в формате JSON с полями: fullText и blocks (массив объектов с text, x, y, width, height). Координаты в пикселях относительно размера изображения."
+          instruction: "Распознай весь текст на изображении. Верни результат в формате JSON с полями: fullText (string), language (string), blocks (array of {text, x, y, width, height, confidence}). Координаты в пикселях относительно размера изображения."
         }
       });
 
       if (error) throw error;
 
-      // Parse the OCR result
       let result: OCRResult;
       try {
         const parsed = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
         result = {
           text: parsed.fullText || parsed.text || data.ocr_text || "",
           blocks: parsed.blocks || this.estimateBlocks(parsed.fullText || data.ocr_text || ""),
-          language: data.language || "ru"
+          language: parsed.language || data.language || "ru"
         };
       } catch {
-        // Fallback: create estimated blocks from plain text
         result = {
           text: data.ocr_text || data.text || "",
           blocks: this.estimateBlocks(data.ocr_text || data.text || ""),
@@ -54,7 +51,6 @@ class OCRService {
     }
   }
 
-  // Estimate text blocks when OCR doesn't provide coordinates
   private estimateBlocks(text: string): OCRBlock[] {
     const lines = text.split('\n').filter(l => l.trim());
     const blocks: OCRBlock[] = [];
@@ -82,7 +78,6 @@ class OCRService {
     return blocks;
   }
 
-  // Detect text regions using canvas analysis
   async detectTextRegions(image: HTMLImageElement): Promise<OCRBlock[]> {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -92,20 +87,14 @@ class OCRService {
     canvas.height = image.height;
     ctx.drawImage(image, 0, 0);
 
-    // Get image data for analysis
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const regions = this.analyzeImageData(imageData);
-
-    return regions;
+    return this.analyzeImageData(imageData);
   }
 
   private analyzeImageData(imageData: ImageData): OCRBlock[] {
     const { width, height, data } = imageData;
     const regions: OCRBlock[] = [];
-    
-    // Simple region detection based on color variance
     const blockSize = 20;
-    const threshold = 30;
 
     for (let y = 0; y < height; y += blockSize) {
       for (let x = 0; x < width; x += blockSize) {
@@ -124,12 +113,10 @@ class OCRService {
 
         avgBrightness /= count;
 
-        // Check if this region has text-like characteristics
-        if (variance > threshold) {
+        if (variance > 30) {
           regions.push({
             text: "",
-            x,
-            y,
+            x, y,
             width: blockSize,
             height: blockSize,
             confidence: 0.5
@@ -143,19 +130,15 @@ class OCRService {
 
   private mergeNearbyRegions(regions: OCRBlock[]): OCRBlock[] {
     if (regions.length === 0) return [];
-    
     const merged: OCRBlock[] = [];
     const threshold = 30;
 
     for (const region of regions) {
       let mergedWithExisting = false;
-      
       for (const existing of merged) {
         const dx = Math.abs(region.x - existing.x);
         const dy = Math.abs(region.y - existing.y);
-        
         if (dx < threshold && dy < threshold) {
-          // Merge regions
           existing.x = Math.min(existing.x, region.x);
           existing.y = Math.min(existing.y, region.y);
           existing.width = Math.max(existing.x + existing.width, region.x + region.width) - existing.x;
@@ -164,12 +147,8 @@ class OCRService {
           break;
         }
       }
-      
-      if (!mergedWithExisting) {
-        merged.push({ ...region });
-      }
+      if (!mergedWithExisting) merged.push({ ...region });
     }
-
     return merged;
   }
 }
