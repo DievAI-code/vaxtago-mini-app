@@ -145,7 +145,7 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
               title: location.name,
               coordinates: mapCenter,
             },
-          ]]}
+          ]}
           userLocation={userCoords}
           className="w-full h-full rounded-none"
         />
