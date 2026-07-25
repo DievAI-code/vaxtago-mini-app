@@ -146,45 +146,16 @@ export function useAiChat() {
     [language]
   );
 
-  // Listen for state restoration events
-  useEffect(() => {
-    const handleRestore = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const restoredMessages = customEvent.detail?.state?.chatMessages;
-      
-      if (restoredMessages && Array.isArray(restoredMessages) && restoredMessages.length > 0) {
-        console.log(`[AI Chat] Restoring ${restoredMessages.length} messages from lifecycle event`);
-        const loaded = restoredMessages.map((m: any) => ({
-          role: m.role,
-          content: m.content,
-          timestamp: new Date(m.timestamp),
-        }));
-        setMessages(loaded);
-        chatHistoryRef.current = loaded;
-        toast.info(t("ai.restored") || "VAQTA AI восстановлен");
-      } else {
-        // Check localStorage as fallback
-        const session = loadAssistantSession();
-        if (session?.messages?.length > 0) {
-          console.log(`[AI Chat] Restoring ${session.messages.length} messages from localStorage`);
-          const loaded = session.messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-            timestamp: new Date(m.timestamp),
-          }));
-          setMessages(loaded);
-          chatHistoryRef.current = loaded;
-        }
-      }
+  const addUserMessage = useCallback((text: string) => {
+    const userMsg: ChatMessage = {
+      role: "user",
+      content: text,
+      timestamp: new Date(),
     };
-    
-    window.addEventListener("vaqta:state-restored", handleRestore);
-    window.addEventListener("vaqta:app-restore", handleRestore);
-    return () => {
-      window.removeEventListener("vaqta:state-restored", handleRestore);
-      window.removeEventListener("vaqta:app-restore", handleRestore);
-    };
-  }, [t]);
+    const newHistory = [...chatHistoryRef.current, userMsg];
+    setMessages(newHistory);
+    chatHistoryRef.current = newHistory;
+  }, []);
 
   const sendMessage = useCallback(
     async (message: string, image?: string): Promise<string | null> => {
@@ -211,22 +182,6 @@ export function useAiChat() {
 
       const intent = detectIntent(message);
       const actionData = mapIntentToAction(intent);
-
-      if (intent.type === "OCR_TRANSLATE") {
-        setTimeout(() => navigate("/scanner"), 600);
-      } else if (intent.type === "MAP_SEARCH" && intent.entities.query) {
-        setTimeout(() => navigate(`/maps?search=${encodeURIComponent(intent.entities.query)}`), 600);
-      } else if (intent.type === "MAP_ROUTE" && intent.entities.to) {
-        setTimeout(() => navigate(`/maps?route=${encodeURIComponent(intent.entities.to)}`), 600);
-      } else if (intent.type === "JOB_SEARCH") {
-        setTimeout(
-          () =>
-            navigate(
-              `/jobs-test?query=${encodeURIComponent(intent.entities.profession || intent.originalText)}`
-            ),
-          600
-        );
-      }
 
       try {
         let data: any = null;
@@ -290,5 +245,5 @@ export function useAiChat() {
     [language, loading, t, navigate, saveToMemory]
   );
 
-  return { sendMessage, loading, messages };
+  return { sendMessage, loading, messages, addUserMessage };
 }

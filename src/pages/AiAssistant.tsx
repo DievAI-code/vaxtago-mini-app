@@ -119,7 +119,7 @@ const TypingDots = memo(function TypingDots() {
 export default function AiAssistant() {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
-  const { sendMessage, loading: isTyping, messages } = useAiChat();
+  const { sendMessage, loading: isTyping, messages, addUserMessage } = useAiChat();
   const [input, setInput] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [smartResults, setSmartResults] = useState<Record<number, SmartSearchResult>>({});
@@ -162,16 +162,20 @@ export default function AiAssistant() {
     if (!text.trim() || isTyping) return;
     if (!customText) setInput("");
 
-    const msgIndex = messages.length + 1;
-
-    // Process navigation query
+    // 1. Сначала проверяем Navigation Intent
     const navResult = await processNavigationQuery(text);
-    if (navResult) {
-      setNavResults((prev) => ({ ...prev, [msgIndex]: navResult }));
+    
+    // Если это маршрут, добавляем сообщение локально и НЕ отправляем в AI
+    if (navResult && navResult.intent.type === "route") {
+      const newIndex = messages.length;
+      setNavResults((prev) => ({ ...prev, [newIndex]: navResult }));
+      addUserMessage(text);
+      return;
     }
 
+    const newIndex = messages.length;
     const smart = await processSmartSearch(text);
-    setSmartResults((prev) => ({ ...prev, [msgIndex]: smart }));
+    setSmartResults((prev) => ({ ...prev, [newIndex]: smart }));
 
     await sendMessage(text);
   };

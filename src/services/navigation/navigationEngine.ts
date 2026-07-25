@@ -24,6 +24,16 @@ export async function processNavigationQuery(text: string): Promise<NavigationRe
   const debugId = mapDebug.startQuery(text);
 
   const intent = parseNavigationIntent(text);
+  
+  // Обязательный debug лог
+  console.log("[NAV DEBUG]", {
+    query: text,
+    intent: intent.type,
+    from_location: intent.from,
+    to_location: intent.to,
+    city: intent.city
+  });
+
   mapDebug.log(debugId, "Intent Detection", intent);
 
   if (intent.type === "unknown") {
