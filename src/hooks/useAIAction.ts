@@ -1,43 +1,41 @@
 "use client";
 
 import { useNavigate } from "react-router-dom";
-import { AIActionResponse } from "@/services/aiActions";
+import { detectIntent } from "@/lib/aiRouter";
 
 export function useAIAction() {
   const navigate = useNavigate();
 
-  const handleAIAction = (action: AIActionResponse) => {
-    switch (action.action) {
+  const handleAIAction = (intent: ReturnType<typeof detectIntent>) => {
+    const q =
+      intent.entities.query ||
+      intent.entities.profession ||
+      intent.entities.location ||
+      intent.originalText;
+
+    switch (intent.type) {
       case "MAP_SEARCH":
-        navigate(`/maps?search=${encodeURIComponent(action.query || "")}`);
+        navigate(`/maps?search=${encodeURIComponent(q)}`);
         break;
-
-      case "BUILD_ROUTE":
-        navigate(`/maps?route=${encodeURIComponent(action.query || "")}`);
+      case "MAP_ROUTE":
+        navigate(`/maps?route=${encodeURIComponent(intent.entities.to || q)}`);
         break;
-
-      case "TRANSLATE":
-        navigate(`/translate?text=${encodeURIComponent(action.query || "")}`);
-        break;
-
-      case "DOCUMENT_SCAN":
+      case "OCR_TRANSLATE":
         navigate("/scanner");
         break;
-
+      case "DOCUMENT_HELP":
+        navigate("/contract-audit");
+        break;
       case "JOB_SEARCH":
-        navigate(`/jobs?query=${encodeURIComponent(action.query || "")}`);
+        navigate(`/jobs-test?query=${encodeURIComponent(q)}`);
         break;
-
       case "EMPLOYER_CHECK":
-        navigate(`/jobs?query=${encodeURIComponent(action.query || "")}`);
+        navigate(`/jobs-test?query=${encodeURIComponent(q)}`);
         break;
-
       default:
         break;
     }
   };
 
-  return {
-    handleAIAction
-  };
+  return { handleAIAction };
 }

@@ -19,6 +19,7 @@ export const getSupabaseClient = () => {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: true,
     },
     global: {
       headers: {
@@ -50,10 +51,6 @@ export const logSupabaseError = (error: any, context: string = '') => {
   });
 };
 
-/**
- * Safe login: find user, if not found — create.
- * Only inserts confirmed columns to prevent 400 errors.
- */
 export const safeSupabaseLogin = async (phone: string, extraData: Record<string, any> = {}) => {
   const client = getSupabaseClient();
   if (!client) throw new Error("Supabase client not initialized");
@@ -62,7 +59,6 @@ export const safeSupabaseLogin = async (phone: string, extraData: Record<string,
   if (!cleanPhone) throw new Error("Invalid phone number");
 
   try {
-    // Step 1: Try to find existing user
     const { data: existing, error: selectErr } = await client
       .from("users")
       .select("*")
@@ -74,7 +70,6 @@ export const safeSupabaseLogin = async (phone: string, extraData: Record<string,
     }
 
     if (existing) {
-      // Update last_login and language only
       await client
         .from("users")
         .update({
@@ -87,7 +82,6 @@ export const safeSupabaseLogin = async (phone: string, extraData: Record<string,
       return { data: existing, error: null };
     }
 
-    // Step 2: Create new user — only confirmed columns
     const { data: newUser, error: insertErr } = await client
       .from("users")
       .insert({
@@ -104,7 +98,6 @@ export const safeSupabaseLogin = async (phone: string, extraData: Record<string,
       .maybeSingle();
 
     if (insertErr) {
-      // User might have been created in parallel — try to fetch again
       const { data: fallback } = await client
         .from("users")
         .select("*")

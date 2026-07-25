@@ -1,8 +1,7 @@
 "use client";
 
-/**
- * Supported AI Action Types for VAQTA AI
- */
+import { detectIntent } from "@/lib/aiRouter";
+
 export type AIActionType =
   | "chat"
   | "map_search"
@@ -19,8 +18,8 @@ export interface ActionChip {
   value: string;
 }
 
-export interface AIActionResult {
-  type: AIActionType;
+export interface AIActionResponse {
+  action: AIActionType;
   query?: string;
   from?: string;
   to?: string;
@@ -28,45 +27,33 @@ export interface AIActionResult {
   chips?: ActionChip[];
 }
 
-const ALIASES: Record<string, string> = {
-  "епрс": "Ермаковское предприятие по ремонту скважин",
-  "жд": "Железнодорожный вокзал",
+const TYPE_MAP: Record<string, AIActionType> = {
+  GENERAL_CHAT: "chat",
+  MAP_SEARCH: "map_search",
+  MAP_ROUTE: "route",
+  JOB_SEARCH: "job_search",
+  OCR_TRANSLATE: "translate_photo",
+  DOCUMENT_HELP: "document",
+  LEGAL_HELP: "document",
+  MIGRATION_HELP: "document",
+  EMPLOYER_CHECK: "unknown",
 };
 
-export function detectAIAction(message: string): AIActionResult {
-  const low = message.toLowerCase().trim();
+export function detectAIAction(message: string): AIActionResponse {
+  const intent = detectIntent(message);
 
-  // 1. Route Intent with From/To detection
-  if (/маршрут|как доехать|как добраться|путь|дорога/i.test(low)) {
-    // Regex to match "from X to Y" in Russian (от ... до ...)
-    const fromToRegex = /(?:от|с|из)\s+(.+?)\s+(?:до|в|на)\s+(.+)/i;
-    const match = low.match(fromToRegex);
-    
-    if (match) {
-      return { 
-        type: "route", 
-        from: match[1].trim(), 
-        to: match[2].trim() 
-      };
-    }
-
-    const toOnly = low.replace(/построй маршрут до|маршрут до|как доехать до|как добраться до/gi, "").trim();
-    return { type: "route", to: toOnly || undefined };
-  }
-
-  // 2. Map Search
-  if (/найди|где|покажи|вокзал|аэропорт|метро|адрес/i.test(low)) {
-    let query = low.replace(/найди|где находится|покажи на карте/gi, "").trim();
-    // Simple alias expansion
-    for (const [a, f] of Object.entries(ALIASES)) {
-      if (query.includes(a)) query = query.replace(a, f);
-    }
-    return { type: "map_search", query: query || low };
-  }
-
-  // 3. Others...
-  if (/иш|работа|ваканс/i.test(low)) return { type: "job_search", query: low };
-  if (/переведи фото|распознай|таржима|скан|фото/i.test(low)) return { type: "translate_photo" };
-
-  return { type: "chat" };
+  return {
+    action: TYPE_MAP[intent.type] || "chat",
+    query:
+      intent.entities.query ||
+      intent.entities.profession ||
+      intent.entities.location ||
+      intent.entities.to ||
+      intent.originalText,
+    from: intent.entities.from,
+    to: intent.entities.to,
+    message: intent.replyHint,
+  };
 }
+
+export { detectIntent };

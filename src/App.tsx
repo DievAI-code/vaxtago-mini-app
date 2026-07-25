@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +10,7 @@ import { LanguageProvider } from "@/context/LanguageProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NavStackProvider } from "@/components/NavigationStack";
 import { PageTransition } from "@/components/PageTransition";
+import { errorMonitor } from "@/lib/errorMonitor";
 import "@/i18n";
 
 const Home = lazy(() => import("./pages/Home"));
@@ -41,6 +43,11 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AnimatedRoutes = () => {
   const location = useLocation();
+
+  useEffect(() => {
+    errorMonitor.init();
+  }, []);
+
   return (
     <PageTransition>
       <Suspense fallback={<div className="min-h-screen-dynamic bg-[#06140F] flex items-center justify-center"><div className="w-10 h-10 border-4 border-[#00A86B]/20 border-t-[#00A86B] animate-spin rounded-full" /></div>}>
