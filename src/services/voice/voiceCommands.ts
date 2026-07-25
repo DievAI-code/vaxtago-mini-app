@@ -104,48 +104,102 @@ const UZBEK_LATIN_TRIGGERS: string[] = [
   "soat", "vaqt", "vaqti", "kech", "ertalab",
 ];
 
-// Узбекские города (с вариантами латиницы)
+// Узбекские города (с вариантами латиницы и суффиксов -da/-ga/-dan/-ni)
 const UZ_CITIES = [
-  "toshkent", "tashkent", "toshkentda", "tashkentda",
-  "samarqand", "samarkand", "samarqandda", "samarkandda",
-  "buxoro", "bukhara", "buxoroda", "bukharada",
-  "andijon", "andijan", "andijonda", "andijanda",
-  "farg'ona", "fargona", "farg'onada", "fargonada",
-  "namangan", "namanganda",
-  "xorazm", "urganch", "urganchda",
-  "navoiy", "navoiyda", "navoiydan",
-  "termiz", "termizda", "termizga",
-  "jizzax", "jizzakh", "jizzaxda", "jizzakhda",
-  "qarshi", "qarshida", "qarshiga",
-  "qo'qon", "qoqon", "qo'qonda", "qoqonda",
-  "oltiariq", "asaka", "xovos", "shahrisabz",
-  "mo'ynoq", "moynaq",
-  "nukus", "nukusda",
-  "xiva", "xivada",
-  "guliston", "gulistonda",
-  "denov", "denovda",
-  "nurobod", "nuroboda",
+  "toshkent", "tashkent", "toshkentda", "tashkentda", "toshkentga", "tashkentga", "toshkentdan", "tashkentdan", "toshkentni", "tashkentni",
+  "samarqand", "samarkand", "samarqandda", "samarkandda", "samarqandga", "samarkandga", "samarqanddan", "samarkanddan", "samarqandni", "samarkandni",
+  "buxoro", "bukhara", "buxoroda", "bukharada", "buxoroga", "bukharaga", "buxorodan", "bukharadan", "buxoroni", "bukharani",
+  "andijon", "andijan", "andijonda", "andijanda", "andijonga", "andijanga", "andijondan", "andijandan", "andijonni", "andijanni",
+  "farg'ona", "fargona", "farg'onada", "fargonada", "farg'onaga", "fargonaga", "farg'onadan", "fargonadan", "farg'onani", "fargonani",
+  "namangan", "namanganda", "namanganga", "namangandan", "namanganni",
+  "xorazm", "urganch", "urganchda", "urganchga", "urganchdan", "urganchni",
+  "navoiy", "navoiyda", "navoiyga", "navoiydan", "navoiyni",
+  "termiz", "termizda", "termizga", "termizdan", "termizni",
+  "jizzax", "jizzakh", "jizzaxda", "jizzaxga", "jizzaxdan", "jizzaxni",
+  "qarshi", "qarshida", "qarshiga", "qarshidan", "qarshini",
+  "qo'qon", "qoqon", "qo'qonda", "qoqonda", "qo'qonga", "qoqonga", "qo'qondan", "qoqondan", "qo'qonni", "qoqonni",
+  "nukus", "nukusda", "nukusga", "nukusdan", "nukusni",
+  "xiva", "xivada", "xivaga", "xivadan", "xivani",
+  "guliston", "gulistonda", "gulistonga", "gulistondan", "gulistonni",
+  "denov", "denovda", "denovga", "denovdan", "denovni",
 ];
 
-// Узбекские профессии (латиница)
-const UZ_PROFESSIONS = [
-  "chilangar", "chilangi",
+// Словарь нормализации: вариант → канон
+const UZ_CITY_NORMALIZE: Record<string, string> = {
+  toshkent: "Toshkent", tashkent: "Toshkent",
+  toshkentda: "Toshkent", tashkentda: "Toshkent",
+  toshkentga: "Toshkent", tashkentga: "Toshkent",
+  toshkentdan: "Toshkent", tashkentdan: "Toshkent",
+  toshkentni: "Toshkent", tashkentni: "Toshkent",
+  samarqand: "Samarqand", samarkand: "Samarqand",
+  samarqandda: "Samarqand", samarkandda: "Samarqand",
+  samarqandga: "Samarqand", samarkandga: "Samarqand",
+  samarqanddan: "Samarqand", samarkanddan: "Samarqand",
+  samarqandni: "Samarqand", samarkandni: "Samarqand",
+  buxoro: "Buxoro", bukhara: "Buxoro",
+  buxoroda: "Buxoro", bukharada: "Buxoro",
+  buxoroga: "Buxoro", bukharaga: "Buxoro",
+  buxorodan: "Buxoro", bukharadan: "Buxoro",
+  buxoroni: "Buxoro", bukharani: "Buxoro",
+  andijon: "Andijon", andijan: "Andijon",
+  andijonda: "Andijon", andijanda: "Andijon",
+  andijonga: "Andijon", andijanga: "Andijon",
+  andijondan: "Andijon", andijandan: "Andijon",
+  andijonni: "Andijon", andijanni: "Andijon",
+  "farg'ona": "Farg'ona", fargona: "Farg'ona",
+  "farg'onada": "Farg'ona", fargonada: "Farg'ona",
+  "farg'onaga": "Farg'ona", fargonaga: "Farg'ona",
+  "farg'onadan": "Farg'ona", fargonadan: "Farg'ona",
+  "farg'onani": "Farg'ona", fargonani: "Farg'ona",
+  namangan: "Namangan",
+  namanganda: "Namangan", namanganga: "Namangan", namangandan: "Namangan", namanganni: "Namangan",
+  urganch: "Urganch",
+  urganchda: "Urganch", urganchga: "Urganch", urganchdan: "Urganch", urganchni: "Urganch",
+  navoiy: "Navoiy",
+  navoiyda: "Navoiy", navoiyga: "Navoiy", navoiydan: "Navoiy", navoiyni: "Navoiy",
+  termiz: "Termiz",
+  termizda: "Termiz", termizga: "Termiz", termizdan: "Termiz", termizni: "Termiz",
+  jizzax: "Jizzax", jizzakh: "Jizzax",
+  jizzaxda: "Jizzax", jizzaxga: "Jizzax", jizzaxdan: "Jizzax", jizzaxni: "Jizzax",
+  qarshi: "Qarshi",
+  qarshida: "Qarshi", qarshiga: "Qarshi", qarshidan: "Qarshi", qarshini: "Qarshi",
+  "qo'qon": "Qo'qon", qoqon: "Qo'qon",
+  "qo'qonda": "Qo'qon", qoqonda: "Qo'qon",
+  nukus: "Nukus",
+  nukusda: "Nukus", nukusga: "Nukus", nukusdan: "Nukus", nukusni: "Nukus",
+  xiva: "Xiva",
+  xivada: "Xiva", xivaga: "Xiva", xivadan: "Xiva", xivani: "Xiva",
+  guliston: "Guliston",
+  gulistonda: "Guliston", gulistonga: "Guliston", gulistondan: "Guliston", gulistonni: "Guliston",
+  denov: "Denov",
+  denovda: "Denov", denovga: "Denov", denovdan: "Denov", denovni: "Denov",
+};
+
+// Узбекские профессии: сначала специализированные (высокий приоритет),
+// потом разговорные (low priority).
+const UZ_PROFESSIONS_SPECIFIC = [
   "haydovchi", "haydovchisi",
   "quruvchi", "quruvchilar", "qurilishchi",
+  "chilangar", "chilangi",
   "elektrik", "elektriklar",
-  "payvandchi", "payvandlovchi",
-  "kranchi", "kran operatori",
   "santexnik", "santexniklar",
+  "payvandchi", "payvandlovchi",
+  "oshpaz", "oshpazlar", "pishloqchi",
+  "qo'riqchi", "qoriqchi",
+  "sotuvchi", "sotuvchilar", "kassir",
+  "yuk tashuvchi", "yuktashuvchi",
+  "farrosh", "farroshlik",
+  "tikuvchi", "tikuvchilar", "tikuv ayol",
+  "texnik", "texniklar",
+  "operator", "operatori",
+  "kranchi", "kran operatori",
   "bo'yoqchi", "boyoqchi",
   "g'isht teruvchi", "gisht teruvchi", "g'ishtchi",
   "malyakchi", "malyak", "malyar",
   "o'qituvchi", "oqituvchi", "o'qituvchilar",
   "shifokor", "hamshira", "tibbiyot",
-  "sotuvchi", "sotuvchilar", "kassir",
   "tarjimon", "tarjimoni",
   "kontroller", "nazoratchi",
-  "tikuvchi", "tikuvchilar", "tikuv ayol",
-  "oshpaz", "oshpazlar", "pishloqchi",
   "fermer", "fermerlar", "dehqon",
   "kutubxonachi", "kutubxonachilar",
   "taksi haydovchi", "taksist",
@@ -156,7 +210,13 @@ const UZ_PROFESSIONS = [
   "buxgalter", "buxgalterlar", "hisobchi",
   "muhandis", "muhandislar",
   "meneger", "menejer", "manager",
+];
+
+// Разговорные варианты — низкий приоритет
+const UZ_PROFESSIONS_GENERIC = [
   "ishchi", "ishchilar",
+  "usta", "ustalar",
+  "brigada", "brigadasi",
 ];
 
 const RULES: Rule[] = [
@@ -305,7 +365,9 @@ export function detectVoiceCommand(text: string, appLang: Lang = "ru"): VoiceCom
   const params: VoiceCommand["params"] = {};
   if (best.rule.extractQuery) {
     const query = extractAfter(raw, [
-      "покажи", "где", "открой", "найди", "ko'rsat", "korsat", "qayerda", "top", "show", "where",
+      "покажи", "где", "открой", "найди",
+      "ko'rsat", "korsat", "qayerda", "top", "topib",
+      "show", "where",
     ]);
     if (query) params.query = query;
   }
@@ -360,22 +422,46 @@ function detectLanguageFromText(text: string): Lang {
 
 function extractAfter(text: string, keywords: string[]): string {
   const low = text.toLowerCase();
+  let best: { idx: number; rest: string } | null = null;
+
   for (const kw of keywords) {
     const idx = low.indexOf(kw);
-    if (idx >= 0) {
-      let rest = text.slice(idx + kw.length).replace(/^(на|в|во|к|the|a|an)\s+/i, "").trim();
-      // Убираем хвостовые слова вроде "на карте"
-      rest = rest.replace(/\b(на карте|on the map|xaritada|manzili)\b/gi, "").trim();
-      // Убираем вопросительные знаки
-      rest = rest.replace(/[?.!]/g, "").trim();
-      if (rest && rest.length > 1) return rest;
+    if (idx < 0) continue;
+    let rest = text.slice(idx + kw.length).replace(/^(на|в|во|к|the|a|an)\s+/i, "").trim();
+
+    // Очистка от хвостовых служебных слов и UZ/RU/EN суффиксов
+    const cleanPatterns = [
+      // RU
+      "\\b(на карте|на картах|в городе|в ташкенте|в москве|в городе|покажи мне)\\b",
+      // UZ
+      "\\b(xaritada|xaritada ko'?rsat|xaritani|ko'?rsat|korsat|qayerdaligini|qayerda|manzili|manzilni|ish top|ish qidir|ish kerak|vakansiya qidir|vakansiya top|rasmni tarjima qil|rasmdagi matn|skanerla|skaner qil|tarjima qil)\\b",
+      // EN
+      "\\b(on the map|in the city|show me|find me|please)\\b",
+    ];
+    for (const p of cleanPatterns) {
+      rest = rest.replace(new RegExp(p, "gi"), "").trim();
+    }
+    // Убираем вопросительные/восклицательные знаки
+    rest = rest.replace(/[?.!]/g, "").trim();
+    // Убираем ведущие предлоги и частицы
+    rest = rest.replace(/^(menga|мне|i want|please|пожалуйста|iltimos)\s+/i, "").trim();
+    // Схлопываем множественные пробелы
+    rest = rest.replace(/\s+/g, " ").trim();
+
+    if (rest && rest.length > 1) {
+      if (!best || idx < best.idx) {
+        best = { idx, rest };
+      }
     }
   }
-  return "";
+
+  return best ? best.rest : "";
 }
 
 /**
  * Извлекает город из распознанного текста. Поддерживает RU / UZ (cyr+lat) / EN.
+ * Узбекский: распознаёт формы с суффиксами -da/-ga/-dan/-ni, возвращает
+ * нормализованное каноническое имя (например, "Samarqandda" → "Samarqand").
  */
 function extractCity(text: string): string {
   // Универсальный список городов
@@ -391,6 +477,17 @@ function extractCity(text: string): string {
   ];
 
   const low = text.toLowerCase();
+
+  // 1) Узбекские города в латинице с суффиксами — ищем по словарю нормализации
+  //    (точное совпадение слова с границами)
+  for (const variant of Object.keys(UZ_CITY_NORMALIZE)) {
+    const re = new RegExp(`\\b${escapeRegex(variant)}\\b`, "i");
+    if (re.test(low)) {
+      return UZ_CITY_NORMALIZE[variant];
+    }
+  }
+
+  // 2) Fallback: ищем в общем списке городов
   for (const c of cities) {
     if (low.includes(c)) {
       // Capitalize первое слово
@@ -405,26 +502,51 @@ function extractCity(text: string): string {
 
 /**
  * Извлекает профессию из текста. Поддерживает RU / UZ (cyr+lat) / EN.
+ * Приоритет: специализированные термины → разговорные (ishchi, usta, brigada).
  */
 function extractProfession(text: string): string {
-  const professions = [
-    // RU
+  // Сначала ищем специализированные термины — более точный результат
+  const specificMatches: { match: string; index: number }[] = [];
+  for (const p of UZ_PROFESSIONS_SPECIFIC) {
+    const idx = text.toLowerCase().indexOf(p.toLowerCase());
+    if (idx >= 0) specificMatches.push({ match: p, index: idx });
+  }
+  if (specificMatches.length > 0) {
+    // Берём первое вхождение (левое в тексте)
+    specificMatches.sort((a, b) => a.index - b.index);
+    return specificMatches[0].match;
+  }
+
+  // Если ничего не нашли — пробуем RU
+  const ruProfs = [
     "сварщик", "водитель", "строитель", "электрик", "разнорабочий",
     "повар", "грузчик", "швея", "продавец", "охранник", "маляр", "штукатур",
-    // UZ (латиница)
-    ...UZ_PROFESSIONS,
-    // UZ (кириллица)
-    "пайвандчи", "хайдовчи", "курувчи", "электрик", "сантехник",
-    "бўёқчи", "уста", "молла",
-    // EN
+  ];
+  const low = text.toLowerCase();
+  for (const p of ruProfs) {
+    if (low.includes(p)) return p;
+  }
+
+  // EN профессии
+  const enProfs = [
     "welder", "driver", "builder", "electrician", "worker",
     "cook", "seller", "guard", "manager",
   ];
-
-  const low = text.toLowerCase();
-  for (const p of professions) {
+  for (const p of enProfs) {
     if (low.includes(p)) return p;
   }
+
+  // Крайний случай: разговорные узбекские (низкий приоритет)
+  for (const p of UZ_PROFESSIONS_GENERIC) {
+    if (low.includes(p)) return p;
+  }
+
+  // UZ (кириллица)
+  const uzCyr = ["пайвандчи", "хайдовчи", "курувчи", "электрик", "сантехник", "бўёқчи", "уста", "молла"];
+  for (const p of uzCyr) {
+    if (low.includes(p)) return p;
+  }
+
   return "";
 }
 
