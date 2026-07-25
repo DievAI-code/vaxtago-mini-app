@@ -6,6 +6,14 @@ import { Home, Bot, MapPin, Camera, User } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { memo } from "react";
 
+type Lang = "ru" | "uz" | "en";
+
+const SHORT_BY_LANG: Record<Lang, Record<string, string>> = {
+  ru: { "nav.home": "Главная", "nav.ai": "AI", "nav.map": "Карта", "nav.scanner": "Сканер", "nav.profile": "Профиль" },
+  uz: { "nav.home": "Asosiy", "nav.ai": "AI", "nav.map": "Xarita", "nav.scanner": "Skaner", "nav.profile": "Profil" },
+  en: { "nav.home": "Home", "nav.ai": "AI", "nav.map": "Map", "nav.scanner": "Scan", "nav.profile": "Profile" },
+};
+
 const ITEMS = [
   { path: "/home", icon: Home, label: "nav.home", match: ["/", "/home"] },
   { path: "/ai", icon: Bot, label: "nav.ai", match: ["/ai", "/chat"] },
@@ -14,7 +22,14 @@ const ITEMS = [
   { path: "/cabinet", icon: User, label: "nav.profile", match: ["/cabinet", "/profile"] },
 ];
 
-const NavButton = memo(function NavButton({ item, active, onClick, label }: { item: typeof ITEMS[0]; active: boolean; onClick: () => void; label: string }) {
+interface NavButtonProps {
+  item: typeof ITEMS[number];
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}
+
+const NavButton = memo(function NavButton({ item, active, onClick, label }: NavButtonProps) {
   const Icon = item.icon;
   return (
     <button
@@ -58,20 +73,28 @@ const NavButton = memo(function NavButton({ item, active, onClick, label }: { it
 export function BottomNav() {
   const loc = useLocation();
   const nav = useNavigate();
-  const { t } = useLanguage();
+  const { language } = useLanguage();
+  const langKey: Lang = (language as Lang) ?? "ru";
+
+  // Локализованный короткий label для каждого пункта меню.
+  // Если язык не поддерживается, fallback на безопасный английский,
+  // который точно есть в SHORT_BY_LANG.
+  const labels = SHORT_BY_LANG[langKey] || SHORT_BY_LANG.en;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 z-[100] pointer-events-none" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
       <nav className="mx-auto flex items-center justify-around px-2 py-2 liquid-glass rounded-full w-full max-w-md pointer-events-auto shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
         {ITEMS.map((item) => {
           const active = item.match.some((m) => loc.pathname === m || (m === "/" && loc.pathname === "/"));
+          // Безопасный label: сначала локализованный, потом English, потом человеческое слово
+          const label = labels[item.label] || SHORT_BY_LANG.en[item.label] || item.label.replace("nav.", "");
           return (
             <NavButton
               key={item.path}
               item={item}
               active={active}
               onClick={() => nav(item.path)}
-              label={t(item.label).split(" ")[0]}
+              label={label}
             />
           );
         })}

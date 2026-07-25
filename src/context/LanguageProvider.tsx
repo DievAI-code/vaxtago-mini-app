@@ -17,6 +17,17 @@ function getNestedValue(obj: any, path: string): string | undefined {
   return path.split('.').reduce((prev, curr) => (prev && prev[curr] !== undefined) ? prev[curr] : undefined, obj);
 }
 
+function humanizeKey(key: string): string {
+  // Превращает "home.action_translate" в "Action translate"
+  // Используется только в КРАЙНЕМ случае, когда нет ни перевода, ни ru-fallback
+  const parts = key.split(".");
+  const last = parts[parts.length - 1] || parts[0];
+  return last
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const { t: i18nT } = useTranslation();
   const [language, setLangState] = useState<Lang>(() => {
@@ -40,16 +51,17 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
   const safeT = (key: string): string => {
     if (!key) return "";
+
+    // 1. Сначала — текущая локаль (через i18next)
     const translated = i18nT(key);
-    if (translated === key) {
-      const ruValue = getNestedValue(ruLocale, key);
-      if (ruValue && typeof ruValue === "string") {
-        return ruValue;
-      }
-      // Return the key itself as final fallback
-      return key;
-    }
-    return translated;
+    if (translated && translated !== key) return translated;
+
+    // 2. Иначе — fallback на русский словарь
+    const ruValue = getNestedValue(ruLocale, key);
+    if (typeof ruValue === "string") return ruValue;
+
+    // 3. Крайний случай: humanize ключ, чтобы НИКОГДА не показывать raw
+    return humanizeKey(key);
   };
 
   return (

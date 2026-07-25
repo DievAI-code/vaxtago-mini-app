@@ -8,8 +8,15 @@ import uz_cyr from "./locales/uz_cyr.json";
 export const SUPPORTED_LANGS = ["uz", "uz_cyr", "ru", "en"] as const;
 export type Lang = (typeof SUPPORTED_LANGS)[number];
 
-const savedLang = (localStorage.getItem("vaxtago_language") || localStorage.getItem("vaqta_language")) as Lang;
-const initialLang = SUPPORTED_LANGS.includes(savedLang) ? savedLang : "ru";
+function readSavedLang(): Lang {
+  try {
+    const raw = (localStorage.getItem("vaxtago_language") || localStorage.getItem("vaqta_language") || "") as string;
+    if (SUPPORTED_LANGS.includes(raw as Lang)) return raw as Lang;
+  } catch { /* ignore */ }
+  return "ru";
+}
+
+const initialLang = readSavedLang();
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -21,9 +28,13 @@ i18n.use(initReactI18next).init({
   lng: initialLang,
   fallbackLng: "ru",
   interpolation: { escapeValue: false },
+  // Если ключа нет — возвращаем строку ключа, но LanguageProvider.safeT
+  // перехватывает и подменяет через ruLocale / humanize.
+  returnEmptyString: false,
 });
 
 export function setLanguage(lang: Lang) {
+  if (!SUPPORTED_LANGS.includes(lang)) return;
   localStorage.setItem("vaxtago_language", lang);
   localStorage.setItem("vaqta_language", lang);
   i18n.changeLanguage(lang);
