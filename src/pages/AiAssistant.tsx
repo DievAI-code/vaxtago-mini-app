@@ -279,19 +279,8 @@ export default function AiAssistant() {
                         from={routeIntent.from}
                         to={routeIntent.to}
                         mode={routeIntent.mode}
+                        city={routeIntent.city}
                       />
-                      <button
-                        onClick={() => {
-                          const from = encodeURIComponent(routeIntent.from || "");
-                          const to = encodeURIComponent(routeIntent.to);
-                          const mode = routeIntent.mode || "car";
-                          window.location.href = `/maps?from=${from}&to=${to}&mode=${mode}`;
-                        }}
-                        className="mt-2 w-full h-11 vaqta-gradient rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider text-white shadow-lg vaqta-glow active:scale-95 transition-transform"
-                      >
-                        <MapPin size={14} />
-                        <span>{t("ai.open_map")}</span>
-                      </button>
                     </div>
                   )}
 

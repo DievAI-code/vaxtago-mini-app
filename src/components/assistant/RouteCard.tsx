@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/context/LanguageProvider";
 import { NavigationProvider } from "@/services/navigation";
 import { navigationService } from "@/services/navigation";
+import { resolvePOI } from "@/services/maps/poiDictionary";
 
 interface RouteCardProps {
   from?: string;
@@ -13,23 +14,8 @@ interface RouteCardProps {
   distance?: string;
   duration?: string;
   mode?: "car" | "walking" | "transit";
+  city?: string;
 }
-
-const MODE_ICONS = {
-  car: "🚗",
-  walking: "🚶",
-  transit: "🚌",
-};
-
-const MODE_LABELS: Record<string, Record<string, string>> = {
-  ru: {
-    car: "На автомобиле",
-    walking: "Пешком",
-    transit: "Общественный транспорт",
-  },
-  uz: { car: "Avtomobil", walking: "Piyoda", transit: "Jamoat transporti" },
-  en: { car: "By car", walking: "Walking", transit: "Public transport" },
-};
 
 export function RouteCard({
   from,
@@ -37,12 +23,15 @@ export function RouteCard({
   distance,
   duration,
   mode = "car",
+  city,
 }: RouteCardProps) {
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const nav = useNavigate();
 
   const fromValue = from || "Моё местоположение";
-  const safeFrom = fromValue || "Моё местоположение";
+  const safeFrom = fromValue;
+  const resolvedFrom = resolvePOI(safeFrom, city);
+  const resolvedTo = resolvePOI(to, city);
 
   const handleOpenRoute = () => {
     try {
@@ -56,18 +45,15 @@ export function RouteCard({
 
   const handleProviderSelect = (provider: NavigationProvider) => {
     try {
-      navigationService.openRoute(provider, { from: safeFrom, to, mode });
+      navigationService.openRoute(provider, { from: resolvedFrom, to: resolvedTo, mode });
     } catch (e) {
       console.error("[RouteCard] Failed to open route:", e);
     }
   };
 
-  const modeLabel = MODE_LABELS[language]?.[mode] || MODE_LABELS.ru[mode];
-  const modeIcon = MODE_ICONS[mode];
-
   const links = navigationService.buildRoute({
-    from: safeFrom,
-    to,
+    from: resolvedFrom,
+    to: resolvedTo,
     mode,
   });
 
@@ -135,25 +121,20 @@ export function RouteCard({
         </div>
       )}
 
-      <div className="flex items-center gap-2 text-xs text-[#5C7A6D]">
-        <span>{modeIcon}</span>
-        <span>{modeLabel}</span>
-      </div>
-
       {/* Provider selection */}
       <div className="space-y-2 pt-2">
         <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-1">
           Открыть в навигаторе
         </p>
         <div className="grid grid-cols-2 gap-2">
-          {links.map((link) => (
+          {links.filter(l => l.provider !== "browser").map((link) => (
             <button
               key={link.provider}
               type="button"
               onClick={() => handleProviderSelect(link.provider)}
               className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2 hover:border-[#00A86B]/40 hover:bg-[#00A86B]/5 transition-all active:scale-95"
             >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black ${
                 link.provider === "yandex"
                   ? "bg-[#FFCC00]/20 text-[#FFCC00]"
                   : "bg-[#00A86B]/20 text-[#00A86B]"
@@ -170,7 +151,7 @@ export function RouteCard({
           className="w-full h-10 vaqta-gradient rounded-xl text-white text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
           <MapPin size={14} />
-          <span>Открыть на карте</span>
+          <span>Открыть маршрут</span>
           <ExternalLink size={12} />
         </button>
       </div>

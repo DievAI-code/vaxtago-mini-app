@@ -8,119 +8,71 @@ export interface AICommandResult {
   from?: string;
   to?: string;
   mode?: TravelMode;
+  city?: string;
 }
 
-const ROUTE_PATTERNS = {
-  ru: [
-    /как (доехать|добраться|пройти|попасть) (до|в|на)\s+(.+)/i,
-    /построй (маршрут|путь)(?: до)?\s+(.+)/i,
-    /покажи (путь|маршрут|направление)(?: до)?\s+(.+)/i,
-    /маршрут (до|в|на)\s+(.+)/i,
-    /проложи маршрут/i,
-    /построить маршрут/i,
-    /как проехать до\s+(.+)/i,
-  ],
-  uz: [
-    /qanday (borish|yetib borish|yo'l)\s+(.+)/i,
-    /xarita (chiz|ko'rsat)/i,
-    /yo'nalish/i,
-    /qanday borish mumkin/i,
-  ],
-  en: [
-    /how (to get|to go|to reach)\s+(.+)/i,
-    /show (me )?(the )?(way|route|direction)\s*(to)?\s+(.+)/i,
-    /build (a )?route\s*(to)?\s+(.+)/i,
-    /navigate (to)?\s+(.+)/i,
-    /directions to\s+(.+)/i,
-  ],
-};
+const ROUTE_KEYWORDS = [
+  "как доехать", "как добраться", "как пройти", "как проехать",
+  "построй маршрут", "проложи путь", "проложи маршрут",
+  "маршрут", "дорога до", "сколько ехать",
+  "qanday borish", "qanday yetib borish", "marshrut",
+  "how to get", "directions to", "route to", "navigate to"
+];
 
-const TRANSPORT_KEYWORDS = {
-  walking: ["пешком", "walking", "on foot", "piyoda", "oyakka", "oyakka borish"],
-  transit: ["автобус", "метро", "трамвай", "bus", "metro", "subway", "public transport", "avtobus", "marshrut"],
-  car: ["машина", "авто", "такси", "car", "taxi", "driving", "avtomobil", "mashinada"],
-};
+const SEARCH_KEYWORDS = [
+  "найди", "где", "покажи", "поиск", "адрес",
+  "ближайший", "рядом", "недалеко",
+  "topib ber", "qayerda", "yaqin",
+  "find", "where is", "show me", "search"
+];
 
-const LOCATION_ALIASES: Record<string, string> = {
-  "дом": "Дом",
-  "домой": "Дом",
-  "работа": "Работа",
-  "вокзал": "Железнодорожный вокзал",
-  "ж/д вокзал": "Железнодорожный вокзал",
-  "жд вокзал": "Железнодорожный вокзал",
-  "ж/д": "Железнодорожный вокзал",
-  "жд": "Железнодорожный вокзал",
-  "аэропорт": "Аэропорт",
-  "метро": "Станция метро",
-  "больница": "Больница",
-  "поликлиника": "Поликлиника",
-  "мвд": "МВД",
-  "мфц": "МФЦ",
-  "полиция": "Полиция",
-  "почта": "Почта",
-  "банк": "Банк",
-};
+const POI_KEYWORDS = [
+  "цирк", "вокзал", "аэропорт", "метро", "торговый центр", "больница", "магазин",
+  "аптека", "банк", "кафе", "ресторан", "отель", "школа", "университет",
+  "цирк", "vokzal", "aeroport", "metro", "savdo markazi", "kasalxona", "magazin",
+  "circus", "station", "airport", "subway", "mall", "hospital", "shop", "store"
+];
 
 export function detectNavigationIntent(message: string): AICommandResult {
-  const lowerMsg = message.toLowerCase();
+  const lowerMsg = message.toLowerCase().trim();
 
-  const isRouteRequest = Object.values(ROUTE_PATTERNS).flat().some((pattern) =>
-    pattern.test(message)
-  );
+  const fromToMatch = lowerMsg.match(/(?:от|с|из|from)\s+(.+?)\s+(?:до|в|на|to)\s+(.+)/i);
+  
+  const isRouteRequest = ROUTE_KEYWORDS.some(kw => lowerMsg.includes(kw));
 
-  if (!isRouteRequest) {
-    return { intent: "unknown" };
-  }
+  if (isRouteRequest || (fromToMatch && !SEARCH_KEYWORDS.some(kw => lowerMsg.includes(kw)))) {
+    let from: string | undefined;
+    let to: string | undefined;
+    let city: string | undefined;
 
-  let mode: TravelMode = "car";
-  if (TRANSPORT_KEYWORDS.walking.some((k) => lowerMsg.includes(k))) {
-    mode = "walking";
-  } else if (TRANSPORT_KEYWORDS.transit.some((k) => lowerMsg.includes(k))) {
-    mode = "transit";
-  }
+    // Extract city
+    const cityMatch = lowerMsg.match(/(тюмень|москва|санкт-петербург|спб|казань|екатеринбург|новосибирск|ташкент|самарканд|сургут|нижневартовск|тобольск|ишим)/i);
+    if (cityMatch) city = cityMatch[1];
 
-  let from: string | undefined;
-  let to: string | undefined;
-
-  const fromToMatch = message.match(
-    /(?:от|с|из|from)\s+(.+?)\s+(?:до|в|на|to)\s+(.+)/i
-  );
-  if (fromToMatch) {
-    from = normalizeLocation(fromToMatch[1].trim());
-    to = normalizeLocation(fromToMatch[2].trim());
-  } else {
-    const destMatch = message.match(/(?:до|в|на|to)\s+(.+)/i);
-    if (destMatch) {
-      to = normalizeLocation(destMatch[1].trim());
+    if (fromToMatch) {
+      from = fromToMatch[1].trim();
+      to = fromToMatch[2].trim();
+    } else {
+      const destMatch = lowerMsg.match(/(?:до|в|на|to)\s+(.+)/i);
+      if (destMatch) {
+        to = destMatch[1].trim();
+      }
     }
-  }
 
-  if (!to) {
-    const words = message.split(/\s+/);
-    const lastFewWords = words.slice(-3).join(" ");
-    to = normalizeLocation(lastFewWords);
-  }
-
-  return {
-    intent: "route",
-    from,
-    to,
-    mode,
-  };
-}
-
-function normalizeLocation(loc: string): string {
-  const lowerLoc = loc.toLowerCase().trim();
-
-  for (const [alias, normalized] of Object.entries(LOCATION_ALIASES)) {
-    if (lowerLoc === alias || lowerLoc.includes(alias)) {
-      return normalized;
+    // Fallback if to is still empty but it's a route request
+    if (!to && isRouteRequest) {
+      const poiMatch = lowerMsg.match(/(цирк|вокзал|аэропорт|метро|торговый центр|больница|магазин|аптека|банк|кафе|ресторан|отель|школа|университет)/i);
+      if (poiMatch) to = poiMatch[0];
     }
+
+    return {
+      intent: "route",
+      from: from || undefined,
+      to: to || undefined,
+      mode: "car",
+      city: city || undefined
+    };
   }
 
-  return loc.charAt(0).toUpperCase() + loc.slice(1);
-}
-
-export function parseRouteRequest(message: string): AICommandResult {
-  return detectNavigationIntent(message);
+  return { intent: "unknown" };
 }
