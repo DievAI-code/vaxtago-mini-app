@@ -1,6 +1,6 @@
 "use client";
 
-export type NavigationProvider = "yandex" | "2gis";
+export type NavigationProvider = "yandex" | "2gis" | "browser";
 
 export interface RouteOptions {
   from: string;
@@ -11,15 +11,15 @@ export interface RouteOptions {
 export interface NavigationLink {
   provider: NavigationProvider;
   url: string;
+  deepLink: string;
   label: string;
   icon: string;
-  deepLink: string;
 }
 
-const MODE_MAP: Record<string, { yandex: string; dgis: string }> = {
-  car: { yandex: "auto", dgis: "car" },
-  walking: { yandex: "pd", dgis: "foot" },
-  transit: { yandex: "mt", dgis: "bus" },
+const MODE_MAP: Record<string, { yandex: string; dgis: string; google: string }> = {
+  car: { yandex: "auto", dgis: "car", google: "driving" },
+  walking: { yandex: "pd", dgis: "foot", google: "walking" },
+  transit: { yandex: "mt", dgis: "bus", google: "transit" },
 };
 
 function buildYandexUrl(from: string, to: string, mode: string): { url: string; deepLink: string } {
@@ -44,12 +44,23 @@ function buildDgisUrl(from: string, to: string, mode: string): { url: string; de
   return { url, deepLink };
 }
 
+function buildGoogleUrl(from: string, to: string, mode: string): { url: string; deepLink: string } {
+  const fromEncoded = encodeURIComponent(from);
+  const toEncoded = encodeURIComponent(to);
+  const modeKey = MODE_MAP[mode]?.google || "driving";
+
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${fromEncoded}&destination=${toEncoded}&travelmode=${modeKey}`;
+  // No reliable universal deep link for Google Maps on all platforms, use URL
+  return { url, deepLink: url };
+}
+
 export const navigationService = {
   buildRoute(options: RouteOptions): NavigationLink[] {
     const { from, to, mode = "car" } = options;
 
     const yandex = buildYandexUrl(from, to, mode);
     const dgis = buildDgisUrl(from, to, mode);
+    const google = buildGoogleUrl(from, to, mode);
 
     return [
       {
@@ -66,6 +77,13 @@ export const navigationService = {
         label: "2ГИС",
         icon: "🟢",
       },
+      {
+        provider: "browser",
+        url: google.url,
+        deepLink: google.deepLink,
+        label: "Браузер",
+        icon: "🌐",
+      },
     ];
   },
 
@@ -73,6 +91,11 @@ export const navigationService = {
     const links = this.buildRoute(options);
     const link = links.find((l) => l.provider === provider);
     if (!link) return;
+
+    if (provider === "browser") {
+      window.open(link.url, "_blank", "noopener,noreferrer");
+      return;
+    }
 
     // Try deep link first (opens native app if installed), then fall back to web URL
     const linkElement = document.createElement("a");
@@ -113,8 +136,10 @@ export const navigationService = {
   openExternalMap(provider: NavigationProvider, query: string): void {
     if (provider === "yandex") {
       window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
-    } else {
+    } else if (provider === "2gis") {
       window.open(`https://2gis.ru/search?query=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
+    } else {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
     }
   },
 };

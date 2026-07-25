@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin, Navigation, ChevronRight, X, Car, Footprints, Bus } from "lucide-react";
+import { MapPin, Navigation, ChevronRight, X, Car, Footprints, Bus, Globe } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { navigationService, NavigationProvider } from "@/services/navigation";
 import { toast } from "sonner";
@@ -38,8 +38,6 @@ export function RouteProviderSelector({
     }
   };
 
-  const ModeIcon = mode === "walking" ? Footprints : mode === "transit" ? Bus : Car;
-
   const modeLabel = {
     car: "На автомобиле",
     walking: "Пешком",
@@ -58,7 +56,7 @@ export function RouteProviderSelector({
         <div className="flex items-center gap-2 text-[#00A86B]">
           <Navigation size={18} />
           <span className="text-xs font-black uppercase tracking-wider">
-            🗺️ Маршрут готов
+            🗺️ {t("ai.route_ready") || "Маршрут готов"}
           </span>
         </div>
         {onClose && (
@@ -78,7 +76,7 @@ export function RouteProviderSelector({
             <MapPin size={16} className="text-[#00A86B]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase font-black text-[#5C7A6D]">Откуда</p>
+            <p className="text-[10px] uppercase font-black text-[#5C7A6D]">{t("maps.location") || "Откуда"}</p>
             <p className="text-sm font-bold text-white truncate">{from}</p>
           </div>
         </div>
@@ -100,14 +98,14 @@ export function RouteProviderSelector({
 
       {/* Mode badge */}
       <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-xl border border-white/5">
-        <ModeIcon size={14} className="text-[#D4AF37]" />
+        <Car size={14} className="text-[#D4AF37]" />
         <span className="text-xs text-slate-300 font-medium">{modeLabel}</span>
       </div>
 
       {/* Provider buttons */}
       <div className="space-y-2">
         <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-1">
-          Выберите приложение для навигации
+          {t("maps.open_route") || "Открыть маршрут"}
         </p>
 
         {links.map((link) => (
@@ -121,14 +119,16 @@ export function RouteProviderSelector({
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl font-black ${
                 link.provider === "yandex"
                   ? "bg-[#FFCC00]/20 text-[#FFCC00]"
-                  : "bg-[#00A86B]/20 text-[#00A86B]"
+                  : link.provider === "2gis"
+                  ? "bg-[#00A86B]/20 text-[#00A86B]"
+                  : "bg-blue-500/20 text-blue-400"
               }`}>
-                {link.provider === "yandex" ? "Я" : "2"}
+                {link.provider === "yandex" ? "Я" : link.provider === "2gis" ? "2" : <Globe size={20} />}
               </div>
               <div className="text-left">
                 <p className="text-sm font-bold text-white">{link.label}</p>
                 <p className="text-[10px] text-[#5C7A6D] uppercase tracking-wider">
-                  {link.provider === "yandex" ? "Яндекс Карты" : "Дубль ГИС"}
+                  {link.provider === "yandex" ? "Яндекс Карты" : link.provider === "2gis" ? "Дубль ГИС" : "Google Maps"}
                 </p>
               </div>
             </div>

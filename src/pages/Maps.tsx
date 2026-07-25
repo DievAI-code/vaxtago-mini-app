@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Map } from "@/components/Map";
+import { RouteProviderSelector } from "@/components/RouteProviderSelector";
 import { 
   Search, Navigation, Crosshair, MapPin, Bus, Car, 
   Accessibility, Bike, Home, Briefcase, Train, Plane,
@@ -72,7 +73,7 @@ export default function Maps() {
     navigationService.openRoute(provider, {
       from: fromLabel,
       to: selectedDest.name || selectedDest.display_name,
-      mode: travelMode,
+      mode: travelMode === "walk" ? "walking" : travelMode === "bus" ? "transit" : "car",
     });
   };
 
@@ -91,14 +92,6 @@ export default function Maps() {
     { icon: Hospital, label: "maps.point_hospital", query: "больница" },
     { icon: Hotel, label: "maps.point_hotel", query: "отель" },
   ];
-
-  const routeLinks = selectedDest
-    ? navigationService.buildRoute({
-        from: userPos ? "Моё местоположение" : "Москва",
-        to: selectedDest.name || selectedDest.display_name,
-        mode: travelMode === "walk" ? "walking" : travelMode === "bus" ? "transit" : "car",
-      })
-    : [];
 
   return (
     <div className="flex flex-col h-screen-dynamic bg-[#06140F] text-white overflow-hidden relative">
@@ -200,79 +193,13 @@ export default function Maps() {
             exit={{ y: 200, opacity: 0 }}
             className="absolute bottom-24 left-4 right-4 z-30 max-w-md mx-auto"
           >
-            <div
-              className="p-5 rounded-3xl border border-white/15 shadow-[0_20px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl space-y-4"
-              style={{ background: "rgba(10, 15, 25, 0.95)" }}
-            >
-              <div className="flex justify-between items-start gap-2">
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center gap-2 text-[#00A86B]">
-                    <MapPin size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                      {t("maps.found_address") || "Адрес найден"}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-black text-white leading-tight">{selectedDest.name || selectedDest.display_name}</h3>
-                  <p className="text-xs font-medium text-slate-400 line-clamp-2">{selectedDest.display_name}</p>
-                </div>
-                <button onClick={() => setSelectedDest(null)} className="p-2 text-slate-400 hover:text-white rounded-full bg-white/5">
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
-                  <div className="p-2 bg-blue-500/20 rounded-xl text-blue-400"><Clock size={18} /></div>
-                  <div>
-                    <p className="text-sm font-black text-white">~15 мин</p>
-                    <p className="text-[9px] uppercase font-bold text-slate-400">{t("maps.time") || "В пути"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
-                  <div className="p-2 bg-[#00A86B]/20 rounded-xl text-[#00A86B]"><Navigation size={18} /></div>
-                  <div>
-                    <p className="text-sm font-black text-white">~4.5 км</p>
-                    <p className="text-[9px] uppercase font-bold text-slate-400">{t("maps.distance") || "Дистанция"}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">
-                  🗺 Открыть маршрут
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {routeLinks.map((link) => (
-                    <button
-                      key={link.provider}
-                      type="button"
-                      onClick={() => handleProviderSelect(link.provider)}
-                      className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2 hover:border-[#00A86B]/40 hover:bg-[#00A86B]/5 transition-all active:scale-95"
-                    >
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black ${
-                        link.provider === "yandex"
-                          ? "bg-[#FFCC00]/20 text-[#FFCC00]"
-                          : "bg-[#00A86B]/20 text-[#00A86B]"
-                      }`}>
-                        {link.provider === "yandex" ? "Я" : "2"}
-                      </div>
-                      <span className="text-xs font-bold text-white">{link.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(selectedDest.display_name || "");
-                  toast.success("Адрес скопирован!");
-                }}
-                className="w-full p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-wider border border-white/10 flex items-center justify-center gap-2 active:scale-95"
-              >
-                <Bookmark size={14} />
-                Копировать адрес
-              </button>
-            </div>
+            <RouteProviderSelector
+              from={userPos ? "Моё местоположение" : "Москва"}
+              to={selectedDest.name || selectedDest.display_name}
+              mode={travelMode === "walk" ? "walking" : travelMode === "bus" ? "transit" : "car"}
+              onClose={() => setSelectedDest(null)}
+              onSelect={handleProviderSelect}
+            />
           </motion.div>
         )}
       </AnimatePresence>
