@@ -1,89 +1,88 @@
 "use client";
 
 export interface MapState {
-  lat: number;
-  lon: number;
+  center: [number, number];
   zoom: number;
-  address?: string;
-  updatedAt: number;
+  lastRoute?: {
+    from: string;
+    to: string;
+    mode: string;
+  };
+  timestamp: number;
 }
 
-export interface AssistantSession {
-  messages: Array<{ role: "user" | "assistant"; content: string; timestamp: string }>;
-  language: string;
-  updatedAt: number;
-}
-
-export interface ScannerState {
-  language: string;
-  targetLang: string;
-  mode: string;
-}
-
-export const STORAGE_KEYS = {
+const STORAGE_KEYS = {
   MAP_STATE: "vaqta_map_state",
-  ASSISTANT_SESSION: "assistant_session",
-  SCANNER_STATE: "vaqta_scanner_state",
-  LAST_ROUTE: "last_route",
-  USER_LANG: "vaqta_language",
-  THEME: "vaxtago_theme",
+  ROUTE_HISTORY: "vaqta_route_history"
 };
 
 export const appStorage = {
-  saveState<T>(key: string, value: T): void {
+  // Map state
+  saveMapState(state: Omit<MapState, "timestamp">): void {
+    try {
+      const data: MapState = {
+        ...state,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEYS.MAP_STATE, JSON.stringify(data));
+    } catch (error) {
+      console.warn("[appStorage] Failed to save map state:", error);
+    }
+  },
+
+  getMapState(): MapState | null {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.MAP_STATE);
+      if (!raw) return null;
+      
+      const state: MapState = JSON.parse(raw);
+      
+      // Check if state is not older than 24 hours
+      const isExpired = Date.now() - state.timestamp > 24 * 60 * 60 * 1000;
+      if (isExpired) {
+        localStorage.removeItem(STORAGE_KEYS.MAP_STATE);
+        return null;
+      }
+      
+      return state;
+    } catch (error) {
+      console.warn("[appStorage] Failed to get map state:", error);
+      return null;
+    }
+  },
+
+  clearMapState(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.MAP_STATE);
+    } catch (error) {
+      console.warn("[appStorage] Failed to clear map state:", error);
+    }
+  },
+
+  // Generic methods
+  set<T>(key: string, value: T): void {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) {
-      console.warn(`[appStorage] Failed to save key "${key}":`, e);
+    } catch (error) {
+      console.warn(`[appStorage] Failed to save ${key}:`, error);
     }
   },
 
-  loadState<T>(key: string, defaultValue: T): T {
+  get<T>(key: string): T | null {
     try {
-      const item = localStorage.getItem(key);
-      return item ? (JSON.parse(item) as T) : defaultValue;
-    } catch (e) {
-      console.warn(`[appStorage] Failed to load key "${key}":`, e);
-      return defaultValue;
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      console.warn(`[appStorage] Failed to get ${key}:`, error);
+      return null;
     }
   },
 
-  clearState(key?: string): void {
+  remove(key: string): void {
     try {
-      if (key) {
-        localStorage.removeItem(key);
-      } else {
-        localStorage.clear();
-      }
-    } catch (e) {
-      console.warn(`[appStorage] Failed to clear storage:`, e);
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.warn(`[appStorage] Failed to remove ${key}:`, error);
     }
-  },
-
-  // Helpers
-  saveMapState(state: MapState): void {
-    this.saveState(STORAGE_KEYS.MAP_STATE, state);
-  },
-
-  loadMapState(): MapState | null {
-    return this.loadState<MapState | null>(STORAGE_KEYS.MAP_STATE, null);
-  },
-
-  saveAssistantSession(session: AssistantSession): void {
-    this.saveState(STORAGE_KEYS.ASSISTANT_SESSION, session);
-  },
-
-  loadAssistantSession(): AssistantSession | null {
-    return this.loadState<AssistantSession | null>(STORAGE_KEYS.ASSISTANT_SESSION, null);
-  },
-
-  saveLastRoute(route: string): void {
-    if (route && !route.includes("/login") && !route.includes("/admin/login")) {
-      this.saveState(STORAGE_KEYS.LAST_ROUTE, route);
-    }
-  },
-
-  loadLastRoute(): string {
-    return this.loadState<string>(STORAGE_KEYS.LAST_ROUTE, "/home");
-  },
+  }
 };
