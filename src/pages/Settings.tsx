@@ -5,15 +5,16 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
-import { Shield, Bell, ChevronRight, Check, Mic, Globe, Languages } from "lucide-react";
+import { Shield, Bell, ChevronRight, Check, Mic, Globe, Languages, Bug } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { Lang } from "@/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePhone } from "@/lib/normalizePhone";
+import { mapDebug } from "@/services/maps/debug/mapDebug";
 
 const LANGUAGES: { code: Lang; name: string; flag: string }[] = [
   { code: "ru", name: "Русский", flag: "🇷🇺" },
-  { code: "uz", name: "Ўзбекча", flag: "🇺🇿" },
+  { code: "uz_lat", name: "Ўзбекча", flag: "🇺🇿" },
   { code: "en", name: "English", flag: "🇬🇧" },
 ];
 
@@ -21,6 +22,16 @@ export default function Settings() {
   const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMapsDebugEnabled, setIsMapsDebugEnabled] = useState(mapDebug.isEnabled());
+
+  const isAdmin = (() => {
+    try {
+      const session = localStorage.getItem("vaqta_admin_session");
+      return session ? JSON.parse(session).role === "founder" : false;
+    } catch {
+      return false;
+    }
+  })();
 
   const handleSetLang = async (code: Lang) => {
     setLanguage(code);
@@ -43,19 +54,23 @@ export default function Settings() {
     }
   };
 
+  const toggleMapsDebug = () => {
+    const next = !isMapsDebugEnabled;
+    mapDebug.setEnabled(next);
+    setIsMapsDebugEnabled(next);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-32">
       <Header title="nav.settings" onMenuClick={() => setIsMenuOpen(true)} />
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
       <main className="px-6 space-y-6 mt-4 flex-1">
-        {/* Основное */}
         <section className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">
             Основное
           </h3>
           <div className="space-y-2">
-            {/* НОВАЯ СТРОКА: Голос */}
             <button
               onClick={() => navigate("/settings/voice")}
               className="w-full vaqta-glass p-4 flex items-center justify-between border-[#1A3D2E] active:scale-[0.99] transition-transform"
@@ -85,7 +100,36 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Язык */}
+        {isAdmin && (
+          <section className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">
+              Отладка
+            </h3>
+            <div className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-red-500/10 text-red-400">
+                  <Bug size={18} />
+                </div>
+                <div>
+                  <span className="font-bold text-sm block">Maps Debug Mode</span>
+                  <span className="text-[10px] text-[#5C7A6D]">Логирование запросов карт</span>
+                </div>
+              </div>
+              <button
+                onClick={toggleMapsDebug}
+                className={`w-12 h-7 rounded-full p-1 transition-colors ${isMapsDebugEnabled ? "bg-[#0AA86E]" : "bg-[#1A3D2E]"}`}
+              >
+                <motion.div
+                  layout
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  className="w-5 h-5 rounded-full bg-white shadow"
+                  style={{ marginLeft: isMapsDebugEnabled ? "20px" : "0px" }}
+                />
+              </button>
+            </div>
+          </section>
+        )}
+
         <section className="space-y-3">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-2">
             {t("settings_lang") || "Язык"}
@@ -118,3 +162,5 @@ export default function Settings() {
     </div>
   );
 }
+
+import { motion } from "framer-motion";

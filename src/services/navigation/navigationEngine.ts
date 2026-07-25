@@ -6,6 +6,7 @@ import { RouteInfo, buildRouteInfo, formatRouteInfo } from "./routeManager";
 import { selectProviderForIntent, getPreferredNavigationProvider } from "./providerSelector";
 import { navigationHistory } from "./navigationHistory";
 import { NavigationProvider } from "@/services/navigation";
+import { mapDebug } from "@/services/maps/debug/mapDebug";
 
 export interface NavigationResult {
   intent: NavigationIntent;
@@ -19,46 +20,56 @@ export interface NavigationResult {
   query: string;
 }
 
-export async function processNavigationQuery(
-  text: string
-): Promise<NavigationResult | null> {
-  console.log(`[VAQTA ROUTE] Input: "${text}"`);
-  
+export async function processNavigationQuery(text: string): Promise<NavigationResult | null> {
+  const debugId = mapDebug.startQuery(text);
+
   const intent = parseNavigationIntent(text);
-  console.log(`[VAQTA ROUTE] Intent: ${intent.type}`, { 
-    from: intent.from, 
-    to: intent.to, 
-    city: intent.city 
-  });
+  mapDebug.log(debugId, "Intent Detection", intent);
 
   if (intent.type === "unknown") {
-    console.log(`[VAQTA ROUTE] No navigation intent detected`);
+    mapDebug.log(debugId, "Result", "No navigation intent detected");
+    mapDebug.endQuery(debugId);
     return null;
   }
 
   const dataSource = selectProviderForIntent(intent);
   const recommendedProvider = getPreferredNavigationProvider(intent);
+  mapDebug.log(debugId, "Provider Selection", { dataSource, recommendedProvider });
 
   let fromPlace: ResolvedPlace | undefined;
   let toPlace: ResolvedPlace | undefined;
   let routeInfo: RouteInfo | null = null;
 
   if (intent.type === "route" && intent.to) {
-    console.log(`[VAQTA ROUTE] Processing route: from="${intent.from || "current"}", to="${intent.to}", city="${intent.city || "none"}"`);
+    mapDebug.log(debugId, "Route Parser", {
+      from: intent.from || "current_location",
+      to: intent.to,
+      city: intent.city || "none",
+    });
 
     if (intent.from) {
-      console.log(`[VAQTA ROUTE] Searching FROM: "${intent.from}"`);
+      mapDebug.log(debugId, "POI Search (FROM)", { query: intent.from, city: intent.city });
       fromPlace = await resolvePlace(intent.from, intent.city) || undefined;
-      console.log(`[VAQTA ROUTE] Found FROM:`, fromPlace?.name || "NOT FOUND");
+      mapDebug.log(debugId, "Resolved FROM", fromPlace ? `${fromPlace.name} (${fromPlace.latitude}, ${fromPlace.longitude})` : "Not Found");
     }
 
-    console.log(`[VAQTA ROUTE] Searching TO: "${intent.to}"`);
+    mapDebug.log(debugId, "POI Search (TO)", { query: intent.to, city: intent.city });
     toPlace = await resolvePlace(intent.to, intent.city) || undefined;
-    console.log(`[VAQTA ROUTE] Found TO:`, toPlace?.name || "NOT FOUND");
+    mapDebug.log(debugId, "Resolved TO", toPlace ? `${toPlace.name} (${toPlace.latitude}, ${toPlace.longitude})` : "Not Found");
 
     if (fromPlace && toPlace) {
-      console.log(`[VAQTA ROUTE] Building route from "${fromPlace.name}" to "${toPlace.name}"`);
+      mapDebug.log(debugId, "Route API", `Building from ${fromPlace.name} to ${toPlace.name}`);
       routeInfo = await buildRouteInfo(fromPlace, toPlace, intent.mode || "car");
+      if (routeInfo) {
+        mapDebug.log(debugId, "Route API Result", {
+          distance: `${(routeInfo.distanceMeters / 1000).toFixed(1)} km`,
+          duration: `${Math.round(routeInfo.durationSeconds / 60)} min`,
+        });
+      } else {
+        mapDebug.log(debugId, "Route API Result", "Failed or null");
+      }
+    } else {
+      mapDebug.error(debugId, "Missing places for route");
     }
 
     navigationHistory.add({
@@ -68,9 +79,9 @@ export async function processNavigationQuery(
       provider: recommendedProvider,
     });
   } else if ((intent.type === "place_search" || intent.type === "nearby_search") && intent.query) {
-    console.log(`[VAQTA ROUTE] Searching place: "${intent.query}"`);
+    mapDebug.log(debugId, "Place Search", { query: intent.query, city: intent.city });
     toPlace = await resolvePlace(intent.query, intent.city) || undefined;
-    console.log(`[VAQTA ROUTE] Found place:`, toPlace?.name || "NOT FOUND");
+    mapDebug.log(debugId, "Resolved Place", toPlace ? `${toPlace.name} (${toPlace.latitude}, ${toPlace.longitude})` : "Not Found");
   }
 
   let formattedDistance: string | undefined;
@@ -80,8 +91,9 @@ export async function processNavigationQuery(
     const formatted = formatRouteInfo(routeInfo);
     formattedDistance = formatted.distance;
     formattedDuration = formatted.duration;
-    console.log(`[VAQTA ROUTE] Route built: ${formattedDistance}, ${formattedDuration}`);
   }
+
+  mapDebug.endQuery(debugId);
 
   return {
     intent,

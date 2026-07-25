@@ -10,6 +10,7 @@ import { LanguageProvider } from "@/context/LanguageProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NavStackProvider } from "@/components/NavigationStack";
 import { PageTransition } from "@/components/PageTransition";
+import { MapDebugButton } from "@/components/admin/MapDebugButton";
 import { errorMonitor } from "@/lib/errorMonitor";
 import "@/i18n";
 
@@ -92,6 +93,7 @@ const App = () => (
           <NavStackProvider>
             <ErrorBoundary>
               <AnimatedRoutes />
+              <MapDebugButton />
             </ErrorBoundary>
             <Toaster />
             <Sonner position="top-center" richColors />
