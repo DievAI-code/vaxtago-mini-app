@@ -56,26 +56,166 @@ interface Rule {
 
 const RULES: Rule[] = [
   // ===== Навигация =====
-  { type: "NAVIGATE_HOME", lang: ["ru","uz","en"], patterns: ["\\b(главн(ая|ую|ой)|home)\\b", "\\b(bosh sahifa|asosiy)\\b", "\\b(home|main page)\\b"] },
-  { type: "NAVIGATE_AI", lang: ["ru","uz","en"], patterns: ["\\b(чат(ом|а|у)?|ai\\b|помощник|ассистент)\\b", "\\b(chat|ai assistant|assistant)\\b", "\\b(chat|yordamchi)\\b"] },
-  { type: "NAVIGATE_SCANNER", lang: ["ru","uz","en"], patterns: ["\\b(скан(ер|ер)?|ocr|фото перевод)\\b", "\\b(skaner|rasm tarjimasi)\\b", "\\b(scanner|photo translation)\\b"] },
-  { type: "NAVIGATE_JOBS", lang: ["ru","uz","en"], patterns: ["\\b(вакансии|вакансий|работ(а|у|ы)?)\\b", "\\b(vakansiya|ish)\\b", "\\b(jobs|vacancy|work)\\b"] },
-  { type: "NAVIGATE_MAP", lang: ["ru","uz","en"], patterns: ["\\b(карт(а|у|е|ы)|карты)\\b", "\\b(xarita)\\b", "\\b(map)\\b"] },
-  { type: "NAVIGATE_PROFILE", lang: ["ru","uz","en"], patterns: ["\\b(профил(ь|я|ю)|кабинет)\\b", "\\b(profil|kabinet)\\b", "\\b(profile|cabinet)\\b"] },
-  { type: "NAVIGATE_PREMIUM", lang: ["ru","uz","en"], patterns: ["\\b(премиум|premium)\\b"] },
-  { type: "NAVIGATE_TRACKER", lang: ["ru","uz","en"], patterns: ["\\b(патент|календарь патент)\\b", "\\b(patent|patent kalendari)\\b", "\\b(patent calendar)\\b"] },
-  { type: "NAVIGATE_SOS", lang: ["ru","uz","en"], patterns: ["\\b(sos\\b|экстрен(ная|ый|ую)|помощь срочно)\\b", "\\b(sos|shoshilinch yordam)\\b", "\\b(sos|emergency)\\b"] },
-  { type: "NAVIGATE_SETTINGS", lang: ["ru","uz","en"], patterns: ["\\b(настройк(и|у|ам)|установк(и|у))\\b", "\\b(sozlamalar)\\b", "\\b(settings|setup)\\b"] },
-  { type: "NAVIGATE_ADMIN", lang: ["ru","uz","en"], patterns: ["\\b(админ(ка|ь)?|панель)\\b", "\\b(admin|admin paneli)\\b", "\\b(admin|admin panel)\\b"] },
+  {
+    type: "NAVIGATE_HOME",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(главн(ая|ую|ой)|домой|home|main page)\\b",
+      "\\b(bosh sahifa|asosiy sahifa|uyga|uy sahifa)\\b",
+      "\\b(start|homepage)\\b",
+    ],
+  },
+  {
+    type: "NAVIGATE_AI",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(чат(ом|а|у)?|ai\\b|помощник|ассистент)\\b",
+      "\\b(chat|ai assistant|assistant)\\b",
+      "\\b(chat|yordamchi|sun'iy intellekt)\\b",
+    ],
+  },
+  {
+    type: "NAVIGATE_SCANNER",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(скан(ер|ер)?|ocr|фото перевод|распознать фото)\\b",
+      "\\b(skaner|rasm tarjimasi|foto tarjima)\\b",
+      "\\b(scanner|photo translation|scan)\\b",
+    ],
+  },
+  {
+    type: "NAVIGATE_JOBS",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(вакансии|вакансий|работ(а|у|ы)?)\\b",
+      "\\b(vakansiya|ish)\\b",
+      "\\b(jobs|vacancy|work)\\b",
+    ],
+  },
+  {
+    type: "NAVIGATE_MAP",
+    lang: ["ru", "uz", "en"],
+    patterns: ["\\b(карт(а|у|е|ы)|карты)\\b", "\\b(xarita)\\b", "\\b(map)\\b"],
+  },
+  {
+    type: "NAVIGATE_PROFILE",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(профил(ь|я|ю)|кабинет)\\b",
+      "\\b(profil|kabinet)\\b",
+      "\\b(profile|cabinet)\\b",
+    ],
+  },
+  {
+    type: "NAVIGATE_PREMIUM",
+    lang: ["ru", "uz", "en"],
+    patterns: ["\\b(премиум|premium)\\b"],
+  },
+  {
+    type: "NAVIGATE_TRACKER",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(патент|календарь патент)\\b",
+      "\\b(patent|patent kalendari)\\b",
+      "\\b(patent calendar)\\b",
+    ],
+  },
+  {
+    type: "NAVIGATE_SOS",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(sos\\b|экстрен(ная|ый|ую)|помощь срочно)\\b",
+      "\\b(sos|shoshilinch yordam)\\b",
+      "\\b(sos|emergency)\\b",
+    ],
+  },
+  {
+    type: "NAVIGATE_SETTINGS",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(настройк(и|у|ам)|установк(и|у))\\b",
+      "\\b(sozlamalar)\\b",
+      "\\b(settings|setup)\\b",
+    ],
+  },
+  {
+    type: "NAVIGATE_ADMIN",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(админ(ка|ь)?|панель)\\b",
+      "\\b(admin|admin paneli)\\b",
+      "\\b(admin|admin panel)\\b",
+    ],
+  },
 
   // ===== Действия =====
-  { type: "TRANSLATE_PHOTO", lang: ["ru","uz","en"], patterns: ["\\b(переведи|распознай|скан(ируй|ить)?)\\b.*\\b(фото|картинк|текст|документ)\\b", "\\b(tarjima qil|rasm.*tarjima|skannerlash)\\b", "\\b(translate|scan)\\b.*\\b(photo|image|document)\\b"] },
-  { type: "FIND_JOBS", lang: ["ru","uz","en"], patterns: ["\\b(найди|ищу|поищи)\\b.*\\b(работ|ваканс)\\b", "\\b(top|qidir|izla)\\b.*\\b(ish|vakansiya)\\b", "\\b(find|search|look for)\\b.*\\b(job|vacanc|work)\\b"], extractProfession: true, extractCity: true },
-  { type: "SHOW_MAP", lang: ["ru","uz","en"], patterns: ["\\b(покажи|где|открой)\\b.*\\b(на карте|карт)\\b", "\\b(ko'?rsat|qayerda|xaritada)\\b", "\\b(show|where|find).*\\b(map|on the map)\\b"], extractQuery: true },
-  { type: "WEATHER", lang: ["ru","uz","en"], patterns: ["\\b(погод(а|у|е|ы)|температур)\\b", "\\b(ob-havo|havo)\\b", "\\b(weather|temperature)\\b"], extractCity: true },
-  { type: "CALCULATE_90_180", lang: ["ru","uz","en"], patterns: ["\\b(90\\s*/\\s*180|90 на 180|90 дней)\\b", "\\b(90\\s*/\\s*180|90 kun)\\b", "\\b(90\\s*/\\s*180)\\b"] },
-  { type: "SOS", lang: ["ru","uz","en"], patterns: ["\\b(полиц(ия|ею)|проверк(а|у|и)|останов(или|или)\\b", "\\b(politsiya|to'xtat)\\b", "\\b(police|check|stop)\\b"] },
-  { type: "CHECK_EMPLOYER", lang: ["ru","uz","en"], patterns: ["\\b(провер(ь|ить|ить))\\b.*\\b(работодател|компани|фирм)\\b", "\\b(tekshir|ish beruvchi|kompaniya)\\b", "\\b(check|verify).*\\b(employer|company)\\b"] },
+  {
+    type: "TRANSLATE_PHOTO",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(переведи|распознай|скан(ируй|ить)?)\\b.*\\b(фото|картинк|текст|документ)\\b",
+      "\\b(tarjima qil|rasm.*tarjima|skannerlash)\\b",
+      "\\b(translate|scan)\\b.*\\b(photo|image|document)\\b",
+    ],
+  },
+  {
+    type: "FIND_JOBS",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(найди|ищу|поищи)\\b.*\\b(работ|ваканс)\\b",
+      "\\b(top|qidir|izla)\\b.*\\b(ish|vakansiya)\\b",
+      "\\b(find|search|look for)\\b.*\\b(job|vacanc|work)\\b",
+    ],
+    extractProfession: true,
+    extractCity: true,
+  },
+  {
+    type: "SHOW_MAP",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(покажи|где|открой)\\b.*\\b(на карте|карт)\\b",
+      "\\b(ko'?rsat|qayerda|xaritada)\\b",
+      "\\b(show|where|find).*\\b(map|on the map)\\b",
+    ],
+    extractQuery: true,
+  },
+  {
+    type: "WEATHER",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(погод(а|у|е|ы)|температур)\\b",
+      "\\b(ob-havo|havo)\\b",
+      "\\b(weather|temperature)\\b",
+    ],
+    extractCity: true,
+  },
+  {
+    type: "CALCULATE_90_180",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(90\\s*/\\s*180|90 на 180|90 дней)\\b",
+      "\\b(90\\s*/\\s*180|90 kun)\\b",
+      "\\b(90\\s*/\\s*180)\\b",
+    ],
+  },
+  {
+    type: "SOS",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(полиц(ия|ею)|проверк(а|у|и)|останов(или|или))\\b",
+      "\\b(politsiya|to'xtat)\\b",
+      "\\b(police|check|stop)\\b",
+    ],
+  },
+  {
+    type: "CHECK_EMPLOYER",
+    lang: ["ru", "uz", "en"],
+    patterns: [
+      "\\b(провер(ь|ить))\\b.*\\b(работодател|компани|фирм)\\b",
+      "\\b(tekshir|ish beruvchi|kompaniya)\\b",
+      "\\b(check|verify).*\\b(employer|company)\\b",
+    ],
+  },
 ];
 
 /**
@@ -84,6 +224,7 @@ const RULES: Rule[] = [
  */
 export function detectVoiceCommand(text: string, appLang: Lang = "ru"): VoiceCommand | null {
   if (!text || text.trim().length < 2) return null;
+
   const raw = text.trim();
   const low = raw.toLowerCase();
   const detectedLang = detectLanguageFromText(raw);
@@ -92,12 +233,13 @@ export function detectVoiceCommand(text: string, appLang: Lang = "ru"): VoiceCom
 
   for (const rule of RULES) {
     if (!rule.lang.includes(detectedLang) && !rule.lang.includes(appLang)) continue;
+
     for (const pattern of rule.patterns) {
       const re = new RegExp(pattern, "i");
       if (re.test(low)) {
         // Чем больше совпало паттернов — тем выше score
         const matches = rule.patterns.filter((p) => new RegExp(p, "i").test(low)).length;
-        const score = matches * 0.4 + (pattern.length / 100);
+        const score = matches * 0.4 + pattern.length / 100;
         if (!best || score > best.score) {
           best = { rule, score };
         }
@@ -110,7 +252,17 @@ export function detectVoiceCommand(text: string, appLang: Lang = "ru"): VoiceCom
   // Извлекаем параметры
   const params: VoiceCommand["params"] = {};
   if (best.rule.extractQuery) {
-    const query = extractAfter(raw, ["покажи", "где", "открой", "найди", "ko'rsat", "qayerda", "top", "show", "where"]);
+    const query = extractAfter(raw, [
+      "покажи",
+      "где",
+      "открой",
+      "найди",
+      "ko'rsat",
+      "qayerda",
+      "top",
+      "show",
+      "where",
+    ]);
     if (query) params.query = query;
   }
   if (best.rule.extractCity) {
@@ -132,55 +284,117 @@ export function detectVoiceCommand(text: string, appLang: Lang = "ru"): VoiceCom
 }
 
 function detectLanguageFromText(text: string): Lang {
+  const low = text.toLowerCase();
+
+  // Узбекский кириллицей
   if (/[ўғқҳ]/i.test(text)) return "uz";
-  if (/\b(salom|rahmat|yordam|qayer|qanday|kerak)\b/i.test(text.toLowerCase())) return "uz";
+
+  // Узбекский латиницей — проверяем раньше английского
+  if (
+    /\b(salom|rahmat|yordam|qayer|qanday|kerak|xarita|ish|vakansiya|sozlama|profil|tarjima|ob-havo|yordamchi|top|izla|qidir)\b/i.test(
+      low
+    )
+  ) {
+    return "uz";
+  }
+
+  // Русский
   if (/[а-яё]/i.test(text) && !/[a-z]/i.test(text)) return "ru";
+
+  // Английский
   if (/[a-z]/i.test(text) && !/[а-яё]/i.test(text)) return "en";
+
   return "ru";
 }
 
 function extractAfter(text: string, keywords: string[]): string {
   const low = text.toLowerCase();
+
   for (const kw of keywords) {
     const idx = low.indexOf(kw);
     if (idx >= 0) {
       let rest = text.slice(idx + kw.length).replace(/^(на|в|во|к|the|a|an)\s+/i, "").trim();
+
       // Убираем хвостовые слова вроде "на карте"
       rest = rest.replace(/\b(на карте|on the map|xaritada)\b/gi, "").trim();
+
       // Убираем вопросительные знаки
       rest = rest.replace(/[?.!]/g, "").trim();
+
       if (rest && rest.length > 1) return rest;
     }
   }
+
   return "";
 }
 
 function extractCity(text: string): string {
   const cities = [
-    "москва", "спб", "санкт-петербург", "казань", "тюмень", "сургут",
-    "екатеринбург", "новосибирск", "ташкент", "самарканд", "алматы",
-    "бишкек", "душанбе", "моscow", "tashkent", "almaty", "bishkek"
+    "москва",
+    "спб",
+    "санкт-петербург",
+    "казань",
+    "тюмень",
+    "сургут",
+    "екатеринбург",
+    "новосибирск",
+    "ташкент",
+    "самарканд",
+    "алматы",
+    "бишкек",
+    "душанбе",
+    "moscow",
+    "tashkent",
+    "almaty",
+    "bishkek",
   ];
+
   const low = text.toLowerCase();
   for (const c of cities) {
     if (low.includes(c)) {
-      return c.charAt(0).toUpperCase() + c.slice(1);
+      return c
+        .split(/(\s|-)/)
+        .map((part) => {
+          if (part === " " || part === "-") return part;
+          return part.charAt(0).toUpperCase() + part.slice(1);
+        })
+        .join("");
     }
   }
+
   return "";
 }
 
 function extractProfession(text: string): string {
   const professions = [
-    "сварщик", "водитель", "строитель", "электрик", "разнорабочий",
-    "повар", "грузчик", "швея", "продавец", "охранник",
-    "welder", "driver", "builder", "electrician", "worker",
-    "cook", "seller", "guard", "haydovchi", "chilangar", "quruvchi"
+    "сварщик",
+    "водитель",
+    "строитель",
+    "электрик",
+    "разнорабочий",
+    "повар",
+    "грузчик",
+    "швея",
+    "продавец",
+    "охранник",
+    "welder",
+    "driver",
+    "builder",
+    "electrician",
+    "worker",
+    "cook",
+    "seller",
+    "guard",
+    "haydovchi",
+    "chilangar",
+    "quruvchi",
   ];
+
   const low = text.toLowerCase();
   for (const p of professions) {
     if (low.includes(p)) return p;
   }
+
   return "";
 }
 
@@ -198,34 +412,59 @@ export interface CommandAction {
 
 export function buildCommandAction(cmd: VoiceCommand): CommandAction {
   switch (cmd.type) {
-    case "NAVIGATE_HOME": return { type: "navigate", path: "/home", message: "Открываю главную" };
-    case "NAVIGATE_AI": return { type: "navigate", path: "/ai", message: "Открываю AI-чат" };
-    case "NAVIGATE_SCANNER": return { type: "navigate", path: "/scanner", message: "Открываю сканер" };
-    case "NAVIGATE_JOBS": return { type: "navigate", path: "/jobs-test", message: "Открываю вакансии" };
-    case "NAVIGATE_MAP": return { type: "navigate", path: "/maps", message: "Открываю карту" };
-    case "NAVIGATE_PROFILE": return { type: "navigate", path: "/cabinet", message: "Открываю профиль" };
-    case "NAVIGATE_PREMIUM": return { type: "navigate", path: "/premium", message: "Открываю Premium" };
-    case "NAVIGATE_TRACKER": return { type: "navigate", path: "/tracker", message: "Открываю календарь патента" };
-    case "NAVIGATE_SOS": return { type: "navigate", path: "/sos", message: "Открываю SOS" };
-    case "NAVIGATE_SETTINGS": return { type: "navigate", path: "/settings", message: "Открываю настройки" };
-    case "NAVIGATE_ADMIN": return { type: "navigate", path: "/admin/login", message: "Открываю админ-панель" };
-    case "TRANSLATE_PHOTO": return { type: "navigate", path: "/scanner", message: "Открываю сканер для перевода" };
+    case "NAVIGATE_HOME":
+      return { type: "navigate", path: "/home", message: "Открываю главную" };
+    case "NAVIGATE_AI":
+      return { type: "navigate", path: "/ai", message: "Открываю AI-чат" };
+    case "NAVIGATE_SCANNER":
+      return { type: "navigate", path: "/scanner", message: "Открываю сканер" };
+    case "NAVIGATE_JOBS":
+      return { type: "navigate", path: "/jobs-test", message: "Открываю вакансии" };
+    case "NAVIGATE_MAP":
+      return { type: "navigate", path: "/maps", message: "Открываю карту" };
+    case "NAVIGATE_PROFILE":
+      return { type: "navigate", path: "/cabinet", message: "Открываю профиль" };
+    case "NAVIGATE_PREMIUM":
+      return { type: "navigate", path: "/premium", message: "Открываю Premium" };
+    case "NAVIGATE_TRACKER":
+      return { type: "navigate", path: "/tracker", message: "Открываю календарь патента" };
+    case "NAVIGATE_SOS":
+      return { type: "navigate", path: "/sos", message: "Открываю SOS" };
+    case "NAVIGATE_SETTINGS":
+      return { type: "navigate", path: "/settings", message: "Открываю настройки" };
+    case "NAVIGATE_ADMIN":
+      return { type: "navigate", path: "/admin/login", message: "Открываю админ-панель" };
+    case "TRANSLATE_PHOTO":
+      return { type: "navigate", path: "/scanner", message: "Открываю сканер для перевода" };
     case "FIND_JOBS": {
       const params = new URLSearchParams();
       if (cmd.params.profession) params.set("query", cmd.params.profession);
       else if (cmd.params.query) params.set("query", cmd.params.query);
-      return { type: "navigate", path: `/jobs-test${params.toString() ? "?" + params.toString() : ""}`, message: "Ищу вакансии" };
+      return {
+        type: "navigate",
+        path: `/jobs-test${params.toString() ? "?" + params.toString() : ""}`,
+        message: "Ищу вакансии",
+      };
     }
     case "SHOW_MAP": {
       const params = new URLSearchParams();
       if (cmd.params.query) params.set("search", cmd.params.query);
       else if (cmd.params.city) params.set("search", cmd.params.city);
-      return { type: "navigate", path: `/maps${params.toString() ? "?" + params.toString() : ""}`, message: "Показываю на карте" };
+      return {
+        type: "navigate",
+        path: `/maps${params.toString() ? "?" + params.toString() : ""}`,
+        message: "Показываю на карте",
+      };
     }
-    case "WEATHER": return { type: "weather", message: "Показываю погоду", params: cmd.params };
-    case "CALCULATE_90_180": return { type: "navigate", path: "/tracker", message: "Открываю калькулятор 90/180" };
-    case "SOS": return { type: "navigate", path: "/sos", message: "Открываю SOS-помощь" };
-    case "CHECK_EMPLOYER": return { type: "ai_chat", message: "Проверяю работодателя", params: cmd.params };
-    default: return { type: "none" };
+    case "WEATHER":
+      return { type: "weather", message: "Показываю погоду", params: cmd.params };
+    case "CALCULATE_90_180":
+      return { type: "navigate", path: "/tracker", message: "Открываю калькулятор 90/180" };
+    case "SOS":
+      return { type: "navigate", path: "/sos", message: "Открываю SOS-помощь" };
+    case "CHECK_EMPLOYER":
+      return { type: "ai_chat", message: "Проверяю работодателя", params: cmd.params };
+    default:
+      return { type: "none" };
   }
 }
