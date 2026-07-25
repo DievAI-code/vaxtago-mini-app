@@ -5,6 +5,7 @@ import { get2GISMapKey } from "@/lib/env";
 import { twoGisService } from "@/services/maps/twoGis";
 import { MapOSM } from "./MapOSM";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { appStorage } from "@/lib/appStorage";
 
 interface Map2GISProps {
   center: [number, number]; // [lat, lng]
@@ -52,6 +53,14 @@ export function Map2GIS({
           );
           mapRef.current = map;
           setStatus("ready");
+
+          // Save map state to storage
+          appStorage.saveMapState({
+            lat: center[0],
+            lon: center[1],
+            zoom,
+            updatedAt: Date.now(),
+          });
         } catch (e) {
           console.warn("[2GIS Map Creation Error] Switching to OpenStreetMap fallback:", e);
           setStatus("fallback");
@@ -62,8 +71,19 @@ export function Map2GIS({
         if (isMounted) setStatus("fallback");
       });
 
+    const handleRestore = () => {
+      if (mapRef.current && status === "ready") {
+        requestAnimationFrame(() => {
+          twoGisService.centerMap(mapRef.current, center, zoom);
+        });
+      }
+    };
+
+    window.addEventListener("vaqta:app-restore", handleRestore);
+
     return () => {
       isMounted = false;
+      window.removeEventListener("vaqta:app-restore", handleRestore);
       if (mapRef.current) {
         try {
           if (mapRef.current.destroy) mapRef.current.destroy();
@@ -78,6 +98,12 @@ export function Map2GIS({
   useEffect(() => {
     if (mapRef.current && status === "ready") {
       twoGisService.centerMap(mapRef.current, center, zoom);
+      appStorage.saveMapState({
+        lat: center[0],
+        lon: center[1],
+        zoom,
+        updatedAt: Date.now(),
+      });
     }
   }, [center, zoom, status]);
 
@@ -123,7 +149,7 @@ export function Map2GIS({
       {status === "loading" && (
         <div className="absolute inset-0 bg-[#06140F] z-10 flex flex-col items-center justify-center gap-2 text-[#00A86B]">
           <Loader2 className="animate-spin" size={28} />
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">Загрузка карты 2ГИС...</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">Загрузка карты...</span>
         </div>
       )}
       <div ref={containerRef} className="w-full h-full" style={{ minHeight: "350px", background: "#06140F" }} />

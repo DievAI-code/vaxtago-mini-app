@@ -19,7 +19,8 @@
     "vision_processing": "Анализирую изображение...",
     "document_analysis": "Анализ документа",
     "translation_complete": "Перевод завершен",
-    "employer_check": "Проверка работодателя"
+    "employer_check": "Проверка работодателя",
+    "restored": "VAQTA AI восстановлен"
   },
   "nav": {
     "home": "Главная",

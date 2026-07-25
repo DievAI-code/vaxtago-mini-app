@@ -46,7 +46,18 @@ export function MapOSM({
     layerGroupRef.current = layerGroup;
     mapRef.current = map;
 
+    const handleRestore = () => {
+      if (mapRef.current) {
+        requestAnimationFrame(() => {
+          mapRef.current?.invalidateSize();
+        });
+      }
+    };
+
+    window.addEventListener("vaqta:app-restore", handleRestore);
+
     return () => {
+      window.removeEventListener("vaqta:app-restore", handleRestore);
       map.remove();
       mapRef.current = null;
     };
@@ -55,6 +66,9 @@ export function MapOSM({
   useEffect(() => {
     if (mapRef.current) {
       mapRef.current.setView(center, zoom);
+      requestAnimationFrame(() => {
+        mapRef.current?.invalidateSize();
+      });
     }
   }, [center, zoom]);
 

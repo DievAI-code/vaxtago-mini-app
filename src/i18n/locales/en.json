@@ -19,7 +19,8 @@
     "vision_processing": "Analyzing image...",
     "document_analysis": "Document Analysis",
     "translation_complete": "Translation complete",
-    "employer_check": "Employer Check"
+    "employer_check": "Employer Check",
+    "restored": "VAQTA AI Restored"
   },
   "nav": {
     "home": "Home",

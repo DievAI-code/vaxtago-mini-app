@@ -19,7 +19,8 @@
     "vision_processing": "Rasm tahlil qilinmoqda...",
     "document_analysis": "Hujjat tahlili",
     "translation_complete": "Tarjima yakunlandi",
-    "employer_check": "Ish beruvchini tekshirish"
+    "employer_check": "Ish beruvchini tekshirish",
+    "restored": "VAQTA AI tiklandi"
   },
   "nav": {
     "home": "Asosiy",
@@ -193,7 +194,7 @@
     "risk_exit": "Shartnomani bekor qilish",
     "risk_exit_d": "Ishdan bo'shash shartlariga e'tibor bering.",
     "risk_docs": "Hujjatlarni olib qo'yish",
-    "risk_docs_d": "Ish beruvchi pasportingizni olib qo'yishga haqli emas.",
+    "risk_docs_d": "Ish beruvchi паспортингизни олиб қўйишга ҳақли емас.",
     "risk_general": "Standart shartnoma",
     "risk_general_d": "Jiddiy qoidabuzarliklar aniqlanmadi."
   },
