@@ -1,12 +1,11 @@
-OCR -> Lang Select -> Translate -> Result Tabs">
 "use client";
 
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Camera, Image as ImageIcon, Loader2, Download, Copy, 
   Languages, Check, X, FileText, Sparkles, MapPin, Phone, Globe,
-  ArrowRightLeft, Volume2, Share2, RefreshCw
+  ArrowRightLeft
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
@@ -90,7 +89,6 @@ export default function Scanner() {
       setTranslatedImage(newImage);
       setStep("result");
       
-      // Save to history
       try {
         const userPhone = localStorage.getItem("vaxtago_user_phone");
         if (userPhone) {
@@ -104,7 +102,9 @@ export default function Scanner() {
             created_at: new Date().toISOString(),
           });
         }
-      } catch {}
+      } catch (err) {
+        console.warn("History save failed:", err);
+      }
       
     } catch (err) {
       toast.error(t("scanner.error_translate"));
@@ -151,7 +151,6 @@ export default function Scanner() {
     localStorage.setItem("scanner_target_lang", lang);
   };
 
-  // Smart actions parsing
   const phones = ocrResult?.text.match(/(\+?\d[\d\s\-()]{7,}\d)/g) || [];
   const urls = ocrResult?.text.match(/(https?:\/\/[^\s]+|www\.[^\s]+)/gi) || [];
   const hasAddress = docType === "address" || /ул\.|улица|дом/i.test(ocrResult?.text || "");
@@ -240,7 +239,6 @@ export default function Scanner() {
 
           {step === "result" && translatedImage && (
             <motion.div key="result" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-              {/* Doc Type Badge */}
               <div className="flex justify-between items-center">
                 <span className="bg-[#0AA86E]/10 text-[#0AA86E] border border-[#0AA86E]/20 px-3 py-1 rounded-full text-[10px] font-black uppercase">
                   {t(`scanner.doc_${docType}`)}
@@ -248,14 +246,12 @@ export default function Scanner() {
                 <button onClick={reset} className="text-[10px] font-black uppercase text-[#5C7A6D] hover:text-white transition">{t("scanner.retry")}</button>
               </div>
 
-              {/* View Mode Tabs */}
               <div className="flex p-1 bg-white/5 border border-white/5 rounded-2xl">
                 <button onClick={() => setViewMode("translated")} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${viewMode === 'translated' ? 'bg-[#0AA86E] text-white shadow-lg' : 'text-[#5C7A6D]'}`}>{t("scanner.tab_translated")}</button>
                 <button onClick={() => setViewMode("text")} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${viewMode === 'text' ? 'bg-[#0AA86E] text-white shadow-lg' : 'text-[#5C7A6D]'}`}>{t("scanner.tab_text")}</button>
                 <button onClick={() => setViewMode("compare")} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${viewMode === 'compare' ? 'bg-[#0AA86E] text-white shadow-lg' : 'text-[#5C7A6D]'}`}>{t("scanner.tab_compare")}</button>
               </div>
 
-              {/* View Content */}
               {viewMode === "translated" && (
                 <div className="aspect-[3/4] rounded-[2rem] overflow-hidden border border-[#0AA86E]/30 shadow-2xl">
                   <img src={translatedImage} alt="Translated" className="w-full h-full object-contain bg-[#0C1F1A]" />
@@ -293,7 +289,6 @@ export default function Scanner() {
                 </div>
               )}
 
-              {/* Smart Actions */}
               <div className="grid grid-cols-3 gap-2">
                 {hasAddress && (
                   <button className="vaqta-glass p-3 flex flex-col items-center gap-1 active:scale-95 transition">
@@ -315,7 +310,6 @@ export default function Scanner() {
                 )}
               </div>
 
-              {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <button onClick={() => downloadImage("jpeg")} className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-center gap-2 active:scale-95 transition">
                   <Download size={18} className="text-[#0AA86E]" />
