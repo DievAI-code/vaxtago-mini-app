@@ -9,6 +9,10 @@ export interface OCRBlock {
   width: number;
   height: number;
   confidence: number;
+  color?: string;
+  backgroundColor?: string;
+  fontSize?: number;
+  textAlign?: "left" | "center" | "right";
 }
 
 export interface OCRResult {
@@ -25,29 +29,32 @@ class OCRService {
     console.log("[OCR TEXT] Starting recognition, target lang:", targetLang);
 
     try {
-      const systemPrompt = `Ты — OCR и переводчик документов для VAQTA AI.
-Твоя задача — распознать ВСЕ текстовые блоки на изображении, точно определить их координаты, перевести на указанный целевой язык и вернуть результат строго в формате JSON.
+      const systemPrompt = `Ты — продвинутый OCR и анализатор документов для VAQTA AI.
+Твоя задача — распознать ВСЕ текстовые блоки на изображении, точно определить их координаты, стили и вернуть результат строго в формате JSON.
 
 Формат ответа (только JSON, без markdown):
 {
   "source_language": "ru" | "uz" | "tj" | "en" | "ky",
-  "target_language": "ru" | "uz" | "tj" | "en" | "ky",
   "blocks": [
     {
       "text": "оригинальный текст блока",
-      "translation": "перевод блока на целевой язык",
       "x": 0, "y": 0, "width": 100, "height": 30,
-      "confidence": 0.95
+      "confidence": 0.95,
+      "color": "#000000",
+      "backgroundColor": "#FFFFFF",
+      "fontSize": 16,
+      "textAlign": "left" | "center" | "right"
     }
   ]
 }
 
 ВАЖНО:
 - Координаты x, y, width, height — пиксели от верхнего левого угла
+- color и backgroundColor — в формате HEX (#RRGGBB)
+- fontSize — примерный размер шрифта в пикселях
+- textAlign — выравнивание текста в блоке
 - Сохраняй порядок блоков сверху вниз, слева направо
-- Объединяй слова одной строки в один блок
-- Переводи ТОЛЬКО содержание, не добавляй пояснений
-- Для каждого блока перевод должен быть на языке: ${targetLang}`;
+- Объединяй слова одной строки в один блок`;
 
       const { data, error } = await supabase.functions.invoke("vision-assistant", {
         body: {
@@ -64,7 +71,6 @@ class OCRService {
       }
 
       let sourceLanguage = "ru";
-      let targetLanguageOut = targetLang;
       let blocks: OCRBlock[] = [];
 
       const rawResult = data?.result;
@@ -73,7 +79,6 @@ class OCRService {
 
       if (ocr?.blocks && Array.isArray(ocr.blocks)) {
         sourceLanguage = ocr.source_language || ocr.sourceLanguage || "ru";
-        targetLanguageOut = ocr.target_language || ocr.targetLanguage || targetLang;
         blocks = ocr.blocks.map((b: any, i: number) => ({
           text: b.text || "",
           x: Number(b.x) || 0,
@@ -81,9 +86,12 @@ class OCRService {
           width: Number(b.width) || 100,
           height: Number(b.height) || 30,
           confidence: Number(b.confidence) || 0.9,
+          color: b.color || "#000000",
+          backgroundColor: b.backgroundColor || "#FFFFFF",
+          fontSize: Number(b.fontSize) || Math.max(11, Math.min(b.height * 0.7, 24)),
+          textAlign: b.textAlign || "left",
         }));
       } else {
-        // Fallback: try to parse from flat fields
         const flatText: string =
           ocr?.fullText || ocr?.text || ocr?.ocr_text ||
           (typeof rawResult === "string" ? rawResult : "") ||
@@ -99,7 +107,7 @@ class OCRService {
 
       const fullText = blocks.map((b) => b.text).join("\n");
 
-      console.log(`[OCR TEXT] Recognized ${blocks.length} blocks, src=${sourceLanguage}, tgt=${targetLanguageOut}`);
+      console.log(`[OCR TEXT] Recognized ${blocks.length} blocks, src=${sourceLanguage}`);
       return {
         text: fullText,
         blocks,
@@ -111,10 +119,6 @@ class OCRService {
     }
   }
 
-  /**
-   * Heuristic block estimation when AI doesn't return coordinates.
-   * Groups text by lines and estimates positions on a 1000x1400 canvas.
-   */
   private estimateBlocks(text: string): OCRBlock[] {
     if (!text) return [];
     const lines = text.split("\n").filter((l) => l.trim());
@@ -138,6 +142,10 @@ class OCRService {
         width,
         height,
         confidence: 0.7,
+        color: "#000000",
+        backgroundColor: "#FFFFFF",
+        fontSize: 16,
+        textAlign: "left",
       });
       y += lineHeight;
       if (y > 1300) break;

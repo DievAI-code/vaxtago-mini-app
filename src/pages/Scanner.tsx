@@ -5,14 +5,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Camera, Image as ImageIcon, Loader2, Download, Copy, 
   Languages, Check, X, FileText, Sparkles, MapPin, Phone, Globe,
-  ArrowRightLeft
+  ArrowRightLeft, LayoutGrid, Columns
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { ocrService, OCRResult } from "@/services/ocr/ocrService";
 import { translationService, LanguageCode } from "@/services/ocr/translationService";
-import { imageTranslator } from "@/services/ocr/imageTranslator";
+import { imageTranslator, TranslationMode } from "@/services/ocr/imageTranslator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ export default function Scanner() {
   const [viewMode, setViewMode] = useState<ViewMode>("translated");
   const [sliderPos, setSliderPos] = useState(50);
   const [docType, setDocType] = useState<string>("other");
+  const [translationMode, setTranslationMode] = useState<TranslationMode>("preserve_design");
   
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -85,6 +86,7 @@ export default function Scanner() {
         image: originalImage,
         blocks: ocrResult.blocks,
         translations,
+        mode: translationMode,
       });
       setTranslatedImage(newImage);
       setStep("result");
@@ -200,6 +202,23 @@ export default function Scanner() {
               
               <div className="vaqta-glass p-6 border-[#1A3D2E] space-y-4">
                 <h3 className="text-sm font-black uppercase tracking-widest text-white text-center">{t("scanner.select_lang_title")}</h3>
+                
+                {/* Translation Mode Selector */}
+                <div className="flex p-1 bg-white/5 border border-white/5 rounded-2xl">
+                  <button 
+                    onClick={() => setTranslationMode("preserve_design")} 
+                    className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${translationMode === 'preserve_design' ? 'bg-[#0AA86E] text-white shadow-lg' : 'text-[#5C7A6D]'}`}
+                  >
+                    <LayoutGrid size={12} /> Дизайн
+                  </button>
+                  <button 
+                    onClick={() => setTranslationMode("clean_translation")} 
+                    className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${translationMode === 'clean_translation' ? 'bg-[#0AA86E] text-white shadow-lg' : 'text-[#5C7A6D]'}`}
+                  >
+                    <Columns size={12} /> Документ
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   {LANGS.map((l) => (
                     <button 

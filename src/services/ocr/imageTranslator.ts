@@ -2,28 +2,21 @@
 
 import { OCRBlock } from "./ocrService";
 
-export interface TextReplacement {
-  original: OCRBlock;
-  translated: string;
-}
+export type TranslationMode = "preserve_design" | "clean_translation";
 
 export interface TranslationRequest {
   image: string;
   blocks: OCRBlock[];
   translations: Map<number, string>;
   fontFamily?: string;
+  mode: TranslationMode;
 }
 
 class ImageTranslator {
-  /**
-   * Renders translated text directly onto the original image, replacing
-   * each source block with the corresponding translation.
-   * Returns a JPEG data URL of the new image.
-   */
   async createTranslatedImage(request: TranslationRequest): Promise<string> {
-    const { image, blocks, translations, fontFamily = "Inter, Arial, sans-serif" } = request;
+    const { image, blocks, translations, fontFamily = "Inter, Arial, sans-serif", mode } = request;
 
-    console.log(`[IMAGE TRANSLATOR] Processing ${blocks.length} blocks`);
+    console.log(`[IMAGE TRANSLATOR] Processing ${blocks.length} blocks in ${mode} mode`);
 
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -31,32 +24,11 @@ class ImageTranslator {
 
       img.onload = () => {
         try {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            reject(new Error("Canvas context unavailable"));
-            return;
+          if (mode === "clean_translation") {
+            resolve(this.createCleanDocument(img, blocks, translations, fontFamily));
+          } else {
+            resolve(this.createPreserveDesignImage(img, blocks, translations, fontFamily));
           }
-
-          canvas.width = img.width;
-          canvas.height = img.height;
-
-          // Draw the original image as the base
-          ctx.drawImage(img, 0, 0);
-          console.log(`[IMAGE TRANSLATOR] Base image drawn: ${img.width}x${img.height}`);
-
-          let replacedCount = 0;
-          blocks.forEach((block, index) => {
-            const translated = translations.get(index);
-            if (translated && translated.trim() && translated !== block.text) {
-              this.replaceBlock(ctx, img, block, translated, fontFamily);
-              replacedCount++;
-            }
-          });
-
-          console.log(`[IMAGE TRANSLATOR] Replaced ${replacedCount}/${blocks.length} blocks`);
-
-          resolve(canvas.toDataURL("image/jpeg", 0.92));
         } catch (error) {
           console.error("[IMAGE TRANSLATOR] Error:", error);
           reject(error);
@@ -71,74 +43,149 @@ class ImageTranslator {
     });
   }
 
-  private replaceBlock(
-    ctx: CanvasRenderingContext2D,
-    originalImage: HTMLImageElement,
-    block: OCRBlock,
-    translated: string,
+  private createPreserveDesignImage(
+    img: HTMLImageElement,
+    blocks: OCRBlock[],
+    translations: Map<number, string>,
     fontFamily: string
-  ) {
-    const padding = 6;
-    const blockX = Math.max(0, block.x - padding);
-    const blockY = Math.max(0, block.y - padding);
-    const blockWidth = Math.min(
-      originalImage.width - blockX,
-      block.width + padding * 2
-    );
-    const blockHeight = Math.min(
-      originalImage.height - blockY,
-      block.height + padding * 2
-    );
+  ): string {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context unavailable");
 
-    // 1. Sample the original background color of this area
-    const bgColor = this.sampleBackgroundColor(ctx, originalImage, block);
+    canvas.width = img.width;
+    canvas.height = img.height;
 
-    // 2. Erase the original text by drawing a filled rectangle in bg color
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(blockX, blockY, blockWidth, blockHeight);
+    // Draw original image
+    ctx.drawImage(img, 0, 0);
 
-    // 3. Pick a text color that contrasts with the background
-    const textColor = this.chooseTextColor(bgColor);
+    blocks.forEach((block, index) => {
+      const translated = translations.get(index);
+      if (!translated || !translated.trim()) return;
 
-    // 4. Auto-fit font size and wrap text
-    let fontSize = Math.max(11, Math.min(blockHeight * 0.7, 24));
-    ctx.fillStyle = textColor;
-    ctx.font = `600 ${fontSize}px ${fontFamily}`;
-    ctx.textBaseline = "middle";
-    ctx.textAlign = "center";
+      // 1. Erase original text
+      ctx.fillStyle = block.backgroundColor || this.sampleBackgroundColor(ctx, img, block);
+      ctx.fillRect(block.x, block.y, block.width, block.height);
 
-    const maxWidth = blockWidth - 6;
-    const lines = this.wrapText(ctx, translated, maxWidth);
-
-    // Shrink font if it still doesn't fit
-    while (lines.length * fontSize * 1.2 > blockHeight && fontSize > 9) {
-      fontSize -= 1;
+      // 2. Setup text style
+      const textColor = block.color || this.chooseTextColor(block.backgroundColor || "#FFFFFF");
+      ctx.fillStyle = textColor;
+      ctx.textBaseline = "middle";
+      
+      // 3. Auto-fit font size
+      let fontSize = block.fontSize || Math.max(11, Math.min(block.height * 0.7, 24));
       ctx.font = `600 ${fontSize}px ${fontFamily}`;
-      const rewrapped = this.wrapText(ctx, translated, maxWidth);
-      if (rewrapped.length * fontSize * 1.2 <= blockHeight) {
-        break;
+      
+      const maxWidth = block.width - 8;
+      let lines = this.wrapText(ctx, translated, maxWidth);
+
+      // Shrink font if text doesn't fit vertically
+      while (lines.length * fontSize * 1.2 > block.height && fontSize > 9) {
+        fontSize -= 1;
+        ctx.font = `600 ${fontSize}px ${fontFamily}`;
+        lines = this.wrapText(ctx, translated, maxWidth);
       }
-    }
 
-    // 5. Draw the wrapped translation centered in the block
-    const lineHeight = fontSize * 1.15;
-    const totalHeight = lines.length * lineHeight;
-    const centerX = block.x + block.width / 2;
-    const startY = block.y + block.height / 2 - totalHeight / 2 + lineHeight / 2;
+      // 4. Draw translated text
+      const lineHeight = fontSize * 1.15;
+      const totalHeight = lines.length * lineHeight;
+      
+      // Alignment
+      if (block.textAlign === "center") {
+        ctx.textAlign = "center";
+      } else if (block.textAlign === "right") {
+        ctx.textAlign = "right";
+      } else {
+        ctx.textAlign = "left";
+      }
 
-    lines.forEach((line, i) => {
-      ctx.fillText(line, centerX, startY + i * lineHeight);
+      const startX = block.textAlign === "center" ? block.x + block.width / 2 
+                   : block.textAlign === "right" ? block.x + block.width - 4 
+                   : block.x + 4;
+                   
+      const startY = block.y + block.height / 2 - totalHeight / 2 + lineHeight / 2;
+
+      lines.forEach((line, i) => {
+        ctx.fillText(line, startX, startY + i * lineHeight);
+      });
     });
+
+    return canvas.toDataURL("image/jpeg", 0.92);
   }
 
-  /**
-   * Wraps text to fit within maxWidth. Returns array of lines.
-   */
-  private wrapText(
-    ctx: CanvasRenderingContext2D,
-    text: string,
-    maxWidth: number
-  ): string[] {
+  private createCleanDocument(
+    img: HTMLImageElement,
+    blocks: OCRBlock[],
+    translations: Map<number, string>,
+    fontFamily: string
+  ): string {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context unavailable");
+
+    // A4-ish ratio
+    canvas.width = 800;
+    canvas.height = 1200;
+
+    // White background
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw original image at top
+    const imgRatio = img.width / img.height;
+    const maxImgWidth = canvas.width - 80;
+    const imgDrawWidth = maxImgWidth;
+    const imgDrawHeight = imgDrawWidth / imgRatio;
+    
+    ctx.drawImage(img, 40, 40, imgDrawWidth, imgDrawHeight);
+
+    // Separator
+    const sepY = 40 + imgDrawHeight + 20;
+    ctx.strokeStyle = "#E5E7EB";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(40, sepY);
+    ctx.lineTo(canvas.width - 40, sepY);
+    ctx.stroke();
+
+    // Draw text blocks
+    let currentY = sepY + 30;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+
+    blocks.forEach((block, index) => {
+      const translated = translations.get(index);
+      if (!translated || !translated.trim()) return;
+
+      // Original text (gray, small)
+      ctx.fillStyle = "#9CA3AF";
+      ctx.font = `400 14px ${fontFamily}`;
+      const origLines = this.wrapText(ctx, block.text, canvas.width - 80);
+      origLines.forEach(line => {
+        if (currentY < canvas.height - 40) {
+          ctx.fillText(line, 40, currentY);
+          currentY += 18;
+        }
+      });
+
+      // Translated text (black, bold, larger)
+      ctx.fillStyle = "#111827";
+      ctx.font = `600 18px ${fontFamily}`;
+      const transLines = this.wrapText(ctx, translated, canvas.width - 80);
+      transLines.forEach(line => {
+        if (currentY < canvas.height - 40) {
+          ctx.fillText(line, 40, currentY);
+          currentY += 24;
+        }
+      });
+
+      currentY += 10; // Space between blocks
+    });
+
+    return canvas.toDataURL("image/jpeg", 0.92);
+  }
+
+  private wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
     const words = text.split(/\s+/);
     const lines: string[] = [];
     let current = "";
@@ -149,7 +196,6 @@ class ImageTranslator {
         current = candidate;
       } else {
         if (current) lines.push(current);
-        // If a single word is longer than maxWidth, split it by characters
         if (ctx.measureText(word).width > maxWidth) {
           let chunk = "";
           for (const ch of word) {
@@ -170,10 +216,6 @@ class ImageTranslator {
     return lines.length ? lines : [text];
   }
 
-  /**
-   * Sample background color by averaging pixels around the text block
-   * (above, below, left, right of the block).
-   */
   private sampleBackgroundColor(
     ctx: CanvasRenderingContext2D,
     image: HTMLImageElement,
@@ -183,23 +225,10 @@ class ImageTranslator {
       const samples: { x: number; y: number }[] = [];
       const offset = 4;
 
-      // Left of block
       samples.push({ x: Math.max(0, block.x - offset), y: block.y + block.height / 2 });
-      // Right of block
-      samples.push({
-        x: Math.min(image.width - 1, block.x + block.width + offset),
-        y: block.y + block.height / 2,
-      });
-      // Above block
-      samples.push({
-        x: block.x + block.width / 2,
-        y: Math.max(0, block.y - offset),
-      });
-      // Below block
-      samples.push({
-        x: block.x + block.width / 2,
-        y: Math.min(image.height - 1, block.y + block.height + offset),
-      });
+      samples.push({ x: Math.min(image.width - 1, block.x + block.width + offset), y: block.y + block.height / 2 });
+      samples.push({ x: block.x + block.width / 2, y: Math.max(0, block.y - offset) });
+      samples.push({ x: block.x + block.width / 2, y: Math.min(image.height - 1, block.y + block.height + offset) });
 
       let r = 0, g = 0, b = 0, count = 0;
       samples.forEach((s) => {
