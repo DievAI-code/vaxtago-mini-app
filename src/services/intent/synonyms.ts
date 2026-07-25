@@ -1,7 +1,7 @@
 /**
  * Словарь синонимов для нормализации STT-вывода.
  * Применяется первым шагом в normalizeInput() — все варианты
- * ("harita", "xaritta", "vakansia", "vacancy") приводятся к канону.
+ * ("harita", "vakansia", "vacancy", "tarjima") приводятся к канону.
  *
  * При добавлении: длинные ключи обрабатываются первыми автоматически.
  */
@@ -14,8 +14,6 @@ export const SYNONYMS: Record<string, string> = {
   "картой": "karta",
   "картами": "karta",
   "карта": "karta",
-  "карте": "karta",
-  "карте": "karta",
   "harita": "xarita",
   "xaritta": "xarita",
   "haritani": "xarita",
@@ -306,8 +304,6 @@ export const SYNONYMS: Record<string, string> = {
   "ishonch": "ishonch",
   "ishonchli": "ishonch",
   "ishonchsiz": "ishonch",
-  "отзыв": "otziv",
-  "отзывы": "otziv",
   "отзови": "otziv",
   "отзывами": "otziv",
   "отзывах": "otziv",
@@ -350,7 +346,6 @@ export const SYNONYMS: Record<string, string> = {
   "патента": "patent",
   "патенту": "patent",
   "патентом": "patent",
-  "патента": "patent",
   "патенты": "patent",
   "патентов": "patent",
   "миграционная карта": "migratsion_karta",
@@ -452,7 +447,6 @@ export const SYNONYMS: Record<string, string> = {
   "как получить": "qanday_olish",
   "как перевести": "qanday_tarjima",
   "как найти": "qanday_topish",
-  "как добраться": "qanday_borish",
   "как сделать": "qanday_qilish",
   "как оплатить": "qanday_tolov",
   "как оформить патент": "qanday_rasmiylashtirish",
@@ -550,7 +544,6 @@ export const SYNONYMS: Record<string, string> = {
   "ближайший банк": "eng_yaqin_bank",
   "ближайший мфц": "eng_yaqin_mfc",
   "ближайший метро": "eng_yaqin_metro",
-  "eng yaqin": "eng_yaqin",
   "eng yaqin magazin": "eng_yaqin_magazin",
   "eng yaqin apteka": "eng_yaqin_apteka",
   "eng yaqin shifoxona": "eng_yaqin_kasalxona",
@@ -612,14 +605,13 @@ export const SYNONYMS: Record<string, string> = {
   "купить премиум": "premium",
   "купить premium": "premium",
   "подключить premium": "premium",
-  "premium": "premium",
+  "подключить премиум": "premium",
   "obuna": "obuna",
   "obuna bo'lish": "obuna",
   "obuna olish": "obuna",
   "subscription": "obuna",
 
   // ─── Общие глаголы ───
-  "открыть": "och",
   "открывать": "och",
   "открыт": "och",
   "закрыть": "yop",
@@ -635,9 +627,7 @@ export const SYNONYMS: Record<string, string> = {
   "сохрани": "saqlash",
   "сохранение": "saqlash",
   "сохранил": "saqlash",
-  "удалить": "o'chirish",
   "удали": "o'chirish",
-  "удалить": "o'chirish",
   "удаление": "o'chirish",
   "отправить": "yuborish",
   "отправь": "yuborish",
@@ -678,9 +668,8 @@ export const SYNONYMS: Record<string, string> = {
   "избранное": "sevimli",
   "избранного": "sevimli",
   "избранные": "sevimli",
-  "закладки": "xatcho'plar",
+  "закладка": "xatcho'plar",
   "закладок": "xatcho'plar",
-  "закладки": "xatcho'plar",
   "sahifa": "sahifa",
   "sahifani": "sahifa",
   "bo'lim": "bo'lim",
