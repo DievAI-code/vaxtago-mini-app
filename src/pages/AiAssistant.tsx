@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Send, Bot, Mic, MapPin, Copy, Volume2, Share2, Bookmark, Check, 
-  Ticket, Train, Plane, Navigation, Camera, Sparkles, ChevronRight
+  Ticket, Train, Plane, Navigation, Camera, Sparkles, ChevronRight, Briefcase
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
