@@ -7,10 +7,14 @@ import { useLanguage } from "@/context/LanguageProvider";
 import { NavigationProvider } from "@/services/navigation";
 import { navigationService } from "@/services/navigation";
 import { resolvePOI } from "@/services/maps/poiDictionary";
+import { createYandexRouteLink, create2GISRouteLink, type Coords } from "@/services/navigation/routeLinkBuilder";
+import { toast } from "sonner";
 
 interface RouteCardProps {
-  from?: string;
-  to: string;
+  fromName?: string;
+  fromCoords?: Coords;
+  toName: string;
+  toCoords?: Coords;
   distance?: string;
   duration?: string;
   mode?: "car" | "walking" | "transit";
@@ -18,8 +22,10 @@ interface RouteCardProps {
 }
 
 export function RouteCard({
-  from,
-  to,
+  fromName,
+  fromCoords,
+  toName,
+  toCoords,
   distance,
   duration,
   mode = "car",
@@ -28,15 +34,32 @@ export function RouteCard({
   const { t } = useLanguage();
   const nav = useNavigate();
 
-  const fromValue = from || "Моё местоположение";
+  const fromValue = fromName || "Моё местоположение";
   const safeFrom = fromValue;
   const resolvedFrom = resolvePOI(safeFrom, city);
-  const resolvedTo = resolvePOI(to, city);
+  const resolvedTo = resolvePOI(toName, city);
+
+  const yandexMode = mode === "walking" ? "pd" : mode === "transit" ? "mt" : "auto";
+  const gisMode = mode === "walking" ? "foot" : mode === "transit" ? "bus" : "car";
+
+  const yandexUrl = fromCoords && toCoords ? createYandexRouteLink(fromCoords, toCoords, yandexMode) : "";
+  const gisUrl = fromCoords && toCoords ? create2GISRouteLink(fromCoords, toCoords, gisMode) : "";
+
+  console.log("[VAQTA ROUTE LINK]", {
+    fromName,
+    fromLat: fromCoords?.lat,
+    fromLon: fromCoords?.lon,
+    toName,
+    toLat: toCoords?.lat,
+    toLon: toCoords?.lon,
+    yandexUrl,
+    gisUrl
+  });
 
   const handleOpenRoute = () => {
     try {
       const fromParam = encodeURIComponent(safeFrom);
-      const toParam = encodeURIComponent(to);
+      const toParam = encodeURIComponent(toName);
       nav(`/maps?from=${fromParam}&to=${toParam}&mode=${mode}`);
     } catch (e) {
       console.error("[RouteCard] Failed to navigate:", e);
@@ -44,8 +67,20 @@ export function RouteCard({
   };
 
   const handleProviderSelect = (provider: NavigationProvider) => {
+    if (!fromCoords || !toCoords) {
+      toast.error("Точные координаты не найдены. Невозможно открыть навигатор.");
+      return;
+    }
+
     try {
-      navigationService.openRoute(provider, { from: resolvedFrom, to: resolvedTo, mode });
+      if (provider === "yandex") {
+        window.open(yandexUrl, "_blank", "noopener,noreferrer");
+      } else if (provider === "2gis") {
+        window.open(gisUrl, "_blank", "noopener,noreferrer");
+      } else {
+        // Fallback to text-based search for browser/other
+        navigationService.openRoute(provider, { from: resolvedFrom, to: resolvedTo, mode });
+      }
     } catch (e) {
       console.error("[RouteCard] Failed to open route:", e);
     }
@@ -86,7 +121,7 @@ export function RouteCard({
           <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
             <Navigation size={16} className="text-blue-400" />
           </div>
-          <p className="text-sm font-bold text-white truncate">{to}</p>
+          <p className="text-sm font-bold text-white truncate">{toName}</p>
         </div>
       </div>
 
