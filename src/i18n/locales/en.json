@@ -26,6 +26,7 @@
   "errors": "An error occurred",
   "settings": "Settings",
   "settings_lang": "Language",
+  "settings_voice": "Voice",
   "logout": "Log out",
   "profile": "Profile",
   "premium": "Premium",
@@ -105,15 +106,7 @@
     "check_doc": "Check Document",
     "translate_photo": "Translate Photo",
     "find_address": "Find Address",
-    "ask_ai": "Ask AI",
-    "action_translate": "Translate document",
-    "action_translate_d": "Photo or PDF — instant translation",
-    "action_route": "Build route",
-    "action_route_d": "Map, navigation, Yandex Maps",
-    "action_jobs": "Find a job",
-    "action_jobs_d": "Fresh offers in Russia",
-    "action_lawyer": "Legal help",
-    "action_lawyer_d": "Patents, documents, MVD"
+    "ask_ai": "Ask AI"
   },
   "founder": {
     "name": "VAQTA AI",
@@ -138,15 +131,7 @@
     "route_ready": "Route ready",
     "ask_ai": "Ask AI",
     "check_employer": "Check employer",
-    "open_map": "Open in map",
-    "copy_message": "Copy",
-    "speak_message": "Read aloud",
-    "share_message": "Share",
-    "save_message": "Save",
-    "copied": "Copied",
-    "speaking": "Speaking...",
-    "saved": "Saved",
-    "history_title": "Request history"
+    "open_map": "Open in map"
   },
   "maps": {
     "title": "Map",
@@ -224,9 +209,6 @@
     "recognition_complete": "Recognition complete",
     "translation_failed": "Translation failed",
     "auto": "Auto",
-    "compare_mode": "Compare",
-    "compare_before": "Before",
-    "compare_after": "After",
     "doc_types": {
       "job_ad": "Job ad",
       "contract": "Contract",
@@ -312,23 +294,7 @@
     "active": "Premium Active",
     "inactive": "Inactive",
     "per_month": "month",
-    "feature_locked": "This feature is available in Premium",
-    "hero_title": "Maximum power",
-    "hero_subtitle": "Unlimited, priority support, and legal help",
-    "price_value": "299 ₽",
-    "price_period": "per month",
-    "feature_1": "Unlimited AI queries",
-    "feature_1_d": "Ask anything — no limits",
-    "feature_2": "Unlimited scanner & translation",
-    "feature_2_d": "Documents, photos, voice",
-    "feature_3": "Priority support",
-    "feature_3_d": "5-minute response, 24/7",
-    "feature_4": "Legal help",
-    "feature_4_d": "Patents, MVD, contracts",
-    "feature_5": "Advanced analytics",
-    "feature_5_d": "Real-time job market insights",
-    "feature_6": "No ads",
-    "feature_6_d": "Clean, distraction-free"
+    "feature_locked": "This feature is available in Premium"
   },
   "tracker": {
     "title": "Patent Calendar",

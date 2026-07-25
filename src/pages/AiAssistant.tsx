@@ -11,6 +11,8 @@ import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useAiChat } from "@/hooks/useAiChat";
+import { useVoiceAssistant } from "@/hooks/useVoiceAssistant";
+import { VoiceControlBar } from "@/components/assistant/VoiceControlBar";
 import { processSmartSearch, SmartSearchResult } from "@/lib/smartSearch";
 import { AIActionCard } from "@/components/AIActionCard";
 import { RouteCard } from "@/components/assistant/RouteCard";
@@ -19,6 +21,7 @@ import { JobCard } from "@/components/assistant/JobCard";
 import { detectNavigationIntent } from "@/services/aiCommands";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 function formatTime(d: Date) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -114,12 +117,47 @@ const TypingDots = memo(function TypingDots() {
 
 export default function AiAssistant() {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const { sendMessage, loading: isTyping, messages } = useAiChat();
   const [input, setInput] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [smartResults, setSmartResults] = useState<Record<number, SmartSearchResult>>({});
   const [routeIntents, setRouteIntents] = useState<Record<number, ReturnType<typeof detectNavigationIntent>>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Voice integration
+  const voice = useVoiceAssistant({
+    autoSendToAI: true,
+  });
+
+  // Обработка голосовых команд (навигация)
+  const handleVoiceCommand = (text: string, action?: { type: string; path?: string }) => {
+    if (action) {
+      if (action.type === "navigate" && action.path) {
+        toast.success(action.message || "Выполняю команду");
+        setTimeout(() => navigate(action.path!), 400);
+        return;
+      }
+      if (action.type === "weather") {
+        toast.info("Погода: пока недоступно оффлайн. Откройте AI с этим вопросом.");
+        return;
+      }
+    }
+    // Иначе — отправляем в AI
+    handleSend(text);
+  };
+
+  // Озвучка последнего ответа AI
+  useEffect(() => {
+    if (!voice.settings.autoSpeak) return;
+    if (messages.length < 2) return;
+    const last = messages[messages.length - 1];
+    if (last.role !== "assistant") return;
+    // Озвучиваем только новые ответы (с timestamp > 2 сек назад)
+    if (Date.now() - new Date(last.timestamp as any).getTime() < 5000) {
+      voice.speak(last.content);
+    }
+  }, [messages.length]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -144,13 +182,13 @@ export default function AiAssistant() {
   };
 
   const SUGGESTIONS = [
-    { icon: Briefcase, label: "ai.hint_jobs", color: "text-[#0AA86E]", cmd: "Найти работу сварщиком" },
     { icon: Ticket, label: "🎫 Билет", color: "text-[#D4AF37]", cmd: "Купить билет Москва Ташкент" },
     { icon: Train, label: "🚆 Поезд", color: "text-blue-400", cmd: "Купить жд билет" },
     { icon: Plane, label: "✈️ Самолёт", color: "text-cyan-400", cmd: "Купить авиабилет" },
-    { icon: Navigation, label: "ai.hint_route", color: "text-purple-400", cmd: "Показать маршрут до вокзала" },
-    { icon: Camera, label: "ai.hint_photo", color: "text-pink-400", cmd: "Перевести фото" },
-    { icon: MapPin, label: "ai.hint_address", color: "text-orange-400", cmd: "Где вокзал Тюмень?" },
+    { icon: Navigation, label: "🗺 Маршрут", color: "text-purple-400", cmd: "Покажи маршрут до вокзала" },
+    { icon: Camera, label: "📷 Фото", color: "text-pink-400", cmd: "Перевести фото" },
+    { icon: MapPin, label: "📍 Адрес", color: "text-orange-400", cmd: "Где вокзал Тюмень?" },
+    { icon: Briefcase, label: "💼 Работа", color: "text-[#0AA86E]", cmd: "Найти работу сварщиком" },
   ];
 
   return (
@@ -161,7 +199,7 @@ export default function AiAssistant() {
       <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 no-scrollbar space-y-5 pb-44" ref={scrollRef}>
         <AnimatePresence>
           {messages.length === 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8 space-y-5">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12 space-y-6">
               <div className="relative inline-block">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
@@ -177,12 +215,17 @@ export default function AiAssistant() {
                   className="absolute inset-0 rounded-[2.5rem] bg-[#0AA86E]/30 blur-xl"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <h2 className="text-2xl sm:text-3xl font-black vaqta-gold-text tracking-tighter">VAQTA AI</h2>
                 <p className="text-xs font-bold text-[#5C7A6D] uppercase tracking-[0.2em]">{t("ai.welcome")}</p>
               </div>
 
-              <div className="grid grid-cols-1 gap-2 max-w-sm mx-auto">
+              <div className="vaqta-glass p-3 border-[#1A3D2E] text-[10px] text-[#5C7A6D] font-bold uppercase tracking-widest">
+                <Mic size={12} className="inline-block mr-1 text-[#0AA86E]" />
+                Можно говорить — нажмите на микрофон
+              </div>
+
+              <div className="grid grid-cols-1 gap-2.5 max-w-sm mx-auto">
                 {SUGGESTIONS.map((s, i) => (
                   <motion.button
                     key={i}
@@ -191,15 +234,13 @@ export default function AiAssistant() {
                     transition={{ delay: 0.05 * i }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handleSend(s.cmd)}
-                    className="vaqta-glass p-3 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all text-left"
+                    className="vaqta-glass p-4 rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all text-left"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl bg-white/5 ${s.color} flex items-center justify-center`}>
-                        <s.icon size={16} />
-                      </div>
-                      <span className="text-xs font-bold text-white">{s.label.includes(".") ? t(s.label) : s.label}</span>
+                    <div className="flex items-center gap-3.5">
+                      <s.icon size={20} className={s.color} />
+                      <span className="text-xs font-bold uppercase tracking-wider">{s.label}</span>
                     </div>
-                    <ChevronRight size={14} className="text-[#5C7A6D] group-hover:text-white transition-colors" />
+                    <ChevronRight size={16} className="text-[#1A3D2E] group-hover:text-white transition-colors" />
                   </motion.button>
                 ))}
               </div>
@@ -218,7 +259,7 @@ export default function AiAssistant() {
                 transition={{ duration: 0.3 }}
                 className={cn("flex flex-col group", m.role === "user" ? "items-end" : "items-start")}
               >
-                <div className={cn("px-4 py-3 text-xs sm:text-sm font-medium leading-relaxed max-w-[88%] shadow-2xl", m.role === "user" ? "message-user" : "message-ai")}>
+                <div className={cn("px-5 py-3.5 text-xs sm:text-sm font-medium leading-relaxed max-w-[88%] shadow-2xl", m.role === "user" ? "message-user" : "message-ai")}>
                   <p className="whitespace-pre-wrap">{m.content}</p>
 
                   {smart && (
@@ -234,8 +275,11 @@ export default function AiAssistant() {
 
                   {routeIntent?.intent === "route" && routeIntent.to && (
                     <div className="mt-2">
-                      <RouteCard from={routeIntent.from} to={routeIntent.to} mode={routeIntent.mode} />
-                      {/* Action button: open in app map */}
+                      <RouteCard
+                        from={routeIntent.from}
+                        to={routeIntent.to}
+                        mode={routeIntent.mode}
+                      />
                       <button
                         onClick={() => {
                           const from = encodeURIComponent(routeIntent.from || "");
@@ -255,7 +299,8 @@ export default function AiAssistant() {
                   {m.action?.type === "job_search" && <JobCard query={m.action.query} />}
                 </div>
 
-                <div className="flex items-center gap-2 mt-1 px-1">
+                <div className="flex items-center gap-2 mt-1.5 px-2">
+                  {m.role === "assistant" && <span className="w-1.5 h-1.5 rounded-full bg-[#0AA86E]" />}
                   <span className="text-[9px] font-black uppercase tracking-widest text-[#5C7A6D]">
                     {m.role === "user" ? "You" : "VAQTA AI"}
                   </span>
@@ -277,7 +322,7 @@ export default function AiAssistant() {
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-3"
           >
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#0AA86E] to-[#14B8A6] flex items-center justify-center">
               <Bot size={12} className="text-white" />
@@ -290,32 +335,45 @@ export default function AiAssistant() {
       </main>
 
       <div className="fixed bottom-24 left-0 right-0 px-4 sm:px-6 z-50 pointer-events-none">
-        <div className="max-w-3xl mx-auto liquid-glass p-2.5 flex items-center gap-2 shadow-[0_30px_90px_rgba(0,0,0,0.9)] rounded-[2.2rem] pointer-events-auto border-emerald-500/20">
-          <button type="button" onClick={() => handleSend("купить билет")} className="p-3 text-[#D4AF37] hover:text-white transition-colors" title="Билет">
-            <Ticket size={20} />
-          </button>
+        <div className="max-w-3xl mx-auto liquid-glass p-2.5 space-y-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.9)] rounded-[2.2rem] pointer-events-auto border-emerald-500/20">
+          {/* Voice bar */}
+          <div className="px-1">
+            <VoiceControlBar
+              onCommand={handleVoiceCommand}
+              autoSend={true}
+            />
+          </div>
 
-          <textarea
-            rows={1}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
-            placeholder={t("ai.placeholder")}
-            className="flex-1 bg-transparent py-2.5 text-xs sm:text-sm font-bold text-white outline-none placeholder-[#1A3D2E] resize-none max-h-28"
-          />
-
-          <div className="flex gap-1.5 pr-1">
-            <button type="button" className="p-2.5 text-[#5C7A6D] hover:text-white" title="Голос">
-              <Mic size={20} />
-            </button>
+          {/* Text input */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => handleSend()}
-              disabled={!input.trim() || isTyping}
-              className="p-3 bg-white text-black rounded-full shadow-2xl disabled:opacity-20 active:scale-90 transition-all vaqta-glow"
+              onClick={() => handleSend("купить билет")}
+              className="p-3 text-[#D4AF37] hover:text-white transition-colors"
+              title="Билет"
             >
-              <Send size={18} />
+              <Ticket size={20} />
             </button>
+
+            <textarea
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
+              placeholder={t("ai.placeholder")}
+              className="flex-1 bg-transparent py-2.5 text-xs sm:text-sm font-bold text-white outline-none placeholder-[#1A3D2E] resize-none max-h-28"
+            />
+
+            <div className="flex gap-1.5 pr-1">
+              <button
+                type="button"
+                onClick={() => handleSend()}
+                disabled={!input.trim() || isTyping}
+                className="p-3 bg-white text-black rounded-full shadow-2xl disabled:opacity-20 active:scale-90 transition-all vaqta-glow"
+              >
+                <Send size={18} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

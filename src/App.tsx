@@ -22,6 +22,7 @@ const Scanner = lazy(() => import("./pages/Scanner"));
 const OcrTranslator = lazy(() => import("./pages/OcrTranslator"));
 const History = lazy(() => import("./pages/History"));
 const Settings = lazy(() => import("./pages/Settings"));
+const VoiceSettings = lazy(() => import("./pages/VoiceSettings"));
 const Premium = lazy(() => import("./pages/Premium"));
 const MigrationTracker = lazy(() => import("./pages/MigrationTracker"));
 const SOSLegal = lazy(() => import("./pages/SOSLegal"));
@@ -72,6 +73,7 @@ const AnimatedRoutes = () => {
 
           <Route path="/premium" element={<Premium />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/voice" element={<VoiceSettings />} />
           <Route path="/history" element={<History />} />
           <Route path="/tracker" element={<MigrationTracker />} />
           <Route path="/sos" element={<SOSLegal />} />

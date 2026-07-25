@@ -26,6 +26,7 @@
   "errors": "Xatolik yuz berdi",
   "settings": "Sozlamalar",
   "settings_lang": "Til",
+  "settings_voice": "Ovoz",
   "logout": "Tizimdan chiqish",
   "profile": "Profil",
   "premium": "Premium",
@@ -105,15 +106,7 @@
     "check_doc": "Hujjatni tekshirish",
     "translate_photo": "Rasm tarjimasi",
     "find_address": "Manzil topish",
-    "ask_ai": "AI ga savol berish",
-    "action_translate": "Hujjatni tarjima qilish",
-    "action_translate_d": "Rasm yoki PDF — bir zumda tarjima",
-    "action_route": "Yo'nalish qurish",
-    "action_route_d": "Xarita, navigatsiya, Yandex.Maps",
-    "action_jobs": "Vakansiya topish",
-    "action_jobs_d": "Rossiyada yangi takliflar",
-    "action_lawyer": "Yuridik yordam",
-    "action_lawyer_d": "Patentlar, hujjatlar, MVD"
+    "ask_ai": "AI ga savol berish"
   },
   "founder": {
     "name": "VAQTA AI",
@@ -138,15 +131,7 @@
     "route_ready": "Yo'nalish tayyor",
     "ask_ai": "AI dan so'rash",
     "check_employer": "Kompaniyani tekshirish",
-    "open_map": "Xaritada ochish",
-    "copy_message": "Nusxa olish",
-    "speak_message": "Ovozli o'qish",
-    "share_message": "Ulashish",
-    "save_message": "Saqlash",
-    "copied": "Nusxalandi",
-    "speaking": "Ovozli o'qilmoqda...",
-    "saved": "Saqlandi",
-    "history_title": "So'rovlar tarixi"
+    "open_map": "Xaritada ochish"
   },
   "maps": {
     "title": "Xarita",
@@ -224,9 +209,6 @@
     "recognition_complete": "Tanish yakunlandi",
     "translation_failed": "Tarjima xatosi",
     "auto": "Avto",
-    "compare_mode": "Taqqoslash",
-    "compare_before": "Oldin",
-    "compare_after": "Keyin",
     "doc_types": {
       "job_ad": "Vakansiya",
       "contract": "Shartnoma",
@@ -312,23 +294,7 @@
     "active": "Premium faol",
     "inactive": "Faol emas",
     "per_month": "oy",
-    "feature_locked": "Bu funksiya Premium da mavjud",
-    "hero_title": "Maksimal imkoniyatlar",
-    "hero_subtitle": "Cheklovsiz, prioritet va yuridik yordam bilan",
-    "price_value": "299 ₽",
-    "price_period": "oyiga",
-    "feature_1": "Cheksiz AI so'rovlari",
-    "feature_1_d": "Istalgan savollar — hech qanday cheklovsiz",
-    "feature_2": "Cheksiz skaner va tarjima",
-    "feature_2_d": "Hujjatlar, rasmlar, ovoz",
-    "feature_3": "Ustuvor yordam",
-    "feature_3_d": "5 daqiqada javob, 24/7",
-    "feature_4": "Yuridik yordam",
-    "feature_4_d": "Patentlar, MVD, shartnomalar",
-    "feature_5": "Kengaytirilgan tahlil",
-    "feature_5_d": "Mehnat bozori tahlili real vaqtda",
-    "feature_6": "Reklama yo'q",
-    "feature_6_d": "Toza tajriba, chalg'itmaydi"
+    "feature_locked": "Bu funksiya Premium da mavjud"
   },
   "tracker": {
     "title": "Patent kalendari",

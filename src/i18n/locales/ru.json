@@ -26,6 +26,7 @@
   "errors": "Произошла ошибка",
   "settings": "Настройки",
   "settings_lang": "Язык",
+  "settings_voice": "Голос",
   "logout": "Выйти из аккаунта",
   "profile": "Профиль",
   "premium": "Premium",
@@ -105,15 +106,7 @@
     "check_doc": "Проверить документ",
     "translate_photo": "Перевести фото",
     "find_address": "Найти адрес",
-    "ask_ai": "Спросить AI",
-    "action_translate": "Перевести документ",
-    "action_translate_d": "Фото или PDF — мгновенный перевод",
-    "action_route": "Построить маршрут",
-    "action_route_d": "Карта, навигация, Яндекс.Карты",
-    "action_jobs": "Найти вакансию",
-    "action_jobs_d": "Свежие предложения в России",
-    "action_lawyer": "Юридическая помощь",
-    "action_lawyer_d": "Патенты, документы, МВД"
+    "ask_ai": "Спросить AI"
   },
   "founder": {
     "name": "VAQTA AI",
@@ -138,15 +131,7 @@
     "route_ready": "Маршрут готов",
     "ask_ai": "Спросить AI",
     "check_employer": "Проверить работодателя",
-    "open_map": "Открыть на карте",
-    "copy_message": "Копировать",
-    "speak_message": "Озвучить",
-    "share_message": "Поделиться",
-    "save_message": "Сохранить",
-    "copied": "Скопировано",
-    "speaking": "Озвучиваю...",
-    "saved": "Сохранено",
-    "history_title": "История запросов"
+    "open_map": "Открыть на карте"
   },
   "maps": {
     "title": "Карта",
@@ -224,9 +209,6 @@
     "recognition_complete": "Распознавание завершено",
     "translation_failed": "Ошибка перевода",
     "auto": "Авто",
-    "compare_mode": "Сравнить",
-    "compare_before": "До",
-    "compare_after": "После",
     "doc_types": {
       "job_ad": "Вакансия",
       "contract": "Договор",
@@ -312,23 +294,7 @@
     "active": "Premium активен",
     "inactive": "Неактивен",
     "per_month": "месяц",
-    "feature_locked": "Эта функция доступна в Premium",
-    "hero_title": "Максимум возможностей",
-    "hero_subtitle": "Без лимитов, с приоритетом и юридической поддержкой",
-    "price_value": "299 ₽",
-    "price_period": "в месяц",
-    "feature_1": "Безлимитные запросы к AI",
-    "feature_1_d": "Любые вопросы — без ограничений",
-    "feature_2": "Неограниченный сканер и перевод",
-    "feature_2_d": "Документы, фото, голос",
-    "feature_3": "Приоритетная поддержка",
-    "feature_3_d": "Ответ за 5 минут, 24/7",
-    "feature_4": "Юридическая помощь",
-    "feature_4_d": "Патенты, МВД, договоры",
-    "feature_5": "Расширенная аналитика",
-    "feature_5_d": "Анализ рынка труда в реальном времени",
-    "feature_6": "Без рекламы",
-    "feature_6_d": "Чистый опыт без отвлечений"
+    "feature_locked": "Эта функция доступна в Premium"
   },
   "tracker": {
     "title": "Календарь патента",
