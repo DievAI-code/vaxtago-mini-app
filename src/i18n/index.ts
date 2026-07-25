@@ -9,7 +9,7 @@ export const SUPPORTED_LANGS = ["uz", "uz_cyr", "ru", "en"] as const;
 export type Lang = (typeof SUPPORTED_LANGS)[number];
 
 const savedLang = (localStorage.getItem("vaxtago_language") || localStorage.getItem("vaqta_language")) as Lang;
-const initialLang = SUPPORTED_LANGS.includes(savedLang) ? savedLang : "uz_cyr";
+const initialLang = SUPPORTED_LANGS.includes(savedLang) ? savedLang : "ru";
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -19,7 +19,7 @@ i18n.use(initReactI18next).init({
     en: { translation: en },
   },
   lng: initialLang,
-  fallbackLng: "uz_cyr",
+  fallbackLng: "ru",
   interpolation: { escapeValue: false },
 });
 

@@ -17,10 +17,30 @@ export async function getAIResponse(
     const replies: Record<string, string> = {
       ru: "⚠️ AI временно переключается на резервный сервер. Попробуйте позже.",
       uz: "⚠️ AI vaqtincha zaxira serverga o'tmoqda. Keyinroq urinib ko'ring.",
-      tg: "⚠️ AI вақтан захира серверига гузаштаст. Баъдтар кўшиб кўринг.",
+      tj: "⚠️ AI вақтан захира серверига гузаштаст. Баъдтар кўшиб кўринг.",
       ky: "⚠️ AI убактык запas серверге которулууда. Кийинчерек аракет кылыңыз.",
       en: "⚠️ AI is temporarily switching to a backup server. Please try later.",
     };
     return replies[language] ?? replies.ru;
+  }
+}
+
+export async function getAITranslationResponse(
+  text: string,
+  sourceLang: string,
+  targetLang: string,
+  userId: string | number,
+): Promise<string> {
+  try {
+    const prompt = `Translate from ${sourceLang} to ${targetLang}. Return only the translation, no explanations.\n\n${text}`;
+    const result = await createAIRequest({
+      type: "assistant",
+      text: prompt,
+      language: targetLang,
+      userId,
+    });
+    return result.text.trim();
+  } catch {
+    return text;
   }
 }

@@ -18,74 +18,93 @@ export interface OCRResult {
 }
 
 class OCRService {
-  async recognizeText(imageBase64: string): Promise<OCRResult> {
-    console.log("[OCR TEXT] Starting recognition...");
-    
-    try {
-      const { data, error } = await supabase.functions.invoke("vision-assistant", {
-        body: {
-          image: imageBase64,
-          request_type: "ocr_detect",
-          instruction: `Распознай ВСЕ текстовые блоки на изображении.
+  async recognizeText(
+    imageBase64: string,
+    targetLang: string = "ru"
+  ): Promise<OCRResult> {
+    console.log("[OCR TEXT] Starting recognition, target lang:", targetLang);
 
-Верни строго JSON:
+    try {
+      const systemPrompt = `Ты — OCR и переводчик документов для VAQTA AI.
+Твоя задача — распознать ВСЕ текстовые блоки на изображении, точно определить их координаты, перевести на указанный целевой язык и вернуть результат строго в формате JSON.
+
+Формат ответа (только JSON, без markdown):
 {
-  "fullText": "полный распознанный текст со всеми переносами строк",
-  "language": "ru" | "uz" | "tj" | "en" | "ky",
+  "source_language": "ru" | "uz" | "tj" | "en" | "ky",
+  "target_language": "ru" | "uz" | "tj" | "en" | "ky",
   "blocks": [
-    { "text": "текст блока", "x": число, "y": число, "width": число, "height": число, "confidence": число_от_0_до_1 }
+    {
+      "text": "оригинальный текст блока",
+      "translation": "перевод блока на целевой язык",
+      "x": 0, "y": 0, "width": 100, "height": 30,
+      "confidence": 0.95
+    }
   ]
 }
 
 ВАЖНО:
-- Координаты x, y, width, height — в пикселях от верхнего левого угла
-- Сохраняй порядок блоков сверху вниз
-- Объединяй слова одной строки в один блок`
-        }
-      });
+- Координаты x, y, width, height — пиксели от верхнего левого угла
+- Сохраняй порядок блоков сверху вниз, слева направо
+- Объединяй слова одной строки в один блок
+- Переводи ТОЛЬКО содержание, не добавляй пояснений
+- Для каждого блока перевод должен быть на языке: ${targetLang}`;
 
-      console.log("[OCR TEXT] Vision API response:", data);
+      const { data, error } = await supabase.functions.invoke("vision-assistant", {
+        body: {
+          image: imageBase64,
+          language: targetLang,
+          request_type: "ocr_translate_full",
+          instruction: systemPrompt,
+        },
+      });
 
       if (error) {
         console.error("[OCR TEXT] Vision error:", error);
         throw error;
       }
 
-      let result: OCRResult;
-      
-      // Try to parse the result
+      let sourceLanguage = "ru";
+      let targetLanguageOut = targetLang;
+      let blocks: OCRBlock[] = [];
+
       const rawResult = data?.result;
-      if (rawResult) {
-        try {
-          const parsed = typeof rawResult === 'string' ? JSON.parse(rawResult) : rawResult;
-          result = {
-            text: parsed.fullText || parsed.text || "",
-            blocks: Array.isArray(parsed.blocks) && parsed.blocks.length > 0 
-              ? parsed.blocks 
-              : this.estimateBlocks(parsed.fullText || ""),
-            language: parsed.language || "ru"
-          };
-        } catch (e) {
-          console.warn("[OCR TEXT] Failed to parse structured result, using fallback");
-          result = {
-            text: data.ocr_text || data.text || (typeof rawResult === 'string' ? rawResult : ""),
-            blocks: this.estimateBlocks(data.ocr_text || ""),
-            language: data.language || "ru"
-          };
-        }
+      const structured = typeof rawResult === "string" ? safeParseJson(rawResult) : rawResult;
+      const ocr = structured || data;
+
+      if (ocr?.blocks && Array.isArray(ocr.blocks)) {
+        sourceLanguage = ocr.source_language || ocr.sourceLanguage || "ru";
+        targetLanguageOut = ocr.target_language || ocr.targetLanguage || targetLang;
+        blocks = ocr.blocks.map((b: any, i: number) => ({
+          text: b.text || "",
+          x: Number(b.x) || 0,
+          y: Number(b.y) || 0,
+          width: Number(b.width) || 100,
+          height: Number(b.height) || 30,
+          confidence: Number(b.confidence) || 0.9,
+        }));
       } else {
-        result = {
-          text: data.ocr_text || data.text || data.explanation || "",
-          blocks: this.estimateBlocks(data.ocr_text || data.text || ""),
-          language: data.language || "ru"
-        };
+        // Fallback: try to parse from flat fields
+        const flatText: string =
+          ocr?.fullText || ocr?.text || ocr?.ocr_text ||
+          (typeof rawResult === "string" ? rawResult : "") ||
+          data?.ocr_text || data?.text || data?.explanation || "";
+
+        if (!flatText.trim()) {
+          throw new Error("EMPTY_OCR_RESULT");
+        }
+
+        sourceLanguage = ocr?.source_language || ocr?.language || "ru";
+        blocks = this.estimateBlocks(flatText);
       }
 
-      console.log(`[OCR TEXT] Recognized ${result.blocks.length} blocks, language: ${result.language}`);
-      console.log(`[OCR TEXT] Full text:`, result.text);
-      console.log(`[OCR TEXT] Blocks:`, result.blocks);
+      const fullText = blocks.map((b) => b.text).join("\n");
 
-      return result;
+      console.log(`[OCR TEXT] Recognized ${blocks.length} blocks, src=${sourceLanguage}, tgt=${targetLanguageOut}`);
+      return {
+        text: fullText,
+        blocks,
+        language: sourceLanguage,
+      };
     } catch (error) {
       console.error("[OCR TEXT] Recognition failed:", error);
       throw error;
@@ -93,16 +112,14 @@ class OCRService {
   }
 
   /**
-   * Heuristic block estimation when AI doesn't return coordinates
-   * Groups text by lines and estimates positions on a 1000x1400 canvas
+   * Heuristic block estimation when AI doesn't return coordinates.
+   * Groups text by lines and estimates positions on a 1000x1400 canvas.
    */
   private estimateBlocks(text: string): OCRBlock[] {
     if (!text) return [];
-    
-    const lines = text.split('\n').filter(l => l.trim());
+    const lines = text.split("\n").filter((l) => l.trim());
     const blocks: OCRBlock[] = [];
     const canvasWidth = 1000;
-    const canvasHeight = 1400;
     const startY = 100;
     const lineHeight = 60;
     const charWidth = 14;
@@ -114,33 +131,30 @@ class OCRService {
       const width = Math.min(line.length * charWidth + 20, canvasWidth - padding * 2);
       const x = padding;
       const height = lineHeight * 0.8;
-
       blocks.push({
         text: line.trim(),
         x,
         y,
         width,
         height,
-        confidence: 0.7
+        confidence: 0.7,
       });
-      
       y += lineHeight;
-      if (y > canvasHeight - 100) break;
+      if (y > 1300) break;
     }
-
     return blocks;
   }
+}
 
-  async detectTextRegions(image: HTMLImageElement): Promise<OCRBlock[]> {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return [];
-
-    canvas.width = image.width;
-    canvas.height = image.height;
-    ctx.drawImage(image, 0, 0);
-
-    return [];
+function safeParseJson(s: string): any {
+  try {
+    return JSON.parse(s);
+  } catch {
+    const m = s.match(/\{[\s\S]*\}/);
+    if (m) {
+      try { return JSON.parse(m[0]); } catch { return null; }
+    }
+    return null;
   }
 }
 

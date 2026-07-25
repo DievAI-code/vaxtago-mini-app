@@ -46,6 +46,8 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
       if (ruValue && typeof ruValue === "string") {
         return ruValue;
       }
+      // Return the key itself as final fallback
+      return key;
     }
     return translated;
   };

@@ -12,39 +12,35 @@ export interface TranslationResult {
 
 class TranslationService {
   private languageNames: Record<string, string> = {
-    ru: "Русский",
-    uz: "Узбекский",
-    tj: "Таджикский",
-    en: "Английский",
-    ky: "Кыргызский"
+    ru: "Russian",
+    uz: "Uzbek",
+    tj: "Tajik",
+    en: "English",
+    ky: "Kyrgyz",
   };
 
   detectLanguage(text: string): string {
     if (!text || text.length < 3) return "ru";
-    
     const cyrillicPattern = /[а-яё]/i;
     const latinPattern = /[a-z]/i;
-    
-    // Uzbek specific characters: ў, ғ, қ, ҳ
+
     if (/[ўғқҳ]/i.test(text)) return "uz";
-    // Tajik specific characters: ҷ, ҳ, қ, ғ
     if (/[ҷ]/i.test(text) && cyrillicPattern.test(text)) return "tj";
-    // Kyrgyz specific characters: ң, ү, ө
     if (/[ңүө]/i.test(text)) return "ky";
-    
+
     if (cyrillicPattern.test(text) && !latinPattern.test(text)) return "ru";
     if (latinPattern.test(text) && !cyrillicPattern.test(text)) return "en";
-    
+
     if (/[a-z]/i.test(text)) {
       const words = text.toLowerCase().split(/\s+/);
-      const uzbekWords = ["va", "bu", "uchun", "bilan", "qayerda", "qanday", "men", "siz", "qilish", "yashash", "manzili"];
+      const uzbekWords = ["va", "bu", "uchun", "bilan", "qayerda", "qanday", "men", "siz", "qilish", "yashash", "manzili", "kerak"];
       const englishWords = ["the", "is", "and", "with", "for", "this", "that", "have", "address"];
-      const uzbekCount = words.filter(w => uzbekWords.includes(w)).length;
-      const englishCount = words.filter(w => englishWords.includes(w)).length;
-      if (uzbekCount > englishCount) return "uz";
-      if (englishCount > 0) return "en";
+      const uz = words.filter((w) => uzbekWords.includes(w)).length;
+      const en = words.filter((w) => englishWords.includes(w)).length;
+      if (uz > en) return "uz";
+      if (en > 0) return "en";
     }
-    
+
     return "ru";
   }
 
@@ -54,13 +50,10 @@ class TranslationService {
     targetLang: string
   ): Promise<TranslationResult> {
     console.log(`[TRANSLATE] ${sourceLang} → ${targetLang}: "${text.substring(0, 80)}..."`);
-    
     if (!text.trim()) {
       return { translatedText: "", sourceLanguage: sourceLang, targetLanguage: targetLang };
     }
-
     if (sourceLang === targetLang) {
-      console.log("[TRANSLATE] Same language, skipping");
       return { translatedText: text, sourceLanguage: sourceLang, targetLanguage: targetLang };
     }
 
@@ -68,21 +61,20 @@ class TranslationService {
       const sourceName = this.languageNames[sourceLang] || sourceLang;
       const targetName = this.languageNames[targetLang] || targetLang;
 
-      // Build strong translation prompt
-      const prompt = `Переведи текст с ${sourceName} на ${targetName}.
+      const prompt = `Translate the following text from ${sourceName} to ${targetName}.
 
-ПРАВИЛА:
-1. Переведи ТОЛЬКО содержание, без пояснений
-2. Сохрани числа, имена собственные, адреса
-3. Естественный перевод, не дословный
-4. Верни ТОЛЬКО переведённый текст
+RULES:
+1. Translate ONLY the content, no explanations
+2. Preserve numbers, proper names, addresses
+3. Natural translation, not literal
+4. Return ONLY the translated text
 
-ИСХОДНЫЙ ТЕКСТ (${sourceName}):
+SOURCE TEXT (${sourceName}):
 """
 ${text}
 """
 
-ПЕРЕВОД (${targetName}):`;
+TRANSLATION (${targetName}):`;
 
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
@@ -91,8 +83,8 @@ ${text}
           user_phone: localStorage.getItem("vaxtago_user_phone") || "anonymous",
           intent: "TRANSLATION",
           source_lang: sourceLang,
-          target_lang: targetLang
-        }
+          target_lang: targetLang,
+        },
       });
 
       if (error) {
@@ -100,16 +92,15 @@ ${text}
         throw error;
       }
 
-      let translated = data?.reply || data?.text || data?.message || text;
-      
-      // Clean up AI response - remove common prefixes
-      translated = translated
-        .replace(/^(перевод|translation|переведено|перевод:|translation:)\s*/i, "")
-        .replace(/^["'`]|["'`]$/g, "")
-        .replace(/^[^:]+:\s*/, "") // Remove "Translation:" prefix
+      let translated =
+        data?.reply || data?.text || data?.message || data?.choices?.[0]?.message?.content || text;
+
+      // Strip common AI response prefixes
+      translated = String(translated)
+        .replace(/^(перевод|translation|переведено|перевод:|translation:|tarjima|ترجمه):\s*/i, "")
+        .replace(/^["'`«»'"]|["'`«»'"]$/g, "")
         .trim();
 
-      // Remove quotes that AI sometimes adds
       if (translated.startsWith('"') && translated.endsWith('"')) {
         translated = translated.slice(1, -1);
       }
@@ -119,11 +110,10 @@ ${text}
       return {
         translatedText: translated,
         sourceLanguage: sourceLang,
-        targetLanguage: targetLang
+        targetLanguage: targetLang,
       };
     } catch (error) {
       console.error("[TRANSLATE] Failed:", error);
-      // Fallback: return original text
       return { translatedText: text, sourceLanguage: sourceLang, targetLanguage: targetLang };
     }
   }

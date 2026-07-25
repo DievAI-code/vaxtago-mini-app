@@ -10,11 +10,10 @@ import {
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageProvider";
-import { ocrService, translationService, imageTranslator } from "@/services/ocr";
-import { OCRBlock } from "@/services/ocr/ocrService";
 import { subscriptionManager } from "@/lib/subscriptionManager";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { imageTranslationService, ProcessResult } from "@/services/imageTranslationService";
 
 type LanguageCode = "ru" | "uz" | "tj" | "en" | "ky" | "auto";
 
@@ -22,45 +21,43 @@ interface LanguageOption {
   code: LanguageCode;
   name: string;
   flag: string;
+  nativeName: string;
 }
 
 const LANGUAGES: LanguageOption[] = [
-  { code: "auto", name: "Авто", flag: "🔍" },
-  { code: "ru", name: "Русский", flag: "🇷🇺" },
-  { code: "uz", name: "O'zbek", flag: "🇺🇿" },
-  { code: "tj", name: "Тоҷикӣ", flag: "🇹🇯" },
-  { code: "ky", name: "Кыргызча", flag: "🇰🇬" },
-  { code: "en", name: "English", flag: "🇬🇧" },
+  { code: "auto", name: "Auto", nativeName: "Авто", flag: "🔍" },
+  { code: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺" },
+  { code: "uz", name: "Uzbek", nativeName: "O'zbekcha", flag: "🇺🇿" },
+  { code: "tj", name: "Tajik", nativeName: "Тоҷикӣ", flag: "🇹🇯" },
+  { code: "ky", name: "Kyrgyz", nativeName: "Кыргызча", flag: "🇰🇬" },
+  { code: "en", name: "English", nativeName: "English", flag: "🇬🇧" },
 ];
 
 type Step = "upload" | "configure" | "processing" | "result";
 
 export default function OcrTranslator() {
   const { t } = useLanguage();
-  
+
   // State
   const [step, setStep] = useState<Step>("upload");
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [translatedImage, setTranslatedImage] = useState<string | null>(null);
-  
-  const [ocrText, setOcrText] = useState<string>("");
-  const [ocrBlocks, setOcrBlocks] = useState<OCRBlock[]>([]);
-  const [ocrLanguage, setOcrLanguage] = useState<string>("");
-  
-  const [sourceLanguage, setSourceLanguage] = useState<LanguageCode>("auto");
+  const [result, setResult] = useState<ProcessResult | null>(null);
+
+  const [sourceLanguage, setSourceLanguage] = useState<LanguageCode>("ru");
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>("uz");
-  const [detectedLanguage, setDetectedLanguage] = useState<string>("ru");
-  
+  const [effectiveSource, setEffectiveSource] = useState<string>("ru");
+
   const [translatedTexts, setTranslatedTexts] = useState<Map<number, string>>(new Map());
-  
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState("");
   const [progressPercent, setProgressPercent] = useState(0);
-  
+
   const [isLangMenuOpen, setIsLangMenuOpen] = useState<"source" | "target" | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [remaining, setRemaining] = useState<number>(5);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,12 +74,11 @@ export default function OcrTranslator() {
     }
   };
 
-  // Handle file selection
   const handleImageSelect = async (file: File) => {
     if (!isPremium) {
       const access = await subscriptionManager.checkAccess("ocr_scan");
       if (!access.allowed) {
-        toast.error("Лимит переводов исчерпан. Обновитесь до Premium.");
+        toast.error(t("premium.feature_locked") || "Лимит переводов исчерпан. Обновитесь до Premium.");
         return;
       }
     }
@@ -91,23 +87,24 @@ export default function OcrTranslator() {
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
       setOriginalImage(dataUrl);
+      setResult(null);
+      setTranslatedImage(null);
       setStep("configure");
-      console.log("[OCR] Image loaded, ready for configuration");
+      console.log("[OCR] Image loaded, ready for language configuration");
     };
     reader.readAsDataURL(file);
   };
 
-  // Swap languages
   const swapLanguages = () => {
     if (sourceLanguage === "auto") {
-      toast.info("Сначала выберите конкретный язык источника");
+      toast.info("Сначала выберите конкретный язык оригинала");
       return;
     }
+    const oldSource = sourceLanguage;
     setSourceLanguage(targetLanguage);
-    setTargetLanguage(sourceLanguage);
+    setTargetLanguage(oldSource);
   };
 
-  // Main translation pipeline
   const processTranslation = async () => {
     if (!originalImage) {
       toast.error("Сначала загрузите изображение");
@@ -116,97 +113,36 @@ export default function OcrTranslator() {
 
     setIsProcessing(true);
     setStep("processing");
-    setProgress("Распознавание текста на изображении...");
+    setProgress("Распознаю текст на изображении...");
     setProgressPercent(10);
 
     try {
-      // STEP 1: OCR — recognize text
-      console.log("[OCR PIPELINE] Step 1: OCR recognition");
-      const ocrResult = await ocrService.recognizeText(originalImage);
-      setOcrText(ocrResult.text);
-      setOcrBlocks(ocrResult.blocks);
-      setOcrLanguage(ocrResult.language);
-      
-      console.log("[OCR PIPELINE] Recognized text:", ocrResult.text);
-      console.log("[OCR PIPELINE] Blocks:", ocrResult.blocks.length);
-      console.log("[OCR PIPELINE] Detected language:", ocrResult.language);
+      const target = targetLanguage === "auto" ? "uz" : targetLanguage;
 
-      if (!ocrResult.text.trim()) {
-        throw new Error("Текст на изображении не найден");
-      }
+      console.log("[OCR] Starting pipeline, target lang:", target);
 
-      setProgressPercent(25);
+      // Step 1: run the full pipeline (OCR + translate + render)
+      const processResult = await imageTranslationService.processWithAI(
+        originalImage,
+        target
+      );
 
-      // STEP 2: Detect language if auto
-      let finalSourceLang: string = sourceLanguage;
-      if (sourceLanguage === "auto") {
-        const detected = translationService.detectLanguage(ocrResult.text);
-        finalSourceLang = detected;
-        setDetectedLanguage(detected);
-        console.log(`[OCR PIPELINE] Auto-detected language: ${detected}`);
-      } else {
-        setDetectedLanguage(sourceLanguage);
-      }
-
-      if (finalSourceLang === targetLanguage) {
-        toast.error("Язык оригинала совпадает с целевым языком");
-        setStep("configure");
-        setIsProcessing(false);
-        return;
-      }
-
-      setProgress(`Определён язык: ${LANGUAGES.find(l => l.code === finalSourceLang)?.name || finalSourceLang}`);
-      setProgressPercent(30);
-
-      // STEP 3: Translate each block
-      const translations = new Map<number, string>();
-      const totalBlocks = ocrResult.blocks.length;
-      
-      for (let i = 0; i < totalBlocks; i++) {
-        const block = ocrResult.blocks[i];
-        if (block.text.trim()) {
-          const result = await translationService.translate(
-            block.text,
-            finalSourceLang,
-            targetLanguage
-          );
-          translations.set(i, result.translatedText);
-        }
-        
-        const percent = 30 + Math.floor(((i + 1) / Math.max(totalBlocks, 1)) * 40);
-        setProgressPercent(percent);
-        setProgress(`Перевод блока ${i + 1} из ${totalBlocks}...`);
-      }
-
-      setTranslatedTexts(translations);
-      
-      // Log all translations
-      console.log("[OCR PIPELINE] All translations:");
-      translations.forEach((text, idx) => {
-        console.log(`  Block ${idx}: "${ocrResult.blocks[idx]?.text}" → "${text}"`);
-      });
-
-      setProgressPercent(75);
-      setProgress("Создание нового изображения с переводом...");
-
-      // STEP 4: Generate translated image
-      const resultImage = await imageTranslator.createTranslatedImage({
-        image: originalImage,
-        blocks: ocrResult.blocks,
-        translations,
-        fontFamily: "Inter, sans-serif"
-      });
-
-      setTranslatedImage(resultImage);
-      setProgressPercent(100);
+      setProgressPercent(70);
       setProgress("Готово!");
 
-      console.log("[OCR PIPELINE] Complete! Final image created");
+      setEffectiveSource(processResult.analysis.sourceLanguage);
+      setTranslatedImage(processResult.translated);
+
+      // Build translated texts map
+      const map = new Map<number, string>();
+      processResult.analysis.blocks.forEach((b, i) => map.set(i, b.translation));
+      setTranslatedTexts(map);
+
+      setResult(processResult);
 
       // Save to history
-      await saveToHistory(originalImage, resultImage, finalSourceLang, targetLanguage);
+      await saveToHistory(processResult);
 
-      // Increment usage
       if (!isPremium) {
         await subscriptionManager.incrementUsage("ocr_scan");
         const access = await subscriptionManager.checkAccess("ocr_scan");
@@ -214,64 +150,51 @@ export default function OcrTranslator() {
       }
 
       setStep("result");
-      toast.success("Перевод завершён!");
+      toast.success(t("scanner.result_ready"));
     } catch (error: any) {
       console.error("[OCR PIPELINE] Error:", error);
-      toast.error(error.message || "Ошибка при переводе. Попробуйте другое фото.");
+      toast.error(error?.message || t("scanner.error_ai"));
       setStep("configure");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const saveToHistory = async (
-    original: string,
-    translated: string,
-    src: string,
-    tgt: string
-  ) => {
+  const saveToHistory = async (processResult: ProcessResult) => {
     try {
       const userPhone = localStorage.getItem("vaxtago_user_phone");
       if (!userPhone || !supabase) return;
-
       await supabase.from("ocr_history").insert({
         user_id: userPhone,
-        original_image: original.slice(0, 500),
-        translated_image: translated.slice(0, 500),
-        source_language: src,
-        target_language: tgt,
-        recognized_text: ocrText.slice(0, 1000),
-        created_at: new Date().toISOString()
+        original_image: processResult.original.slice(0, 500),
+        translated_image: processResult.translated.slice(0, 500),
+        source_language: processResult.analysis.sourceLanguage,
+        target_language: processResult.analysis.targetLanguage,
+        recognized_text: processResult.analysis.text.slice(0, 1000),
+        created_at: new Date().toISOString(),
       });
     } catch (e) {
       console.warn("[OCR] Failed to save history:", e);
     }
   };
 
-  // Download translated image
   const downloadImage = () => {
     if (!translatedImage) return;
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = translatedImage;
-    link.download = `vaxta-translated-${Date.now()}.jpg`;
+    link.download = `vaqta-translated-${Date.now()}.jpg`;
     link.click();
-    toast.success("Изображение сохранено");
+    toast.success(t("common.done"));
   };
 
-  // Share translated image
   const shareImage = async () => {
     if (!translatedImage) return;
-    
     try {
       const response = await fetch(translatedImage);
       const blob = await response.blob();
-      const file = new File([blob], "vaxta-translated.jpg", { type: "image/jpeg" });
-      
+      const file = new File([blob], "vaqta-translated.jpg", { type: "image/jpeg" });
       if (navigator.share && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: "VAQTA AI — Перевод изображения"
-        });
+        await navigator.share({ files: [file], title: "VAQTA AI — Перевод изображения" });
       } else {
         await navigator.clipboard.writeText(translatedImage);
         toast.success("Ссылка скопирована");
@@ -281,28 +204,27 @@ export default function OcrTranslator() {
     }
   };
 
-  // Reset
   const reset = () => {
     setOriginalImage(null);
     setTranslatedImage(null);
-    setOcrText("");
-    setOcrBlocks([]);
+    setResult(null);
     setTranslatedTexts(new Map());
     setStep("upload");
   };
 
   const getLanguageOption = (code: LanguageCode): LanguageOption => {
-    return LANGUAGES.find(l => l.code === code) || LANGUAGES[1];
+    return LANGUAGES.find((l) => l.code === code) || LANGUAGES[1];
   };
 
-  const effectiveSource = sourceLanguage === "auto" ? detectedLanguage : sourceLanguage;
+  const sourceOpt = getLanguageOption(sourceLanguage);
+  const targetOpt = getLanguageOption(targetLanguage);
+  const detectedSource = LANGUAGES.find((l) => l.code === effectiveSource) || sourceOpt;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-32">
-      <Header title="AI Lens Переводчик" showBack />
+      <Header title={t("scanner.title")} showBack />
 
       <main className="px-5 space-y-5 mt-2 flex-1">
-        {/* Premium Badge */}
         {!isPremium && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -334,17 +256,21 @@ export default function OcrTranslator() {
             >
               <div className="text-center space-y-3 py-8">
                 <motion.div
-                  animate={{ 
-                    boxShadow: ["0 0 0 0 rgba(0,168,110,0.4)", "0 0 0 20px rgba(0,168,110,0)", "0 0 0 0 rgba(0,168,110,0)"]
+                  animate={{
+                    boxShadow: [
+                      "0 0 0 0 rgba(0,168,110,0.4)",
+                      "0 0 0 20px rgba(0,168,110,0)",
+                      "0 0 0 0 rgba(0,168,110,0)"
+                    ]
                   }}
                   transition={{ duration: 2, repeat: Infinity }}
                   className="w-24 h-24 rounded-[2.5rem] bg-gradient-to-br from-[#0AA86E] via-[#2563EB] to-[#7C3AED] flex items-center justify-center mx-auto shadow-2xl"
                 >
                   <Languages size={48} className="text-white" />
                 </motion.div>
-                <h2 className="text-2xl font-black">AI Lens Переводчик</h2>
+                <h2 className="text-2xl font-black">{t("scanner.title")}</h2>
                 <p className="text-xs text-[#5C7A6D] max-w-xs mx-auto">
-                  Загрузите фото — AI распознает текст, переведёт и заменит его прямо на изображении
+                  {t("scanner.desc")}
                 </p>
               </div>
 
@@ -355,7 +281,7 @@ export default function OcrTranslator() {
                   className="vaqta-glass p-6 border-[#1A3D2E] flex flex-col items-center gap-3 active:scale-95 transition hover:border-[#0AA86E]"
                 >
                   <Camera className="text-[#0AA86E]" size={32} />
-                  <span className="text-xs font-black uppercase">Камера</span>
+                  <span className="text-xs font-black uppercase">{t("scanner.take_photo")}</span>
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.96 }}
@@ -363,7 +289,7 @@ export default function OcrTranslator() {
                   className="vaqta-glass p-6 border-[#1A3D2E] flex flex-col items-center gap-3 active:scale-95 transition hover:border-[#D4AF37]"
                 >
                   <Upload className="text-[#D4AF37]" size={32} />
-                  <span className="text-xs font-black uppercase">Галерея</span>
+                  <span className="text-xs font-black uppercase">{t("scanner.gallery")}</span>
                 </motion.button>
               </div>
 
@@ -384,19 +310,21 @@ export default function OcrTranslator() {
               />
 
               <div className="vaqta-glass p-4 border-[#1A3D2E] space-y-3">
-                <p className="text-[10px] font-black uppercase text-[#5C7A6D]">Поддерживаемые форматы:</p>
+                <p className="text-[10px] font-black uppercase text-[#5C7A6D]">
+                  {t("scanner.supported_formats")}
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { icon: "📄", label: "Документы" },
-                    { icon: "🎫", label: "Билеты" },
-                    { icon: "🏠", label: "Адреса" },
-                    { icon: "📱", label: "Скриншоты" },
-                    { icon: "🛂", label: "Паспорта" },
-                    { icon: "📋", label: "Объявления" },
+                    { icon: "📄", key: "format_documents" },
+                    { icon: "🎫", key: "format_tickets" },
+                    { icon: "🏠", key: "format_addresses" },
+                    { icon: "📱", key: "format_screenshots" },
+                    { icon: "🛂", key: "format_passports" },
+                    { icon: "📋", key: "format_ads" },
                   ].map((type) => (
-                    <div key={type.label} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg">
+                    <div key={type.key} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg">
                       <span className="text-lg">{type.icon}</span>
-                      <span className="text-[10px] font-medium text-slate-300">{type.label}</span>
+                      <span className="text-[10px] font-medium text-slate-300">{t(`scanner.${type.key}`)}</span>
                     </div>
                   ))}
                 </div>
@@ -404,7 +332,7 @@ export default function OcrTranslator() {
             </motion.div>
           )}
 
-          {/* CONFIGURE STEP */}
+          {/* CONFIGURE STEP — language selector */}
           {step === "configure" && originalImage && (
             <motion.div
               key="configure"
@@ -413,32 +341,38 @@ export default function OcrTranslator() {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-4"
             >
-              {/* Image Preview */}
               <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden border border-[#1A3D2E] shadow-2xl">
-                <img src={originalImage} alt="Original" className="w-full h-full object-contain bg-[#0C1F1A]" />
+                <img
+                  src={originalImage}
+                  alt="Original"
+                  className="w-full h-full object-contain bg-[#0C1F1A]"
+                />
                 <div className="absolute top-3 left-3 px-3 py-1.5 bg-[#06140F]/90 backdrop-blur-md rounded-full text-[10px] font-black uppercase text-[#5C7A6D] border border-white/10">
-                  Оригинал
+                  {t("scanner.original")}
                 </div>
               </div>
 
-              {/* Language Selection */}
+              {/* Language selector card */}
               <div className="vaqta-glass p-5 border-[#1A3D2E] space-y-4">
-                <p className="text-xs font-black uppercase text-[#5C7A6D] text-center">
-                  Выберите язык перевода
-                </p>
-                
+                <div className="flex items-center gap-2 justify-center">
+                  <Languages className="text-[#0AA86E]" size={20} />
+                  <p className="text-sm font-black uppercase tracking-widest text-white">
+                    {t("scanner.translate_photo")}
+                  </p>
+                </div>
+
                 <div className="flex items-center gap-2">
-                  {/* Source Language */}
-                  <div className="flex-1">
-                    <button
-                      onClick={() => setIsLangMenuOpen("source")}
-                      className="w-full p-4 bg-[#06140F] border border-[#1A3D2E] rounded-2xl flex flex-col items-center gap-1 hover:border-[#0AA86E] transition"
-                    >
-                      <span className="text-2xl">{getLanguageOption(sourceLanguage).flag}</span>
-                      <p className="text-[10px] text-[#5C7A6D] uppercase">С языка</p>
-                      <p className="text-xs font-bold">{getLanguageOption(sourceLanguage).name}</p>
-                    </button>
-                  </div>
+                  {/* Source language */}
+                  <button
+                    onClick={() => setIsLangMenuOpen("source")}
+                    className="flex-1 p-4 bg-[#06140F] border border-[#1A3D2E] rounded-2xl flex flex-col items-center gap-1 hover:border-[#0AA86E] transition"
+                  >
+                    <span className="text-2xl">{sourceOpt.flag}</span>
+                    <p className="text-[10px] text-[#5C7A6D] uppercase font-bold">
+                      {t("scanner.select_source_lang")}
+                    </p>
+                    <p className="text-xs font-bold text-white">{sourceOpt.nativeName}</p>
+                  </button>
 
                   {/* Swap */}
                   <button
@@ -450,20 +384,20 @@ export default function OcrTranslator() {
                     <ArrowRightLeft size={20} />
                   </button>
 
-                  {/* Target Language */}
-                  <div className="flex-1">
-                    <button
-                      onClick={() => setIsLangMenuOpen("target")}
-                      className="w-full p-4 bg-[#06140F] border border-[#1A3D2E] rounded-2xl flex flex-col items-center gap-1 hover:border-[#0AA86E] transition"
-                    >
-                      <span className="text-2xl">{getLanguageOption(targetLanguage).flag}</span>
-                      <p className="text-[10px] text-[#5C7A6D] uppercase">На язык</p>
-                      <p className="text-xs font-bold">{getLanguageOption(targetLanguage).name}</p>
-                    </button>
-                  </div>
+                  {/* Target language */}
+                  <button
+                    onClick={() => setIsLangMenuOpen("target")}
+                    className="flex-1 p-4 bg-[#06140F] border border-[#1A3D2E] rounded-2xl flex flex-col items-center gap-1 hover:border-[#D4AF37] transition"
+                  >
+                    <span className="text-2xl">{targetOpt.flag}</span>
+                    <p className="text-[10px] text-[#5C7A6D] uppercase font-bold">
+                      {t("scanner.select_target_lang")}
+                    </p>
+                    <p className="text-xs font-bold text-white">{targetOpt.nativeName}</p>
+                  </button>
                 </div>
 
-                {/* Translate Button */}
+                {/* Translate button */}
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   onClick={processTranslation}
@@ -471,14 +405,16 @@ export default function OcrTranslator() {
                   className="w-full h-14 bg-gradient-to-r from-[#0AA86E] via-[#2563EB] to-[#7C3AED] rounded-2xl font-black text-white text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-transform disabled:opacity-50"
                 >
                   <Languages size={20} />
-                  <span>Перевести изображение</span>
+                  <span>
+                    {sourceOpt.nativeName} → {targetOpt.nativeName}
+                  </span>
                 </motion.button>
 
                 <button
                   onClick={reset}
                   className="w-full h-12 bg-white/5 border border-white/10 rounded-2xl text-[#5C7A6D] text-xs font-black uppercase hover:text-white transition"
                 >
-                  Выбрать другое фото
+                  {t("scanner.new_scan")}
                 </button>
               </div>
             </motion.div>
@@ -502,7 +438,7 @@ export default function OcrTranslator() {
               <div className="text-center space-y-2 max-w-sm">
                 <p className="text-base font-black text-[#0AA86E]">{progress}</p>
                 <p className="text-xs text-[#5C7A6D]">
-                  AI анализирует изображение, распознаёт текст и переводит
+                  AI распознаёт текст, переводит и рисует перевод на фото
                 </p>
               </div>
               <div className="w-full max-w-xs h-2 bg-[#1A3D2E] rounded-full overflow-hidden">
@@ -520,7 +456,7 @@ export default function OcrTranslator() {
           )}
 
           {/* RESULT STEP */}
-          {step === "result" && translatedImage && (
+          {step === "result" && result && (
             <motion.div
               key="result"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -531,29 +467,47 @@ export default function OcrTranslator() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <div className="flex items-center justify-center gap-2">
-                    <p className="text-[10px] font-black uppercase text-[#5C7A6D]">Оригинал</p>
+                    <p className="text-[10px] font-black uppercase text-[#5C7A6D]">
+                      {t("scanner.original")}
+                    </p>
                     <span className="text-[9px] px-1.5 py-0.5 bg-white/5 rounded text-[#5C7A6D]">
-                      {getLanguageOption(effectiveSource as LanguageCode).flag}
+                      {detectedSource.flag}
                     </span>
                   </div>
                   <div className="aspect-[3/4] rounded-2xl overflow-hidden border border-[#1A3D2E] shadow-lg">
-                    <img src={originalImage!} alt="Original" className="w-full h-full object-contain bg-[#0C1F1A]" />
+                    <img
+                      src={result.original}
+                      alt="Original"
+                      className="w-full h-full object-contain bg-[#0C1F1A]"
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-center gap-2">
-                    <p className="text-[10px] font-black uppercase text-[#0AA86E]">Перевод</p>
+                    <p className="text-[10px] font-black uppercase text-[#0AA86E]">
+                      {t("scanner.translated_img")}
+                    </p>
                     <span className="text-[9px] px-1.5 py-0.5 bg-[#0AA86E]/10 rounded text-[#0AA86E]">
-                      {getLanguageOption(targetLanguage).flag}
+                      {targetOpt.flag}
                     </span>
                   </div>
                   <motion.div
                     initial={{ boxShadow: "0 0 0 rgba(0,168,110,0)" }}
-                    animate={{ boxShadow: ["0 0 0 rgba(0,168,110,0)", "0 0 30px rgba(0,168,110,0.3)", "0 0 0 rgba(0,168,110,0)"] }}
+                    animate={{
+                      boxShadow: [
+                        "0 0 0 rgba(0,168,110,0)",
+                        "0 0 30px rgba(0,168,110,0.3)",
+                        "0 0 0 rgba(0,168,110,0)"
+                      ]
+                    }}
                     transition={{ duration: 2, repeat: Infinity }}
                     className="aspect-[3/4] rounded-2xl overflow-hidden border border-[#0AA86E]/30"
                   >
-                    <img src={translatedImage} alt="Translated" className="w-full h-full object-contain bg-[#0C1F1A]" />
+                    <img
+                      src={result.translated}
+                      alt="Translated"
+                      className="w-full h-full object-contain bg-[#0C1F1A]"
+                    />
                   </motion.div>
                 </div>
               </div>
@@ -566,7 +520,7 @@ export default function OcrTranslator() {
                   className="vaqta-glass p-4 border-[#1A3D2E] flex flex-col items-center gap-2 active:scale-95 transition hover:border-[#0AA86E]"
                 >
                   <Download className="text-[#0AA86E]" size={24} />
-                  <span className="text-[10px] font-black uppercase">Скачать</span>
+                  <span className="text-[10px] font-black uppercase">{t("scanner.download")}</span>
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -574,7 +528,7 @@ export default function OcrTranslator() {
                   className="vaqta-glass p-4 border-[#1A3D2E] flex flex-col items-center gap-2 active:scale-95 transition hover:border-[#2563EB]"
                 >
                   <Share2 className="text-[#2563EB]" size={24} />
-                  <span className="text-[10px] font-black uppercase">Поделиться</span>
+                  <span className="text-[10px] font-black uppercase">{t("scanner.share")}</span>
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -582,28 +536,28 @@ export default function OcrTranslator() {
                   className="vaqta-glass p-4 border-[#1A3D2E] flex flex-col items-center gap-2 active:scale-95 transition hover:border-[#7C3AED]"
                 >
                   <RefreshCw className="text-[#7C3AED]" size={24} />
-                  <span className="text-[10px] font-black uppercase">Новый</span>
+                  <span className="text-[10px] font-black uppercase">{t("scanner.new_scan")}</span>
                 </motion.button>
               </div>
 
               {/* Recognized & Translated Text */}
-              {ocrText && (
+              {result.analysis.text && (
                 <div className="vaqta-glass p-4 border-[#1A3D2E] space-y-3">
                   <div>
                     <p className="text-[10px] font-black uppercase text-[#5C7A6D] mb-1">
-                      Распознанный текст ({getLanguageOption(effectiveSource as LanguageCode).name}):
+                      {t("scanner.original_text")} ({detectedSource.nativeName}):
                     </p>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      {ocrText}
+                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                      {result.analysis.text}
                     </p>
                   </div>
-                  {translatedTexts.size > 0 && (
+                  {result.analysis.translatedText && (
                     <div>
                       <p className="text-[10px] font-black uppercase text-[#0AA86E] mb-1">
-                        Перевод ({getLanguageOption(targetLanguage).name}):
+                        {t("scanner.translation")} ({targetOpt.nativeName}):
                       </p>
-                      <p className="text-xs text-white leading-relaxed">
-                        {Array.from(translatedTexts.values()).join(' ')}
+                      <p className="text-xs text-white leading-relaxed whitespace-pre-wrap">
+                        {result.analysis.translatedText}
                       </p>
                     </div>
                   )}
@@ -633,41 +587,45 @@ export default function OcrTranslator() {
             >
               <div className="flex items-center justify-between">
                 <p className="text-sm font-black uppercase">
-                  {isLangMenuOpen === "source" ? "Язык оригинала" : "Язык перевода"}
+                  {isLangMenuOpen === "source"
+                    ? t("scanner.select_source_lang")
+                    : t("scanner.select_target_lang")}
                 </p>
                 <button onClick={() => setIsLangMenuOpen(null)} className="text-[#5C7A6D]">
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2">
-                {(isLangMenuOpen === "source" ? LANGUAGES : LANGUAGES.filter(l => l.code !== "auto")).map((lang) => {
-                  const selected = isLangMenuOpen === "source" 
-                    ? sourceLanguage === lang.code 
-                    : targetLanguage === lang.code;
-                  return (
-                    <button
-                      key={lang.code}
-                      onClick={() => {
-                        if (isLangMenuOpen === "source") {
-                          setSourceLanguage(lang.code);
-                        } else {
-                          setTargetLanguage(lang.code);
-                        }
-                        setIsLangMenuOpen(null);
-                      }}
-                      className={`p-3 rounded-xl flex items-center gap-2 transition ${
-                        selected
-                          ? "bg-[#0AA86E] text-white shadow-lg vaqta-glow"
-                          : "bg-white/5 text-slate-300 hover:bg-white/10"
-                      }`}
-                    >
-                      <span className="text-xl">{lang.flag}</span>
-                      <span className="text-xs font-bold">{lang.name}</span>
-                      {selected && <Check size={14} className="ml-auto" />}
-                    </button>
-                  );
-                })}
+                {(isLangMenuOpen === "source" ? LANGUAGES : LANGUAGES.filter((l) => l.code !== "auto")).map(
+                  (lang) => {
+                    const selected = isLangMenuOpen === "source"
+                      ? sourceLanguage === lang.code
+                      : targetLanguage === lang.code;
+                    return (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          if (isLangMenuOpen === "source") {
+                            setSourceLanguage(lang.code);
+                          } else {
+                            setTargetLanguage(lang.code);
+                          }
+                          setIsLangMenuOpen(null);
+                        }}
+                        className={`p-3 rounded-xl flex items-center gap-2 transition ${
+                          selected
+                            ? "bg-[#0AA86E] text-white shadow-lg vaqta-glow"
+                            : "bg-white/5 text-slate-300 hover:bg-white/10"
+                        }`}
+                      >
+                        <span className="text-xl">{lang.flag}</span>
+                        <span className="text-xs font-bold">{lang.nativeName}</span>
+                        {selected && <Check size={14} className="ml-auto" />}
+                      </button>
+                    );
+                  }
+                )}
               </div>
             </motion.div>
           </motion.div>

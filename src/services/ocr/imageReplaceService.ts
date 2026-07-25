@@ -22,7 +22,7 @@ export const imageReplaceService = {
     options: ReplacementOptions = {}
   ): Promise<string> {
     const { imageTranslator } = await import("./imageTranslator");
-    const blocks = replacements.map(r => r.original);
+    const blocks = replacements.map((r) => r.original);
     const translations = new Map<number, string>();
     replacements.forEach((r, i) => translations.set(i, r.translated));
     return imageTranslator.createTranslatedImage({
@@ -35,5 +35,5 @@ export const imageReplaceService = {
 
   async preprocessImage(imageBase64: string): Promise<string> {
     return imageBase64;
-  }
+  },
 };
