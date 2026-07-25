@@ -21,6 +21,8 @@ export async function resolvePlace(
   query: string,
   city?: string
 ): Promise<ResolvedPlace | null> {
+  if (!query || !query.trim()) return null;
+  
   const resolvedQuery = resolvePOI(query, city);
 
   // 1. Try 2GIS first (best for organizations)
@@ -35,11 +37,28 @@ export async function resolvePlace(
     return mapToResolvedPlace(yandexResults[0]);
   }
 
-  // 3. Fallback to raw query
-  if (query.trim()) {
-    const rawResults = await yandexProvider.search(query, city);
-    if (rawResults.length > 0) {
-      return mapToResolvedPlace(rawResults[0]);
+  // 3. Fallback to raw query (without POI resolution)
+  if (query !== resolvedQuery) {
+    const rawGis2Results = await gis2Provider.search(query, city);
+    if (rawGis2Results.length > 0) {
+      return mapToResolvedPlace(rawGis2Results[0]);
+    }
+    const rawYandexResults = await yandexProvider.search(query, city);
+    if (rawYandexResults.length > 0) {
+      return mapToResolvedPlace(rawYandexResults[0]);
+    }
+  }
+
+  // 4. Last resort: search with city appended directly to query
+  if (city) {
+    const combinedQuery = `${query} ${city}`;
+    const combinedYandex = await yandexProvider.search(combinedQuery, undefined);
+    if (combinedYandex.length > 0) {
+      return mapToResolvedPlace(combinedYandex[0]);
+    }
+    const combinedGis2 = await gis2Provider.search(combinedQuery, undefined);
+    if (combinedGis2.length > 0) {
+      return mapToResolvedPlace(combinedGis2[0]);
     }
   }
 
