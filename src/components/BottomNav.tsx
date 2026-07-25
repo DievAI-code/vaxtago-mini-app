@@ -6,18 +6,19 @@ import { Home, Bot, MapPin, Camera, User } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { memo } from "react";
 
-type Lang = "ru" | "uz" | "en";
+type Lang = "ru" | "uz_lat" | "uz_cyr" | "en";
 
 const SHORT_BY_LANG: Record<Lang, Record<string, string>> = {
-  ru: { "nav.home": "Главная", "nav.ai": "AI", "nav.map": "Карта", "nav.scanner": "Сканер", "nav.profile": "Профиль" },
-  uz: { "nav.home": "Asosiy", "nav.ai": "AI", "nav.map": "Xarita", "nav.scanner": "Skaner", "nav.profile": "Profil" },
-  en: { "nav.home": "Home", "nav.ai": "AI", "nav.map": "Map", "nav.scanner": "Scan", "nav.profile": "Profile" },
+  ru: { "nav.home": "Главная", "nav.ai": "AI", "nav.navigator": "Навигатор", "nav.scanner": "Сканер", "nav.profile": "Профиль" },
+  uz_lat: { "nav.home": "Asosiy", "nav.ai": "AI", "nav.navigator": "Navigatsiya", "nav.scanner": "Skaner", "nav.profile": "Profil" },
+  uz_cyr: { "nav.home": "Бош саҳифа", "nav.ai": "AI", "nav.navigator": "Навигация", "nav.scanner": "Сканер", "nav.profile": "Профил" },
+  en: { "nav.home": "Home", "nav.ai": "AI", "nav.navigator": "Navigator", "nav.scanner": "Scan", "nav.profile": "Profile" },
 };
 
 const ITEMS = [
   { path: "/home", icon: Home, label: "nav.home", match: ["/", "/home"] },
   { path: "/ai", icon: Bot, label: "nav.ai", match: ["/ai", "/chat"] },
-  { path: "/maps", icon: MapPin, label: "nav.map", match: ["/maps", "/map"] },
+  { path: "/maps", icon: MapPin, label: "nav.navigator", match: ["/maps", "/map"] },
   { path: "/scanner", icon: Camera, label: "nav.scanner", match: ["/scanner", "/ocr"] },
   { path: "/cabinet", icon: User, label: "nav.profile", match: ["/cabinet", "/profile"] },
 ];

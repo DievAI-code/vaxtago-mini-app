@@ -14,7 +14,7 @@
   "translator": "Translator",
   "documents": "Documents",
   "jobs": "Jobs",
-  "maps": "Maps",
+  "maps": "Map",
   "premium": "Premium",
   "settings": "Settings",
   "logout": "Log Out",
@@ -36,7 +36,7 @@
   "nav": {
     "home": "Home",
     "ai": "AI Assistant",
-    "map": "Jobs Map",
+    "map": "Navigator",
     "scanner": "Scanner",
     "jobs": "Jobs",
     "profile": "Profile",
@@ -50,7 +50,8 @@
     "admin": "Admin Panel",
     "tracker": "Patent",
     "sos": "Help",
-    "contract": "Contract Audit"
+    "contract": "Contract Audit",
+    "navigator": "Navigator"
   },
   "home": {
     "hero_title": "Smart AI Assistant\nfor your life",
@@ -68,7 +69,7 @@
     "translate_photo": "Photo Translation",
     "find_address": "Find Address",
     "ask_ai": "Ask AI",
-    "cat_map": "Map",
+    "cat_map": "Navigator",
     "cat_jobs": "Jobs",
     "cat_photo": "Photo Translate",
     "cat_docs": "Documents",
@@ -180,7 +181,7 @@
     "build_route": "Build Route",
     "search_ph": "Enter address (e.g. Moscow, Lenin Ave 25)...",
     "retry": "Try Again",
-    "title": "Map",
+    "title": "Navigator",
     "not_found": "Nothing found",
     "mode_car": "Car",
     "mode_walk": "Walk",
@@ -198,7 +199,8 @@
     "location": "My Location",
     "search": "Search Address",
     "nearby": "Nearby",
-    "search_placeholder": "Search address or place..."
+    "search_placeholder": "Search address or place...",
+    "ask_ai": "Ask AI"
   },
   "profile": {
     "user_info": "User Info",

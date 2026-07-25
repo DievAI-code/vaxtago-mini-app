@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Map } from "@/components/Map";
@@ -8,22 +8,28 @@ import { RouteProviderSelector } from "@/components/RouteProviderSelector";
 import { 
   Search, Navigation, Crosshair, MapPin, Bus, Car, 
   Accessibility, Bike, Home, Briefcase, Train, Plane,
-  Hospital, Hotel, Loader2, Clock, X, Bookmark, ArrowRight
+  Hospital, Hotel, Loader2, Clock, X, Bookmark, ArrowRight, Bot
 } from "lucide-react";
 import { geocodingService } from "@/services/geocodingService";
 import { navigationService, NavigationProvider } from "@/services/navigation";
 import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export default function Maps() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [coords, setCoords] = useState<[number, number]>([41.2995, 69.2401]);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [travelMode, setTravelMode] = useState<"car" | "walking" | "transit">("car");
   const [selectedDest, setSelectedDest] = useState<any>(null);
+
+  useEffect(() => {
+    handleLocateUser();
+  }, []);
 
   const handleSearch = async (val?: string) => {
     const q = val || query;
@@ -95,7 +101,7 @@ export default function Maps() {
 
   return (
     <div className="flex flex-col h-screen-dynamic bg-[#06140F] text-white overflow-hidden relative">
-      <Header title="maps.title" showBack />
+      <Header title="nav.navigator" showBack />
 
       <div className="absolute inset-0 z-0 pt-16">
         <Map
@@ -182,6 +188,13 @@ export default function Maps() {
           style={{ background: "rgba(10, 15, 25, 0.88)" }}
         >
           <Crosshair size={22} className="text-[#00A86B]" />
+        </button>
+        <button
+          onClick={() => navigate('/ai')}
+          className="w-12 h-12 rounded-full text-white flex items-center justify-center border border-white/15 backdrop-blur-xl shadow-lg active:scale-90 z-20"
+          style={{ background: "rgba(10, 168, 110, 0.8)" }}
+        >
+          <Bot size={22} className="text-white" />
         </button>
       </div>
 

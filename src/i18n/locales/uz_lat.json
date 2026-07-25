@@ -36,7 +36,7 @@
   "nav": {
     "home": "Bosh sahifa",
     "ai": "AI Yordamchi",
-    "map": "Vakansiyalar xaritasi",
+    "map": "Navigatsiya",
     "scanner": "Skaner",
     "jobs": "Ish",
     "profile": "Profil",
@@ -50,7 +50,8 @@
     "admin": "Admin-panel",
     "tracker": "Patent",
     "sos": "Yordam",
-    "contract": "Shartnoma auditi"
+    "contract": "Shartnoma auditi",
+    "navigator": "Navigatsiya"
   },
   "home": {
     "hero_title": "Hayotingiz uchun aqlli AI yordamchi",
@@ -68,7 +69,7 @@
     "translate_photo": "Rasm tarjimasi",
     "find_address": "Manzil topish",
     "ask_ai": "AI'ga savol berish",
-    "cat_map": "Xarita",
+    "cat_map": "Navigatsiya",
     "cat_jobs": "Ish",
     "cat_photo": "Foto tarjima",
     "cat_docs": "Hujjatlar",
@@ -180,7 +181,7 @@
     "build_route": "Marshrut qurish",
     "search_ph": "Manzilni kiriting (masalan. Moskva, Leninskiy prospekt 25)...",
     "retry": "Qayta urinib ko'ring",
-    "title": "Xarita",
+    "title": "Navigatsiya",
     "not_found": "Hech narsa topilmadi",
     "mode_car": "Avto",
     "mode_walk": "Piyoda",
@@ -198,7 +199,8 @@
     "location": "Mening joylashuvim",
     "search": "Manzil qidirish",
     "nearby": "Yaqin atrofda",
-    "search_placeholder": "Manzil yoki joy qidirish..."
+    "search_placeholder": "Manzil yoki joy qidirish...",
+    "ask_ai": "AI'dan so'rash"
   },
   "profile": {
     "user_info": "Foydalanuvchi ma'lumotlari",
