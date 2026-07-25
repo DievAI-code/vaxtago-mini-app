@@ -18,9 +18,8 @@ import { AIActionCard } from "@/components/AIActionCard";
 import { RouteCard } from "@/components/assistant/RouteCard";
 import { MapCard } from "@/components/assistant/MapCard";
 import { JobCard } from "@/components/assistant/JobCard";
-import { detectNavigationIntent } from "@/services/aiCommands";
-import { mapService } from "@/services/maps/mapService";
-import { MapLocation } from "@/services/maps/types";
+import { PlaceCard } from "@/components/PlaceCard";
+import { processNavigationQuery, type NavigationResult } from "@/services/navigation/navigationEngine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -124,8 +123,7 @@ export default function AiAssistant() {
   const [input, setInput] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [smartResults, setSmartResults] = useState<Record<number, SmartSearchResult>>({});
-  const [routeIntents, setRouteIntents] = useState<Record<number, ReturnType<typeof detectNavigationIntent>>>({});
-  const [routePlaces, setRoutePlaces] = useState<Record<number, { from: MapLocation | null, to: MapLocation | null }>>({});
+  const [navResults, setNavResults] = useState<Record<number, NavigationResult | null>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const voice = useVoiceAssistant({ autoSendToAI: true });
@@ -166,14 +164,10 @@ export default function AiAssistant() {
 
     const msgIndex = messages.length + 1;
 
-    const navIntent = detectNavigationIntent(text);
-    if (navIntent.intent === "route") {
-      setRouteIntents((prev) => ({ ...prev, [msgIndex]: navIntent }));
-      
-      const fromPlace = navIntent.from ? await mapService.searchSingle(navIntent.from, navIntent.city) : null;
-      const toPlace = await mapService.searchSingle(navIntent.to, navIntent.city);
-      
-      setRoutePlaces((prev) => ({ ...prev, [msgIndex]: { from: fromPlace, to: toPlace } }));
+    // Process navigation query
+    const navResult = await processNavigationQuery(text);
+    if (navResult) {
+      setNavResults((prev) => ({ ...prev, [msgIndex]: navResult }));
     }
 
     const smart = await processSmartSearch(text);
@@ -186,9 +180,9 @@ export default function AiAssistant() {
     { icon: Ticket, label: "🎫 Билет", color: "text-[#D4AF37]", cmd: "Купить билет Москва Ташкент" },
     { icon: Train, label: "🚆 Поезд", color: "text-blue-400", cmd: "Купить жд билет" },
     { icon: Plane, label: "✈️ Самолёт", color: "text-cyan-400", cmd: "Купить авиабилет" },
-    { icon: Navigation, label: "🗺 Маршрут", color: "text-purple-400", cmd: "Покажи маршрут до вокзала" },
+    { icon: Navigation, label: "🗺 Маршрут", color: "text-purple-400", cmd: "Как доехать от цирка до жд вокзала Тюмени" },
     { icon: Camera, label: "📷 Фото", color: "text-pink-400", cmd: "Перевести фото" },
-    { icon: MapPin, label: "📍 Адрес", color: "text-orange-400", cmd: "Где вокзал Тюмень?" },
+    { icon: MapPin, label: "📍 Адрес", color: "text-orange-400", cmd: "Найди ближайший магазин" },
     { icon: Briefcase, label: "💼 Работа", color: "text-[#0AA86E]", cmd: "Найти работу сварщиком" },
   ];
 
@@ -250,8 +244,7 @@ export default function AiAssistant() {
 
           {messages.map((m, i) => {
             const smart = smartResults[i];
-            const routeIntent = routeIntents[i];
-            const places = routePlaces[i];
+            const nav = navResults[i];
 
             return (
               <motion.div
@@ -275,13 +268,35 @@ export default function AiAssistant() {
                     />
                   )}
 
-                  {routeIntent?.intent === "route" && routeIntent.to && (
+                  {nav?.intent.type === "route" && nav.toPlace && (
                     <div className="mt-2">
                       <RouteCard
-                        from={places?.from?.name || routeIntent.from}
-                        to={places?.to?.name || routeIntent.to}
-                        mode={routeIntent.mode}
-                        city={routeIntent.city}
+                        from={nav.fromPlace?.name || nav.intent.from}
+                        to={nav.toPlace.name}
+                        distance={nav.formattedDistance}
+                        duration={nav.formattedDuration}
+                        mode={nav.intent.mode}
+                        city={nav.intent.city}
+                      />
+                    </div>
+                  )}
+
+                  {(nav?.intent.type === "place_search" || nav?.intent.type === "nearby_search") && nav.toPlace && (
+                    <div className="mt-2">
+                      <PlaceCard
+                        place={{
+                          id: nav.toPlace.name,
+                          name: nav.toPlace.name,
+                          address: nav.toPlace.address,
+                          latitude: nav.toPlace.latitude,
+                          longitude: nav.toPlace.longitude,
+                          phone: nav.toPlace.phone,
+                          rating: nav.toPlace.rating,
+                          hours: nav.toPlace.hours,
+                          category: nav.toPlace.category,
+                          source: nav.toPlace.source,
+                        }}
+                        distance={nav.formattedDistance}
                       />
                     </div>
                   )}
