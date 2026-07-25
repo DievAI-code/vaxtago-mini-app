@@ -2,7 +2,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export type LanguageCode = "ru" | "uz" | "tj" | "en" | "ky" | "auto";
+export type LanguageCode = "ru" | "uz_lat" | "uz_cyr" | "en" | "auto";
 
 export interface TranslationResult {
   translatedText: string;
@@ -13,10 +13,9 @@ export interface TranslationResult {
 class TranslationService {
   private languageNames: Record<string, string> = {
     ru: "Russian",
-    uz: "Uzbek",
-    tj: "Tajik",
+    uz_lat: "Uzbek (Latin)",
+    uz_cyr: "Uzbek (Cyrillic)",
     en: "English",
-    ky: "Kyrgyz",
   };
 
   detectLanguage(text: string): string {
@@ -24,22 +23,13 @@ class TranslationService {
     const cyrillicPattern = /[а-яё]/i;
     const latinPattern = /[a-z]/i;
 
-    if (/[ўғқҳ]/i.test(text)) return "uz";
-    if (/[ҷ]/i.test(text) && cyrillicPattern.test(text)) return "tj";
-    if (/[ңүө]/i.test(text)) return "ky";
+    // Check for Cyrillic specific Uzbek letters
+    if (/[ўғқҳ]/i.test(text)) return "uz_cyr";
+    // Check for Latin specific Uzbek letters
+    if (/[o'g'shch]/i.test(text) || /['ʻ]/.test(text)) return "uz_lat";
 
     if (cyrillicPattern.test(text) && !latinPattern.test(text)) return "ru";
     if (latinPattern.test(text) && !cyrillicPattern.test(text)) return "en";
-
-    if (/[a-z]/i.test(text)) {
-      const words = text.toLowerCase().split(/\s+/);
-      const uzbekWords = ["va", "bu", "uchun", "bilan", "qayerda", "qanday", "men", "siz", "qilish", "yashash", "manzili", "kerak"];
-      const englishWords = ["the", "is", "and", "with", "for", "this", "that", "have", "address"];
-      const uz = words.filter((w) => uzbekWords.includes(w)).length;
-      const en = words.filter((w) => englishWords.includes(w)).length;
-      if (uz > en) return "uz";
-      if (en > 0) return "en";
-    }
 
     return "ru";
   }
@@ -47,9 +37,8 @@ class TranslationService {
   async translate(
     text: string,
     sourceLang: string,
-    targetLang: string
+    targetLang: LanguageCode
   ): Promise<TranslationResult> {
-    console.log(`[TRANSLATE] ${sourceLang} → ${targetLang}: "${text.substring(0, 80)}..."`);
     if (!text.trim()) {
       return { translatedText: "", sourceLanguage: sourceLang, targetLanguage: targetLang };
     }
@@ -79,7 +68,7 @@ TRANSLATION (${targetName}):`;
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
           message: prompt,
-          language_code: targetLang,
+          language_code: targetLang.startsWith("uz") ? "uz" : targetLang,
           user_phone: localStorage.getItem("vaxtago_user_phone") || "anonymous",
           intent: "TRANSLATION",
           source_lang: sourceLang,
@@ -87,25 +76,10 @@ TRANSLATION (${targetName}):`;
         },
       });
 
-      if (error) {
-        console.error("[TRANSLATE] API error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      let translated =
-        data?.reply || data?.text || data?.message || data?.choices?.[0]?.message?.content || text;
-
-      // Strip common AI response prefixes
-      translated = String(translated)
-        .replace(/^(перевод|translation|переведено|перевод:|translation:|tarjima|ترجمه):\s*/i, "")
-        .replace(/^["'`«»'"]|["'`«»'"]$/g, "")
-        .trim();
-
-      if (translated.startsWith('"') && translated.endsWith('"')) {
-        translated = translated.slice(1, -1);
-      }
-
-      console.log(`[TRANSLATE] Result: "${translated.substring(0, 80)}..."`);
+      let translated = data?.reply || data?.text || text;
+      translated = String(translated).replace(/^(перевод|translation):\s*/i, "").trim();
 
       return {
         translatedText: translated,
