@@ -47,7 +47,7 @@ export function WelcomeScreen() {
         transition={{ delay: 0.4 }}
         className="mt-1 text-sm text-slate-500 dark:text-slate-400"
       >
-        {t("welcome_founder")}
+        {t("welcome_subtitle")}
       </motion.p>
 
       <motion.div

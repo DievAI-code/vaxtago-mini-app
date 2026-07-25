@@ -1,17 +1,11 @@
-# VaxtaGo Project Ownership
+# VAQTA AI Project Ownership
 
 Project:
-VaxtaGo
-
-Founder:
-Диев Дмитрий Сергеевич
-
-Role:
-Founder / Product Owner
+VAQTA AI
 
 Description:
 
-VaxtaGo is an AI-powered Super App for:
+VAQTA AI is an AI-powered Super App for:
 - job search;
 - document assistance;
 - AI translation;
@@ -19,8 +13,8 @@ VaxtaGo is an AI-powered Super App for:
 - digital services.
 
 All product ideas, business logic, design concepts,
-branding and source code belong to:
-
-Диев Дмитрий Сергеевич
+branding and source code belong to VAQTA AI.
 
 All rights reserved.
+
+© 2026 VAQTA AI. All rights reserved.

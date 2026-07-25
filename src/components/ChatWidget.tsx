@@ -7,7 +7,7 @@ import { useApp } from "@/lib/theme";
 import { useTelegramUser } from "./TelegramProvider";
 import { useAiChat } from "@/hooks/useAiChat";
 import { ChatHistory, useChatSessions } from "./ChatHistory";
-import { VaxtaGoLogo } from "./VaxtaGoLogo";
+import { VaqtaLogo } from "./VaqtaLogo";
 
 interface Msg {
   id: string;
@@ -16,7 +16,7 @@ interface Msg {
   createdAt: Date;
 }
 
-const CACHE_KEY = "vaxtago_chat_messages";
+const CACHE_KEY = "vaqta_chat_messages";
 const MAX_DISPLAY = 100;
 const makeId = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
 function formatTime(d: Date) { return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
@@ -73,9 +73,9 @@ export function ChatWidget() {
   function newChat() { createSession(); setMessages([{ id: makeId(), role: "assistant", content: t("ai_hello"), createdAt: new Date() }]); setMenuOpen(false); setHistoryOpen(false); }
   function clearHistory() { setMessages([{ id: makeId(), role: "assistant", content: t("ai_hello"), createdAt: new Date() }]); setMenuOpen(false); }
   function exportChat() {
-    const text = messages.map((m) => `${m.role === "user" ? "Вы" : "VaxtaGo"} (${formatTime(m.createdAt)}): ${m.content}`).join("\n\n");
+    const text = messages.map((m) => `${m.role === "user" ? "Вы" : "VAQTA AI"} (${formatTime(m.createdAt)}): ${m.content}`).join("\n\n");
     const blob = new Blob([text], { type: "text/plain" }); const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "vaxtago-chat.txt"; a.click(); URL.revokeObjectURL(url); setMenuOpen(false);
+    const a = document.createElement("a"); a.href = url; a.download = "vaqta-ai-chat.txt"; a.click(); URL.revokeObjectURL(url); setMenuOpen(false);
   }
   function copyLast() { const last = messages.filter((m) => m.role === "assistant").pop(); if (last) navigator.clipboard.writeText(last.content); setMenuOpen(false); }
   function startRename() { setNewTitle(sessions.find((s) => s.id === activeId)?.title || ""); setRenaming(true); setMenuOpen(false); }
@@ -87,9 +87,9 @@ export function ChatWidget() {
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white dark:bg-[#0F172A] border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-3">
           {!isInTelegram && <button onClick={() => setHistoryOpen(true)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden" aria-label="History"><Menu size={20} /></button>}
-          <VaxtaGoLogo size={36} />
+          <VaqtaLogo size={36} />
           <div>
-            <h1 className="font-bold text-slate-800 dark:text-white leading-tight">VaxtaGo AI</h1>
+            <h1 className="font-bold text-slate-800 dark:text-white leading-tight">VAQTA AI</h1>
             <p className="text-xs text-[#14B8A6] flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#14B8A6] inline-block" /> онлайн</p>
           </div>
         </div>
@@ -130,7 +130,7 @@ export function ChatWidget() {
           {messages.map((m) => (
             <motion.div key={m.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={`flex items-end gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === "user" ? "bg-slate-300 dark:bg-slate-700" : "bg-gradient-to-br from-[#2563EB] to-[#14B8A6]"}`}>
-                {m.role === "user" ? <User size={16} className="text-slate-600 dark:text-slate-200" /> : <VaxtaGoLogo size={20} />}
+                {m.role === "user" ? <User size={16} className="text-slate-600 dark:text-slate-200" /> : <VaqtaLogo size={20} />}
               </div>
               <div className={`group max-w-[78%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${m.role === "user" ? "bg-[#2563EB] text-white rounded-br-md" : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-md"}`}>
                 {m.role === "assistant" ? <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} /> : <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>}
@@ -144,7 +144,7 @@ export function ChatWidget() {
         </AnimatePresence>
         {loading && (
           <div className="flex items-end gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563EB] to-[#14B8A6] flex items-center justify-center"><VaxtaGoLogo size={20} /></div>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563EB] to-[#14B8A6] flex items-center justify-center"><VaqtaLogo size={20} /></div>
             <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm"><TypingDots /></div>
           </div>
         )}

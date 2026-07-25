@@ -1,13 +1,13 @@
 # VAQTA AI Mini App
 
-Telegram Mini App для мигрантов — AI помощник по работе, документам и переводам.
+Telegram Mini App — AI помощник по работе, документам и переводам.
 
 ## Технологии
 
 - **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS
 - **Backend:** Supabase Edge Functions (AI Router, Telegram Webhook)
 - **AI:** OpenRouter (Google Gemini 2.5 Flash Vision)
-- **Maps:** Yandex Maps API v3 (with OpenStreetMap fallback)
+- **Maps:** Yandex Maps API & 2GIS
 - **Deploy:** Vercel (Static SPA)
 
 ## Переменные окружения (Frontend)
@@ -56,7 +56,7 @@ OPENROUTER_API_KEY=...
 SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
 TELEGRAM_BOT_TOKEN=...
-MINI_APP_URL=https://vaxtago.vercel.app/mini/home
+MINI_APP_URL=https://vaqta-ai.vercel.app
 ```
 
-© 2026 VAQTA AI • Made by Dmitry Diev
+© 2026 VAQTA AI. All rights reserved.

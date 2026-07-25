@@ -67,7 +67,6 @@ export default function Profile() {
     </div>
   );
 
-  const isFounder = userData?.role === 'founder';
   const premiumCheck = checkPremiumAccess(userData);
 
   return (
@@ -90,36 +89,17 @@ export default function Profile() {
             )}
           </div>
           <div>
-            <h2 className="text-2xl font-black">{userData?.first_name || "VAQTA User"}</h2>
+            <h2 className="text-2xl font-black">{userData?.first_name || "VAQTA AI User"}</h2>
             <p className="text-xs text-[#5C7A6D] font-bold uppercase tracking-widest">{userData?.phone_number}</p>
           </div>
         </section>
-
-        {isFounder && (
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => nav("/admin")}
-            className="w-full p-5 vaqta-glass border-[#D4AF37]/30 bg-gradient-to-r from-[#D4AF37]/10 to-transparent flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-[#D4AF37]/10 text-[#D4AF37]">
-                <Key size={20} />
-              </div>
-              <div className="text-left">
-                <p className="text-xs font-black uppercase text-[#D4AF37] tracking-widest">{t("profile.admin_panel")}</p>
-                <p className="text-[10px] text-[#D4AF37]/60 font-bold uppercase">System Control Center</p>
-              </div>
-            </div>
-            <ArrowRight size={18} className="text-[#D4AF37] group-hover:translate-x-1 transition-transform" />
-          </motion.button>
-        )}
 
         <div className={`vaqta-glass p-6 border ${premiumCheck.isPremium ? 'border-[#D4AF37]/40 shadow-[0_0_30px_rgba(212,175,55,0.1)]' : 'border-[#1A3D2E]'}`}>
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D]">{t("profile.subscription")}</p>
               <h3 className={`text-xl font-black mt-1 ${premiumCheck.isPremium ? 'vaqta-gold-text' : 'text-white'}`}>
-                {premiumCheck.isPremium ? 'VAQTA PREMIUM' : 'VAQTA FREE'}
+                {premiumCheck.isPremium ? 'VAQTA AI PREMIUM' : 'VAQTA AI FREE'}
               </h3>
             </div>
             {!premiumCheck.isPremium && (
@@ -182,7 +162,7 @@ export default function Profile() {
         </section>
 
         <p className="text-center text-[9px] text-[#5C7A6D] uppercase font-black tracking-widest pt-4">
-          VAQTA AI v3.0 • Joined {userData?.created_at ? new Date(userData.created_at).toLocaleDateString() : '—'}
+          VAQTA AI v3.0 • © 2026 VAQTA AI. All rights reserved.
         </p>
       </main>
 

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { VaxtaGoLogo } from "./VaxtaGoLogo";
+import { VaqtaLogo } from "./VaqtaLogo";
 import { Check } from "lucide-react";
 
 const STEPS = [
@@ -60,8 +60,8 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         </defs>
         <circle cx="40" cy="30" r="4" fill="#22C55E" />
         <circle cx="160" cy="90" r="4" fill="#2563EB" />
-        <text x="30" y="20" fill="#94A3B8" fontSize="10">UZ</text>
-        <text x="150" y="110" fill="#94A3B8" fontSize="10">RU</text>
+        <text x="30" y="20" fill="#94A3B8" fontSize="10">HOME</text>
+        <text x="150" y="110" fill="#94A3B8" fontSize="10">ROUTE</text>
       </motion.svg>
 
       {/* Logo draws with glowing line */}
@@ -70,7 +70,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         transition={{ duration: 0.6 }}
         className="mb-8"
       >
-        <VaxtaGoLogo size={80} animated glow />
+        <VaqtaLogo size={80} animated glow />
       </motion.div>
 
       {/* Welcome text + words */}
@@ -80,7 +80,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         transition={{ duration: 0.5 }}
         className="text-2xl font-black text-white tracking-tight text-center"
       >
-        Добро пожаловать в VaxtaGo
+        Добро пожаловать в VAQTA AI
       </motion.h1>
 
       <div className="flex gap-3 mt-3 h-6">

@@ -7,7 +7,7 @@ import { createPremiumInvoice, activatePremiumSubscription, answerPreCheckoutQue
 import { getAIResponse } from "./ai.ts";
 import { analyzeDocument } from "./vision.ts";
 
-const MINI_APP_URL = Deno.env.get("MINI_APP_URL") ?? "https://vaxtago.app";
+const MINI_APP_URL = Deno.env.get("MINI_APP_URL") ?? "https://vaqta-ai.app";
 
 export async function processCallbackQuery(body: any, supabase: any, botToken: string) {
   const cb = body?.callback_query;
@@ -31,15 +31,12 @@ export async function processCallbackQuery(body: any, supabase: any, botToken: s
     await createPremiumInvoice(chatId, botToken, lang, providerToken);
     return;
   }
-
-  // ... остальные хендлеры (jobs, docs, etc)
 }
 
 export async function processTelegramMessage(body: any, supabase: any, botToken: string) {
   const msg = body?.message;
   const preCheckout = body?.pre_checkout_query;
 
-  // 1. Обработка Pre-Checkout (Обязательно)
   if (preCheckout) {
     await answerPreCheckoutQuery(botToken, preCheckout.id, true);
     return;
@@ -54,7 +51,6 @@ export async function processTelegramMessage(body: any, supabase: any, botToken:
   const lang: Lang = (user?.language as Lang) || "ru";
   const hasPremium = await isPremiumActive(supabase, from.id);
 
-  // 2. Успешный платеж
   if (msg.successful_payment) {
     await activatePremiumSubscription(supabase, from.id, msg.successful_payment);
     const successMsg = {
@@ -67,7 +63,6 @@ export async function processTelegramMessage(body: any, supabase: any, botToken:
 
   const text = msg.text;
 
-  // 3. Меню Premium
   if (text === "/premium" || text?.includes("Premium")) {
     const premiumText = {
       ru: "⭐ **VAQTA AI Premium**\n\nПолный доступ к возможностям:\n✅ AI помощник без ограничений\n✅ Распознавание документов через Vision\n✅ Перевод документов\n✅ Проверка работодателей\n\n💰 Стоимость: **99 000 сум / 30 дней**",
@@ -79,14 +74,12 @@ export async function processTelegramMessage(body: any, supabase: any, botToken:
     return;
   }
 
-  // 4. Ограничение доступа для FREE пользователей (AI / Vision)
   if (!hasPremium) {
     const isAiRequest = text && !text.startsWith("/");
     const isVisionRequest = msg.photo || msg.document;
 
     if (isAiRequest || isVisionRequest) {
-      // Здесь можно добавить счетчик лимитов. Если лимит исчерпан:
-      const limitReached = true; // Заглушка, в реальности проверяем ai_usage
+      const limitReached = true;
       if (limitReached) {
         const lockText = {
           ru: "⭐ Эта функция доступна в **VAQTA AI Premium**.\n\nКупите подписку, чтобы пользоваться AI помощником и распознаванием фото без ограничений.",
@@ -100,7 +93,6 @@ export async function processTelegramMessage(body: any, supabase: any, botToken:
     }
   }
 
-  // Обычная логика (start, ai responses etc)
   if (text === "/start") {
     await sendMessage(chatId, botToken, "Главное меню", {
       keyboard: [[{ text: "⭐ VAQTA AI Premium" }], [{ text: "🤖 AI Чат" }, { text: "📷 Скан" }]],

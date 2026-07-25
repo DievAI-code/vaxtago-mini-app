@@ -1,4 +1,4 @@
-# VaxtaGo Mini App — Деплой на Vercel
+# VAQTA AI Mini App — Деплой на Vercel
 
 ## Подготовка
 
@@ -8,7 +8,7 @@
 
 ```bash
 git add .
-git commit -m "VaxtaGo Mini App for Vercel"
+git commit -m "VAQTA AI Mini App for Vercel"
 git push origin main
 ```
 
@@ -36,13 +36,13 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 Нажмите **Deploy**. Через 1–2 минуты получите HTTPS:
 
 ```
-https://vaxtago.vercel.app
+https://vaqta-ai.vercel.app
 ```
 
 ## Шаг 5: Подключение в BotFather
 
 1. Откройте @BotFather в Telegram
-2. `/setmenubutton` → выберите бот → URL: `https://vaxtago.vercel.app/mini/home`
+2. `/setmenubutton` → выберите бот → URL: `https://vaqta-ai.vercel.app/mini/home`
 3. Или `/setcommands` для команды `/start` с Web App
 
 ## Шаг 6: Настройка Mini App URL в Supabase
@@ -50,14 +50,14 @@ https://vaxtago.vercel.app
 В `supabase/functions/telegram-webhook/handlers.ts` уже указано:
 
 ```ts
-const MINI_APP_URL = Deno.env.get("MINI_APP_URL") ?? "https://vaxtago.vercel.app/mini/home";
+const MINI_APP_URL = Deno.env.get("MINI_APP_URL") ?? "https://vaqta-ai.vercel.app";
 ```
 
-Убедитесь, что в Supabase Edge Function переменная `MINI_APP_URL=https://vaxtago.vercel.app/mini/home` установлена.
+Убедитесь, что в Supabase Edge Function переменная `MINI_APP_URL=https://vaqta-ai.vercel.app` установлена.
 
 ## Проверка
 
-Откройте `https://vaxtago.vercel.app/mini/home` в браузере — должен появиться экран VaxtaGo с кнопками.
+Откройте `https://vaqta-ai.vercel.app` в браузере — должен появиться экран VAQTA AI с кнопками.
 
 ## Структура
 
@@ -66,6 +66,6 @@ const MINI_APP_URL = Deno.env.get("MINI_APP_URL") ?? "https://vaxtago.vercel.app
 - `src/pages/Scanner.tsx` — сканер документов
 - `src/pages/Jobs.tsx` — вакансии
 - `src/pages/Profile.tsx` — профиль
-- `supabase/functions/ai-router/` — единый AI Router (Gemini Vision)
+- `supabase/functions/ai-router/` — единый AI Router
 
-© 2026 VaxtaGo • Made by Dmitry Diev
+© 2026 VAQTA AI. All rights reserved.

@@ -1,8 +1,7 @@
-Founder:
-Диев Дмитрий Сергеевич
-
 Project:
-VaxtaGo
+VAQTA AI
 
 Version:
-2.0
+3.0
+
+© 2026 VAQTA AI. All rights reserved.

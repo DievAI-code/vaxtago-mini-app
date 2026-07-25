@@ -7,10 +7,10 @@ export const DEFAULT_MODELS = [
   "anthropic/claude-3.5-haiku",
 ];
 
-export const APP_DOMAIN = Deno.env.get("APP_DOMAIN") ?? "https://vaxtago.app";
+export const APP_DOMAIN = Deno.env.get("APP_DOMAIN") ?? "https://vaqta-ai.app";
 export const TEST_PIN = Deno.env.get("BOT_ACCESS_PASSWORD") ?? "31975";
 
-export const VAXTAGO_SYSTEM_PROMPT = `Ты — AI-помощник VaxtaGo.
+export const VAXTAGO_SYSTEM_PROMPT = `Ты — AI-помощник VAQTA AI.
 Твоя задача: помогать гражданам Узбекистана безопасно работать в России.
 Помогай с:
 * поиском работы

@@ -1,11 +1,11 @@
 {
-  "name": "VaxtaGo",
-  "short_name": "VaxtaGo",
-  "description": "AI помощник для мигрантов, документов и поиска работы",
+  "name": "VAQTA AI",
+  "short_name": "VAQTA AI",
+  "description": "AI помощник для работы, документов и поиска работы",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0F172A",
-  "theme_color": "#2563EB",
+  "background_color": "#06140F",
+  "theme_color": "#0AA86E",
   "icons": [
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]

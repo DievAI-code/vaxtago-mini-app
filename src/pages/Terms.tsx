@@ -9,6 +9,9 @@ export default function Terms() {
       <Card variant="default">
         <p className="text-slate-300 leading-relaxed">{t("terms_text")}</p>
       </Card>
+      <Card variant="default" className="mt-4">
+        <p className="text-slate-400 text-sm">© 2026 VAQTA AI. All rights reserved.</p>
+      </Card>
     </PageLayout>
   );
 }

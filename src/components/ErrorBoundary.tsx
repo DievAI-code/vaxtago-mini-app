@@ -20,7 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("[VAQTA Error Boundary]", error, errorInfo);
+    console.error("[VAQTA AI Error Boundary]", error, errorInfo);
   }
 
   private handleReset = () => {

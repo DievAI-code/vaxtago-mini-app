@@ -99,15 +99,15 @@ function Footer() {
            <Bot size={24} />
          </div>
          <div>
-            <p className="text-sm font-black text-white uppercase tracking-widest">{t("founder.name")}</p>
-            <p className="text-[10px] font-bold text-[#0AA86E] uppercase tracking-[0.2em]">{t("founder.title")}</p>
+            <p className="text-sm font-black text-white uppercase tracking-widest">VAQTA AI</p>
+            <p className="text-[10px] font-bold text-[#0AA86E] uppercase tracking-[0.2em]">AI Platform</p>
          </div>
       </div>
       <p className="text-xs text-[#5C7A6D] font-medium leading-relaxed italic">
         {t("founder.desc")}
       </p>
       <div className="flex items-center justify-between pt-4">
-         <span className="text-[10px] font-black text-[#5C7A6D] uppercase tracking-widest">© 2026 VAQTA AI</span>
+         <span className="text-[10px] font-black text-[#5C7A6D] uppercase tracking-widest">© 2026 VAQTA AI. All rights reserved.</span>
          <div className="flex gap-4">
             <div className="w-1.5 h-1.5 rounded-full bg-[#0AA86E] animate-pulse" />
             <div className="w-1.5 h-1.5 rounded-full bg-[#2563EB] animate-pulse" />

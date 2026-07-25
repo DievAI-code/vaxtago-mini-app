@@ -39,7 +39,6 @@ export default function AiAssistant() {
 
     const msgIndex = messages.length + 1;
     
-    // Detect route intent
     const navIntent = detectNavigationIntent(text);
     if (navIntent.intent === "route") {
       setRouteIntents((prev) => ({ ...prev, [msgIndex]: navIntent }));
@@ -77,7 +76,7 @@ export default function AiAssistant() {
                 <Sparkles className="absolute -top-2 -right-2 text-[#D4AF37] animate-pulse" size={22} />
               </div>
               <div className="space-y-1.5">
-                <h2 className="text-2xl sm:text-3xl font-black vaqta-gold-text tracking-tighter">VAQTA ASSISTANT</h2>
+                <h2 className="text-2xl sm:text-3xl font-black vaqta-gold-text tracking-tighter">VAQTA AI</h2>
                 <p className="text-xs font-bold text-[#5C7A6D] uppercase tracking-[0.2em]">{t("ai.welcome")}</p>
               </div>
               

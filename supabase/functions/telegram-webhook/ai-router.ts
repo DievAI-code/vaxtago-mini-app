@@ -39,8 +39,8 @@ async function callOpenRouter(
     headers: {
       "Authorization": `Bearer ${key}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": Deno.env.get("APP_DOMAIN") ?? "https://vaxtago.app",
-      "X-Title": "VaxtaGo",
+      "HTTP-Referer": Deno.env.get("APP_DOMAIN") ?? "https://vaqta-ai.app",
+      "X-Title": "VAQTA AI",
     },
     body: JSON.stringify({
       model,
@@ -87,7 +87,7 @@ async function callOpenAI(
       model,
       max_tokens: 1500,
       messages: [
-        { role: "system", content: "Ты — AI-помощник VaxtaGo для мигрантов в России." },
+        { role: "system", content: "Ты — AI-помощник VAQTA AI для мигрантов в России." },
         { role: "user", content },
       ],
     }),
