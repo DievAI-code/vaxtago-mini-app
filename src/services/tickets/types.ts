@@ -8,19 +8,22 @@ export interface TicketSearchParams {
   passengers?: number;
 }
 
-export interface TicketResult {
-  provider: string;
-  providerLogo?: string;
-  type: TicketType;
-  title: string;
+export interface TicketProvider {
+  id: string;
+  name: string;
+  type: TicketType[];
+  url: string;
+  icon?: string;
   description: string;
-  priceEstimate?: string;
-  deepLink: string;
 }
 
-export interface ITicketProvider {
-  name: string;
-  id: string;
-  supports: TicketType[];
-  searchTickets(params: TicketSearchParams): Promise<TicketResult[]>;
+export interface TicketResult {
+  type: TicketType;
+  from?: string;
+  to?: string;
+  providers: TicketProvider[];
+  deepLinks: {
+    provider: string;
+    url: string;
+  }[];
 }

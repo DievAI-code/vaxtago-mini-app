@@ -1,6 +1,6 @@
 import { detectIntent, AIIntent } from "./aiRouter";
 import { queryKnowledgeBase, KnowledgeEntry } from "./knowledgeBase";
-import { ticketService } from "@/services/tickets/ticketService";
+import { ticketService, detectTicketIntent, extractCities, searchTickets } from "@/services/tickets/ticketService";
 import { TicketResult } from "@/services/tickets/types";
 
 export type SearchIntentType =
@@ -22,7 +22,7 @@ export interface SmartSearchResult {
   from?: string;
   to?: string;
   profession?: string;
-  tickets?: TicketResult[];
+  tickets?: TicketResult;
   knowledge?: KnowledgeEntry;
   webSources?: Array<{ title: string; url: string; snippet: string }>;
   suggestedAction?: {
@@ -32,37 +32,34 @@ export interface SmartSearchResult {
   };
 }
 
-const TICKET_REGEX = /билет|поезд|жд|поездка|рейс|самолет|авиа|билетлар|чипта|poyezd|samolyot|bilet/i;
-const FLIGHT_REGEX = /самолет|авиа|авиабилет|самолёт|рейс|fly|flight|samolyot/i;
-
 export async function processSmartSearch(message: string): Promise<SmartSearchResult> {
   const baseIntent = detectIntent(message);
-  const low = message.toLowerCase().trim();
+  const lowerMsg = message.toLowerCase().trim();
 
-  const isTicket = TICKET_REGEX.test(low);
-  const isFlight = FLIGHT_REGEX.test(low);
-
-  if (isTicket) {
-    const type = isFlight ? "flight" : "train";
-    const from = baseIntent.entities.from || extractCityFromText(low, "from") || "Москва";
-    const to = baseIntent.entities.to || extractCityFromText(low, "to") || "Ташкент";
-
-    const tickets = await ticketService.searchTickets({ type, from, to });
+  // 1. Check for ticket search intent
+  const ticketCheck = detectTicketIntent(message);
+  if (ticketCheck.isTicket) {
+    const cities = extractCities(message);
+    const tickets = await searchTickets({
+      type: ticketCheck.type || "train",
+      from: cities.from,
+      to: cities.to,
+    });
 
     return {
-      intentType: isFlight ? "FLIGHT_SEARCH" : "TICKET_SEARCH",
+      intentType: ticketCheck.type === "flight" ? "FLIGHT_SEARCH" : "TICKET_SEARCH",
       queryText: message,
       language: baseIntent.detectedLanguage,
-      from,
-      to,
+      from: cities.from,
+      to: cities.to,
       tickets,
       suggestedAction: {
-        label: `🎫 Искать ${type === "flight" ? "авиабилеты" : "ЖД билеты"} ${from} → ${to}`,
-        url: tickets[0]?.deepLink,
+        label: `🎫 Найдены варианты ${cities.from ? cities.from + " → " : ""}${cities.to || "..."}`,
       },
     };
   }
 
+  // 2. Check knowledge base
   const kbMatch = queryKnowledgeBase(message);
   if (kbMatch) {
     return {
@@ -77,7 +74,9 @@ export async function processSmartSearch(message: string): Promise<SmartSearchRe
     };
   }
 
-  if (baseIntent.type === "GENERAL_CHAT" && (low.includes("как") || low.includes("где") || low.includes("сколько") || low.includes("почему"))) {
+  // 3. Check for web search fallback
+  if (baseIntent.type === "GENERAL_CHAT" && 
+      (lowerMsg.includes("как") || lowerMsg.includes("где") || lowerMsg.includes("сколько"))) {
     return {
       intentType: "WEB_SEARCH",
       queryText: message,
@@ -88,11 +87,6 @@ export async function processSmartSearch(message: string): Promise<SmartSearchRe
           url: "https://мвд.рф",
           snippet: "Официальные разъяснения МВД РФ и правила пребывания иностранных граждан.",
         },
-        {
-          title: "VAQTA AI — База знаний и поддержка",
-          url: "https://vaxtago.app",
-          snippet: "Информационная поддержка трудовых мигрантов в России.",
-        },
       ],
       suggestedAction: {
         label: "🔎 Искать в Интернете",
@@ -101,8 +95,18 @@ export async function processSmartSearch(message: string): Promise<SmartSearchRe
     };
   }
 
+  // 4. Default to base intent
+  const intentMap: Record<string, SearchIntentType> = {
+    JOB_SEARCH: "JOB_SEARCH",
+    MAP_ROUTE: "MAP_ROUTE",
+    MAP_SEARCH: "MAP_SEARCH",
+    OCR_TRANSLATE: "OCR_TRANSLATE",
+    DOCUMENT_HELP: "DOCUMENT_HELP",
+    GENERAL_CHAT: "GENERAL_CHAT",
+  };
+
   return {
-    intentType: baseIntent.type as SearchIntentType,
+    intentType: intentMap[baseIntent.type] || "GENERAL_CHAT",
     queryText: message,
     language: baseIntent.detectedLanguage,
     from: baseIntent.entities.from,
@@ -110,12 +114,4 @@ export async function processSmartSearch(message: string): Promise<SmartSearchRe
     profession: baseIntent.entities.profession,
     suggestedAction: baseIntent.replyHint ? { label: baseIntent.replyHint } : undefined,
   };
-}
-
-function extractCityFromText(text: string, direction: "from" | "to"): string | undefined {
-  const cities = ["москва", "ташкент", "тюмень", "спб", "питер", "казань", "екатеринбург", "самарканд", "самарканд", "сургут", "нижневартовск"];
-  for (const c of cities) {
-    if (text.includes(c)) return c.charAt(0).toUpperCase() + c.slice(1);
-  }
-  return undefined;
 }

@@ -1,93 +1,96 @@
-import { ITicketProvider, TicketSearchParams, TicketResult } from "./types";
+import { TicketSearchParams, TicketResult } from "./types";
+import { getProvidersByType, buildDeepLink } from "./ticketProviders";
 
-class YandexTravelProvider implements ITicketProvider {
-  name = "Яндекс Путешествия";
-  id = "yandex_travel";
-  supports: TicketSearchParams["type"][] = ["train", "flight", "bus"];
+// Multi-language ticket keywords
+const TICKET_KEYWORDS = {
+  ru: ["билет", "поезд", "авиабилет", "купить билет", "жд билет", "самолет", "рейс", "доехать", "уехать", "домой", "билетлар", "чипта"],
+  uz: ["chipta", "bilet", "poyezd", "samolyot", "uchish", "bilet sotib olish", "uyga"],
+  uz_cyr: ["чипта", "билет", "поезд", "самолёт", "учиш", "билет сотиб олиш", "уйга"],
+  tj: ["чипта", "билет", "поезд", "самолёт", "харидани", "бозгашт"],
+  en: ["ticket", "train ticket", "flight", "air ticket", "buy ticket", "go home", "travel"],
+};
 
-  async searchTickets(params: TicketSearchParams): Promise<TicketResult[]> {
-    const fromQuery = params.from ? encodeURIComponent(params.from) : "";
-    const toQuery = params.to ? encodeURIComponent(params.to) : "";
-    
-    let link = "https://travel.yandex.ru/";
-    if (params.type === "train") {
-      link = `https://travel.yandex.ru/trains/search/?fromName=${fromQuery}&toName=${toQuery}`;
-    } else if (params.type === "flight") {
-      link = `https://travel.yandex.ru/avia/search/?fromName=${fromQuery}&toName=${toQuery}`;
-    } else if (params.type === "bus") {
-      link = `https://travel.yandex.ru/buses/search/?fromName=${fromQuery}&toName=${toQuery}`;
+export function detectTicketIntent(message: string): { isTicket: boolean; type: "train" | "flight" | "bus" | null } {
+  const lowerMsg = message.toLowerCase();
+  
+  // Check all language keywords
+  const allKeywords = Object.values(TICKET_KEYWORDS).flat();
+  const isTicket = allKeywords.some(kw => lowerMsg.includes(kw.toLowerCase()));
+  
+  if (!isTicket) return { isTicket: false, type: null };
+  
+  // Determine transport type
+  const trainKeywords = ["поезд", "жд", "train", "poyezd", "поезд", "темир йўл", "темир йул"];
+  const flightKeywords = ["самолет", "авиа", "flight", "air", "samolyot", "самолёт", "airplane", "plane"];
+  const busKeywords = ["автобус", "bus", "avtobus", "автобус"];
+  
+  if (flightKeywords.some(kw => lowerMsg.includes(kw))) return { isTicket: true, type: "flight" };
+  if (busKeywords.some(kw => lowerMsg.includes(kw))) return { isTicket: true, type: "bus" };
+  if (trainKeywords.some(kw => lowerMsg.includes(kw))) return { isTicket: true, type: "train" };
+  
+  // Default to train if ambiguous
+  return { isTicket: true, type: "train" };
+}
+
+export function extractCities(message: string): { from?: string; to?: string } {
+  const lowerMsg = message.toLowerCase();
+  
+  // Common city patterns
+  const cityPatterns = [
+    /(?:от|с|из)\s+([а-яa-z\s]+?)\s+(?:до|в|на)\s+([а-яa-z\s]+)/i,
+    /([а-яa-z\s]+?)\s*[-–—>→]\s*([а-яa-z\s]+)/i,
+  ];
+  
+  for (const pattern of cityPatterns) {
+    const match = message.match(pattern);
+    if (match) {
+      return {
+        from: match[1].trim(),
+        to: match[2].trim(),
+      };
     }
-
-    return [
-      {
-        provider: "Яндекс Путешествия",
-        type: params.type,
-        title: `${params.type === "train" ? "🚆 ЖД Билеты" : params.type === "flight" ? "✈️ Авиабилеты" : "🚌 Автобус"}: ${params.from || "Откуда"} → ${params.to || "Куда"}`,
-        description: "Официальный поиск билетов, сравнение цен и расписание онлайн",
-        deepLink: link,
-      },
-    ];
   }
+  
+  // Try to find city names in message
+  const cities = ["москва", "ташкент", "самарканд", "бухара", "казань", "спб", "питер", "тюмень", "сургут", "екатеринбург"];
+  const foundCities: string[] = [];
+  
+  for (const city of cities) {
+    if (lowerMsg.includes(city)) {
+      foundCities.push(city.charAt(0).toUpperCase() + city.slice(1));
+    }
+  }
+  
+  if (foundCities.length >= 2) {
+    return { from: foundCities[0], to: foundCities[1] };
+  } else if (foundCities.length === 1) {
+    return { to: foundCities[0] };
+  }
+  
+  return {};
 }
 
-class TutuRuProvider implements ITicketProvider {
-  name = "Tutu.ru";
-  id = "tutu";
-  supports: TicketSearchParams["type"][] = ["train", "bus"];
-
-  async searchTickets(params: TicketSearchParams): Promise<TicketResult[]> {
-    const fromQ = params.from ? encodeURIComponent(params.from) : "";
-    const toQ = params.to ? encodeURIComponent(params.to) : "";
-    const link = `https://www.tutu.ru/poezda/search/?st1=${fromQ}&st2=${toQ}`;
-
-    return [
-      {
-        provider: "Tutu.ru",
-        type: params.type,
-        title: `🎫 Билеты Tutu: ${params.from || "Откуда"} — ${params.to || "Куда"}`,
-        description: "Расписание поездов, наличие мест и бронирование",
-        deepLink: link,
-      },
-    ];
-  }
-}
-
-class AviasalesProvider implements ITicketProvider {
-  name = "Aviasales / Travelpayouts";
-  id = "aviasales";
-  supports: TicketSearchParams["type"][] = ["flight"];
-
-  async searchTickets(params: TicketSearchParams): Promise<TicketResult[]> {
-    const link = `https://www.aviasales.ru/search?origin=${encodeURIComponent(params.from || "MOW")}&destination=${encodeURIComponent(params.to || "TAS")}`;
-
-    return [
-      {
-        provider: "Aviasales",
-        type: "flight",
-        title: `✈️ Авиабилеты Aviasales: ${params.from || "Москва"} → ${params.to || "Ташкент"}`,
-        description: "Поиск дешёвых авиабилетов по всем авиакомпаниям",
-        deepLink: link,
-      },
-    ];
-  }
+export async function searchTickets(params: TicketSearchParams): Promise<TicketResult> {
+  const { type = "train", from, to } = params;
+  
+  const providers = getProvidersByType(type);
+  
+  const deepLinks = providers.map(provider => ({
+    provider: provider.name,
+    url: buildDeepLink(provider.id, { from, to }),
+  }));
+  
+  return {
+    type,
+    from,
+    to,
+    providers,
+    deepLinks,
+  };
 }
 
 export const ticketService = {
-  providers: [
-    new YandexTravelProvider(),
-    new TutuRuProvider(),
-    new AviasalesProvider(),
-  ] as ITicketProvider[],
-
-  async searchTickets(params: TicketSearchParams): Promise<TicketResult[]> {
-    const matchingProviders = this.providers.filter((p) =>
-      p.supports.includes(params.type)
-    );
-
-    const results = await Promise.all(
-      matchingProviders.map((p) => p.searchTickets(params))
-    );
-
-    return results.flat();
-  },
+  detectTicketIntent,
+  extractCities,
+  searchTickets,
 };

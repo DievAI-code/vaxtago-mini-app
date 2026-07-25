@@ -3,11 +3,12 @@
 import { motion } from "framer-motion";
 import { TicketResult } from "@/services/tickets/types";
 import { KnowledgeEntry } from "@/lib/knowledgeBase";
-import { Ticket, ExternalLink, Compass, BookOpen, Globe, ArrowRight } from "lucide-react";
+import { Ticket, ExternalLink, Compass, BookOpen, Globe, ArrowRight, Train, Plane } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { TicketCard } from "./assistant/TicketCard";
 
 interface AIActionCardProps {
-  tickets?: TicketResult[];
+  tickets?: TicketResult;
   knowledge?: KnowledgeEntry;
   webSources?: Array<{ title: string; url: string; snippet: string }>;
   actionLabel?: string;
@@ -25,44 +26,9 @@ export function AIActionCard({
 }: AIActionCardProps) {
   const nav = useNavigate();
 
-  if (tickets && tickets.length > 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full vaqta-glass border-[#00A86B]/30 p-5 space-y-3 shadow-xl my-2"
-      >
-        <div className="flex items-center gap-2 text-[#00A86B]">
-          <Ticket size={18} />
-          <span className="text-xs font-black uppercase tracking-wider">
-            Билеты найдены
-          </span>
-        </div>
-
-        <div className="space-y-2">
-          {tickets.map((t, i) => (
-            <div
-              key={i}
-              className="p-3 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between gap-3"
-            >
-              <div className="space-y-0.5 flex-1 min-w-0">
-                <p className="text-xs font-bold text-white truncate">{t.title}</p>
-                <p className="text-[10px] text-[#5C7A6D] line-clamp-1">{t.description}</p>
-              </div>
-              <a
-                href={t.deepLink}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3 py-2 bg-[#00A86B] text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 hover:bg-[#008f57] transition-colors flex-shrink-0 shadow-md"
-              >
-                <span>Купить</span>
-                <ExternalLink size={12} />
-              </a>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-    );
+  // Render ticket card if tickets are present
+  if (tickets) {
+    return <TicketCard result={tickets} />;
   }
 
   if (knowledge) {

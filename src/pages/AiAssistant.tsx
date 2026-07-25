@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Send, Bot, Mic, MapPin, Briefcase, Camera, 
-  Navigation, Sparkles, ChevronRight, Ticket
+  Navigation, Sparkles, ChevronRight, Ticket, Train, Plane
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
@@ -20,7 +20,7 @@ import { detectNavigationIntent } from "@/services/aiCommands";
 import { cn } from "@/lib/utils";
 
 export default function AiAssistant() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { sendMessage, loading: isTyping, messages } = useAiChat();
   const [input, setInput] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -53,10 +53,12 @@ export default function AiAssistant() {
 
   const SUGGESTIONS = [
     { icon: Briefcase, label: "ai.hint_jobs", color: "text-[#0AA86E]", cmd: "Найти работу сварщиком" },
-    { icon: Ticket, label: "Купить ЖД билет", color: "text-amber-400", cmd: "Купить жд билет Москва Ташкент" },
-    { icon: Navigation, label: "ai.hint_route", color: "text-blue-400", cmd: "Показать маршрут до вокзала" },
-    { icon: Camera, label: "ai.hint_photo", color: "text-purple-400", cmd: "Перевести фото" },
-    { icon: MapPin, label: "ai.hint_address", color: "text-cyan-400", cmd: "Где вокзал Тюмень?" },
+    { icon: Ticket, label: "🎫 Купить билет", color: "text-[#D4AF37]", cmd: "Купить билет Москва Ташкент" },
+    { icon: Train, label: "🚆 Найти поезд", color: "text-blue-400", cmd: "Купить жд билет" },
+    { icon: Plane, label: "✈️ Авиабилет", color: "text-cyan-400", cmd: "Купить авиабилет" },
+    { icon: Navigation, label: "ai.hint_route", color: "text-purple-400", cmd: "Показать маршрут до вокзала" },
+    { icon: Camera, label: "ai.hint_photo", color: "text-pink-400", cmd: "Перевести фото" },
+    { icon: MapPin, label: "ai.hint_address", color: "text-orange-400", cmd: "Где вокзал Тюмень?" },
   ];
 
   return (
@@ -113,7 +115,6 @@ export default function AiAssistant() {
                     />
                   )}
                   
-                  {/* Route Card for route intents */}
                   {routeIntent?.intent === "route" && routeIntent.to && (
                     <RouteCard
                       from={routeIntent.from}
@@ -149,7 +150,7 @@ export default function AiAssistant() {
 
       <div className="fixed bottom-24 left-0 right-0 px-4 sm:px-6 z-50 pointer-events-none">
         <div className="max-w-3xl mx-auto liquid-glass p-2.5 flex items-center gap-2 shadow-[0_30px_90px_rgba(0,0,0,0.9)] rounded-[2.2rem] pointer-events-auto border-emerald-500/20">
-          <button type="button" onClick={() => handleSend("купить жд билет")} className="p-3 text-[#5C7A6D] hover:text-white transition-colors" title="Поиск билетов"><Ticket size={20} /></button>
+          <button type="button" onClick={() => handleSend("купить билет")} className="p-3 text-[#D4AF37] hover:text-white transition-colors" title="Купить билет"><Ticket size={20} /></button>
           
           <textarea
             rows={1}
