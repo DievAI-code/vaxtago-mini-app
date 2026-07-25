@@ -8,6 +8,7 @@
     --emerald: 161 88% 34%; /* #0AA86E */
     --blue: 221 83% 53%;    /* #2563EB */
     --violet: 263 70% 58%;  /* #7C3AED */
+    --gold: 45 64% 53%;    /* #D4AF37 */
     --radius: 2rem;
   }
 }
@@ -17,60 +18,46 @@
     height: 100%;
     background: #06140F;
     color: #FFFFFF;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    font-family: 'Inter', 'SF Pro Display', -apple-system, sans-serif;
     overflow-x: hidden;
   }
 
-  /* Dynamic Gradient Background */
   body {
     background: radial-gradient(circle at 0% 0%, rgba(10, 168, 110, 0.15) 0%, transparent 40%),
                 radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.15) 0%, transparent 40%),
                 radial-gradient(circle at 50% 100%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
                 #06140F;
     background-attachment: fixed;
-    @apply antialiased selection:bg-[#0AA86E]/30;
+    @apply antialiased;
   }
-
-  h1 { @apply text-[36px] font-black tracking-tight leading-tight uppercase; }
-  h2 { @apply text-[28px] font-black tracking-tight leading-snug uppercase; }
-  h3 { @apply text-[20px] font-bold tracking-tight uppercase; }
-  p { @apply text-[17px] leading-relaxed; }
 }
 
 @layer utilities {
+  .vaqta-glass {
+    @apply backdrop-blur-[40px] bg-white/[0.04] border border-white/10 shadow-2xl;
+  }
+  
   .liquid-glass {
-    @apply backdrop-blur-[40px] bg-white/[0.06] border border-white/10 shadow-2xl;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-  }
-  
-  .glass-card {
-    @apply liquid-glass rounded-[2.5rem] transition-all duration-500;
+    @apply backdrop-blur-[50px] bg-white/[0.08] border border-white/15 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)];
   }
 
-  .h-screen-dynamic { height: 100dvh; }
-  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-  .pt-safe { padding-top: env(safe-area-inset-top); }
-  
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-}
+  .vaqta-gradient {
+    @apply bg-gradient-to-br from-[#0AA86E] via-[#2563EB] to-[#7C3AED];
+  }
 
-.vaqta-gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-[#0AA86E] via-[#2563EB] to-[#7C3AED];
-}
+  .vaqta-gold-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] to-[#F5D17E];
+  }
 
-.vaqta-btn-primary {
-  @apply bg-white text-black font-black uppercase tracking-widest px-6 py-4 rounded-3xl shadow-xl active:scale-95 transition-all duration-300;
-}
+  .message-ai {
+    @apply liquid-glass rounded-[2rem] rounded-tl-none border-emerald-500/20 shadow-[0_10px_40px_rgba(10,168,110,0.1)];
+  }
 
-.vaqta-btn-glass {
-  @apply liquid-glass font-bold text-white px-6 py-4 rounded-3xl active:scale-95 transition-all duration-300;
-}
+  .message-user {
+    @apply bg-white/10 backdrop-blur-xl border border-white/10 rounded-[2rem] rounded-tr-none;
+  }
 
-.vaqta-badge-ai {
-  @apply bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full;
-}
-
-.vaqta-glow {
-  box-shadow: 0 0 30px rgba(10, 168, 110, 0.2);
+  .vaqta-glow {
+    box-shadow: 0 0 30px rgba(10, 168, 110, 0.25);
+  }
 }

@@ -68,19 +68,6 @@ export function RoutePanel({ route, mode, fromName, toName, onModeChange, onStar
         </div>
       </div>
 
-      {route.transport && (
-        <div className="bg-[#00A86B]/10 border border-[#00A86B]/20 p-3 rounded-2xl flex items-center justify-between">
-           <div className="flex items-center gap-3">
-              <Bus className="text-[#00A86B]" size={20} />
-              <div>
-                <p className="text-xs font-black text-white">{route.transport.line}</p>
-                <p className="text-[9px] font-bold text-[#00A86B] uppercase">{route.transport.stop}</p>
-              </div>
-           </div>
-           <span className="text-[9px] font-black uppercase text-slate-400">Без пересадок</span>
-        </div>
-      )}
-
       <button 
         onClick={onStart}
         className="w-full h-14 vaqta-gradient rounded-2xl flex items-center justify-center gap-3 text-xs font-black uppercase tracking-widest text-white shadow-xl vaqta-glow active:scale-95 transition-transform"
