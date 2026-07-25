@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Navigation, MapPin, ArrowDown, Clock, Ruler, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/context/LanguageProvider";
+import { NavigationProvider } from "@/services/navigation";
+import { navigationService } from "@/services/navigation";
 
 interface RouteCardProps {
   from?: string;
@@ -16,27 +18,58 @@ interface RouteCardProps {
 const MODE_ICONS = {
   car: "🚗",
   walking: "🚶",
-  transit: "🚌"
+  transit: "🚌",
 };
 
 const MODE_LABELS: Record<string, Record<string, string>> = {
-  ru: { car: "На автомобиле", walking: "Пешком", transit: "Общественный транспорт" },
+  ru: {
+    car: "На автомобиле",
+    walking: "Пешком",
+    transit: "Общественный транспорт",
+  },
   uz: { car: "Avtomobil", walking: "Piyoda", transit: "Jamoat transporti" },
-  en: { car: "By car", walking: "Walking", transit: "Public transport" }
+  en: { car: "By car", walking: "Walking", transit: "Public transport" },
 };
 
-export function RouteCard({ from, to, distance, duration, mode = "car" }: RouteCardProps) {
+export function RouteCard({
+  from,
+  to,
+  distance,
+  duration,
+  mode = "car",
+}: RouteCardProps) {
   const { language, t } = useLanguage();
   const nav = useNavigate();
 
+  const fromValue = from || "Моё местоположение";
+  const safeFrom = fromValue || "Моё местоположение";
+
   const handleOpenRoute = () => {
-    const fromParam = from ? encodeURIComponent(from) : "";
-    const toParam = encodeURIComponent(to);
-    nav(`/maps?from=${fromParam}&to=${toParam}&mode=${mode}`);
+    try {
+      const fromParam = encodeURIComponent(safeFrom);
+      const toParam = encodeURIComponent(to);
+      nav(`/maps?from=${fromParam}&to=${toParam}&mode=${mode}`);
+    } catch (e) {
+      console.error("[RouteCard] Failed to navigate:", e);
+    }
+  };
+
+  const handleProviderSelect = (provider: NavigationProvider) => {
+    try {
+      navigationService.openRoute(provider, { from: safeFrom, to, mode });
+    } catch (e) {
+      console.error("[RouteCard] Failed to open route:", e);
+    }
   };
 
   const modeLabel = MODE_LABELS[language]?.[mode] || MODE_LABELS.ru[mode];
   const modeIcon = MODE_ICONS[mode];
+
+  const links = navigationService.buildRoute({
+    from: safeFrom,
+    to,
+    mode,
+  });
 
   return (
     <motion.div
@@ -52,22 +85,17 @@ export function RouteCard({ from, to, distance, duration, mode = "car" }: RouteC
       </div>
 
       <div className="space-y-2">
-        {/* From location */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-[#00A86B]/10 flex items-center justify-center">
             <MapPin size={16} className="text-[#00A86B]" />
           </div>
-          <p className="text-sm font-bold text-white truncate">
-            {from || t("ai.current_location") || "Текущее местоположение"}
-          </p>
+          <p className="text-sm font-bold text-white truncate">{fromValue}</p>
         </div>
 
-        {/* Arrow */}
         <div className="flex items-center pl-3">
           <ArrowDown size={16} className="text-[#5C7A6D]" />
         </div>
 
-        {/* To location */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
             <Navigation size={16} className="text-blue-400" />
@@ -76,7 +104,6 @@ export function RouteCard({ from, to, distance, duration, mode = "car" }: RouteC
         </div>
       </div>
 
-      {/* Route details */}
       {(distance || duration) && (
         <div className="grid grid-cols-2 gap-2 pt-2">
           {distance && (
@@ -85,7 +112,9 @@ export function RouteCard({ from, to, distance, duration, mode = "car" }: RouteC
                 <Ruler size={14} className="text-[#D4AF37]" />
                 <div>
                   <p className="text-xs font-black text-white">{distance}</p>
-                  <p className="text-[9px] text-[#5C7A6D] uppercase">{t("maps.distance") || "Расстояние"}</p>
+                  <p className="text-[9px] text-[#5C7A6D] uppercase">
+                    {t("maps.distance") || "Расстояние"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -96,7 +125,9 @@ export function RouteCard({ from, to, distance, duration, mode = "car" }: RouteC
                 <Clock size={14} className="text-[#00A86B]" />
                 <div>
                   <p className="text-xs font-black text-white">{duration}</p>
-                  <p className="text-[9px] text-[#5C7A6D] uppercase">{t("maps.time") || "Время"}</p>
+                  <p className="text-[9px] text-[#5C7A6D] uppercase">
+                    {t("maps.time") || "Время"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -104,21 +135,45 @@ export function RouteCard({ from, to, distance, duration, mode = "car" }: RouteC
         </div>
       )}
 
-      {/* Transport mode */}
       <div className="flex items-center gap-2 text-xs text-[#5C7A6D]">
         <span>{modeIcon}</span>
         <span>{modeLabel}</span>
       </div>
 
-      {/* Open route button */}
-      <button
-        onClick={handleOpenRoute}
-        className="w-full h-11 vaqta-gradient rounded-xl text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-transform"
-      >
-        <MapPin size={16} />
-        <span>{t("ai.open_route") || "Открыть маршрут"}</span>
-        <ExternalLink size={14} />
-      </button>
+      {/* Provider selection */}
+      <div className="space-y-2 pt-2">
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#5C7A6D] ml-1">
+          Открыть в навигаторе
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {links.map((link) => (
+            <button
+              key={link.provider}
+              type="button"
+              onClick={() => handleProviderSelect(link.provider)}
+              className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2 hover:border-[#00A86B]/40 hover:bg-[#00A86B]/5 transition-all active:scale-95"
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${
+                link.provider === "yandex"
+                  ? "bg-[#FFCC00]/20 text-[#FFCC00]"
+                  : "bg-[#00A86B]/20 text-[#00A86B]"
+              }`}>
+                {link.provider === "yandex" ? "Я" : "2"}
+              </div>
+              <span className="text-xs font-bold text-white">{link.label}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={handleOpenRoute}
+          className="w-full h-10 vaqta-gradient rounded-xl text-white text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-transform"
+        >
+          <MapPin size={14} />
+          <span>Открыть на карте</span>
+          <ExternalLink size={12} />
+        </button>
+      </div>
     </motion.div>
   );
 }

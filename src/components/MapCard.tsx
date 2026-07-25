@@ -6,6 +6,7 @@ import { MapPin, Navigation, Clock, Ruler, ExternalLink, Crosshair, Loader2 } fr
 import { Map as OsmMap } from "@/components/Map";
 import { useLanguage } from "@/context/LanguageProvider";
 import { geocodingService } from "@/services/geocodingService";
+import { navigationService, NavigationProvider } from "@/services/navigation";
 import { toast } from "sonner";
 
 interface MapCardProps {
@@ -16,8 +17,8 @@ interface MapCardProps {
 
 export function MapCard({ address, type = "search", title }: MapCardProps) {
   const { t } = useLanguage();
-  const [coords, setCoords] = useState<[number, number] | null>(null); // [lat, lng]
-  const [userPos, setUserPos] = useState<[number, number] | null>(null); // [lat, lng]
+  const [coords, setCoords] = useState<[number, number] | null>(null);
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState(true);
   const [routeInfo, setRouteInfo] = useState<{ dist: string; time: string } | null>(null);
 
@@ -50,7 +51,7 @@ export function MapCard({ address, type = "search", title }: MapCardProps) {
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            const up: [number, number] = [pos.coords.latitude, pos.coords.longitude]; // [lat, lng]
+            const up: [number, number] = [pos.coords.latitude, pos.coords.longitude];
             setUserPos(up);
             setRouteInfo({ dist: "—", time: "—" });
             resolve(up);
@@ -72,16 +73,25 @@ export function MapCard({ address, type = "search", title }: MapCardProps) {
 
   if (!coords) return null;
 
+  const handleProviderSelect = (provider: NavigationProvider) => {
+    const fromLabel = userPos ? "Моё местоположение" : "Москва";
+    navigationService.openRoute(provider, { from: fromLabel, to: address || "", mode: "car" });
+  };
+
+  const links = address
+    ? navigationService.buildRoute({ from: "Моё местоположение", to: address, mode: "car" })
+    : [];
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }} 
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       className="w-full vaqta-glass overflow-hidden border-[#00A86B]/20 shadow-2xl my-3"
     >
       <div className="h-44 relative">
-        <OsmMap 
-          center={coords} 
-          zoom={15} 
+        <OsmMap
+          center={coords}
+          zoom={15}
           markers={[{
             id: "dest",
             title: title || address || "Point",
@@ -99,16 +109,16 @@ export function MapCard({ address, type = "search", title }: MapCardProps) {
       <div className="p-4 bg-[#0C1F1A]/95 border-t border-[#1A3D2E]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-4">
-             <div className="flex items-center gap-2">
-                <Ruler size={14} className="text-[#5C7A6D]" />
-                <span className="text-xs font-bold">{routeInfo?.dist || "—"}</span>
-             </div>
-             <div className="flex items-center gap-2">
-                <Clock size={14} className="text-[#D4AF37]" />
-                <span className="text-xs font-bold">{routeInfo?.time || "—"}</span>
-             </div>
+            <div className="flex items-center gap-2">
+              <Ruler size={14} className="text-[#5C7A6D]" />
+              <span className="text-xs font-bold">{routeInfo?.dist || "—"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock size={14} className="text-[#D4AF37]" />
+              <span className="text-xs font-bold">{routeInfo?.time || "—"}</span>
+            </div>
           </div>
-          <button 
+          <button
             onClick={getMyLocation}
             className="p-2 bg-white/5 rounded-xl text-[#00A86B] hover:bg-white/10"
           >
@@ -116,13 +126,25 @@ export function MapCard({ address, type = "search", title }: MapCardProps) {
           </button>
         </div>
 
-        <button 
-          onClick={() => window.open(`https://www.google.com/maps/?rtext=~${coords[0]},${coords[1]}&rtt=auto`, "_blank")}
-          className="w-full h-12 vaqta-gradient rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-lg vaqta-glow"
-        >
-          <Navigation size={14} />
-          {t("maps.route")}
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          {links.map((link) => (
+            <button
+              key={link.provider}
+              type="button"
+              onClick={() => handleProviderSelect(link.provider)}
+              className="h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-white hover:border-[#00A86B]/40 hover:bg-[#00A86B]/5 transition-all active:scale-95"
+            >
+              <div className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black ${
+                link.provider === "yandex"
+                  ? "bg-[#FFCC00]/20 text-[#FFCC00]"
+                  : "bg-[#00A86B]/20 text-[#00A86B]"
+              }`}>
+                {link.provider === "yandex" ? "Я" : "2"}
+              </div>
+              {link.label}
+            </button>
+          ))}
+        </div>
       </div>
     </motion.div>
   );

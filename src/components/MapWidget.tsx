@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { MapPin, Navigation, ExternalLink, X } from "lucide-react";
-import { mapsService } from "@/services/maps";
-import { GeocodingResult } from "@/services/maps";
+import { mapsService } from "@/services/mapsService";
+import { GeocodingResult } from "@/services/mapsService";
+import { NavigationProvider } from "@/services/navigation";
 
 interface MapWidgetProps {
   query?: string;
@@ -44,18 +45,14 @@ export function MapWidget({ query, coordinates, onClose }: MapWidgetProps) {
     try {
       const address = await mapsService.reverseGeocode(coords[0], coords[1]);
       if (address) {
-        setResults([{
+        const result: GeocodingResult = {
           latitude: coords[0],
           longitude: coords[1],
           address: address,
-          display_name: address
-        }]);
-        setSelectedLocation({
-          latitude: coords[0],
-          longitude: coords[1],
-          address: address,
-          display_name: address
-        });
+          display_name: address,
+        };
+        setResults([result]);
+        setSelectedLocation(result);
       }
     } catch (error) {
       console.error("Reverse geocode error:", error);
@@ -64,22 +61,22 @@ export function MapWidget({ query, coordinates, onClose }: MapWidgetProps) {
     }
   };
 
-  const openInExternalMaps = () => {
+  const handleOpenYandex = () => {
     if (selectedLocation) {
-      mapsService.openExternalMaps(
-        [selectedLocation.longitude, selectedLocation.latitude],
-        selectedLocation.address
-      );
+      mapsService.openExternalMap("yandex", selectedLocation.address);
     }
   };
 
-  const openRoute = () => {
+  const handleOpenDgis = () => {
     if (selectedLocation) {
-      // Here you can implement choosing a starting point
-      mapsService.openExternalRoute(
-        [37.617494, 55.755826], // Moscow by default
-        [selectedLocation.longitude, selectedLocation.latitude]
-      );
+      mapsService.openExternalMap("2gis", selectedLocation.address);
+    }
+  };
+
+  const handleOpenRoute = () => {
+    if (selectedLocation) {
+      // Open route in Yandex Maps by default
+      mapsService.openRoute("yandex", "Москва", selectedLocation.address);
     }
   };
 
@@ -117,16 +114,24 @@ export function MapWidget({ query, coordinates, onClose }: MapWidgetProps) {
 
       <div className="space-y-2">
         <button
-          onClick={openInExternalMaps}
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+          onClick={handleOpenYandex}
+          className="w-full flex items-center justify-center gap-2 bg-[#FFCC00] text-black py-3 px-4 rounded-lg hover:bg-[#FFD700] transition-colors font-medium"
         >
           <ExternalLink size={16} />
-          Открыть в Картах
+          Открыть в Яндекс Картах
         </button>
 
         <button
-          onClick={openRoute}
-          className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors"
+          onClick={handleOpenDgis}
+          className="w-full flex items-center justify-center gap-2 bg-[#00A86B] text-white py-3 px-4 rounded-lg hover:bg-[#00C080] transition-colors font-medium"
+        >
+          <ExternalLink size={16} />
+          Открыть в 2ГИС
+        </button>
+
+        <button
+          onClick={handleOpenRoute}
+          className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
         >
           <Navigation size={16} />
           Построить маршрут

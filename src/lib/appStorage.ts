@@ -7,6 +7,7 @@ export interface MapState {
     from: string;
     to: string;
     mode: string;
+    provider?: "yandex" | "2gis";
   };
   timestamp: number;
 }
@@ -61,19 +62,20 @@ export function clearMapState(): void {
   }
 }
 
-export function saveLastRoute(pathname: string): void {
+export function saveLastRoute(route: { from: string; to: string; mode: string; provider?: "yandex" | "2gis" }): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.LAST_ROUTE, pathname);
+    localStorage.setItem(STORAGE_KEYS.LAST_ROUTE, JSON.stringify(route));
   } catch (error) {
     console.warn("[appStorage] Failed to save last route:", error);
   }
 }
 
-export function loadLastRoute(): string | null {
+export function loadLastRoute(): { from: string; to: string; mode: string; provider?: "yandex" | "2gis" } | null {
   try {
-    return localStorage.getItem(STORAGE_KEYS.LAST_ROUTE);
-  } catch (error) {
-    console.warn("[appStorage] Failed to load last route:", error);
+    const raw = localStorage.getItem(STORAGE_KEYS.LAST_ROUTE);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
     return null;
   }
 }

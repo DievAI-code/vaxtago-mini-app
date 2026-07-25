@@ -1,19 +1,15 @@
 "use client";
 
-export type MapProviderType = "openstreetmap";
-
-export interface MapProviderState {
-  activeProvider: MapProviderType;
-}
-
 export const mapProvider = {
-  getProviderState(): MapProviderState {
-    return {
-      activeProvider: "openstreetmap",
-    };
+  isYandexAvailable(): boolean {
+    return true;
   },
 
-  isYandexAvailable(): boolean {
-    return false;
+  is2GISAvailable(): boolean {
+    return true;
+  },
+
+  getActiveProvider(): "yandex" | "2gis" {
+    return "yandex";
   },
 };

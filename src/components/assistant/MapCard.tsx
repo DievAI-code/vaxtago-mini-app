@@ -6,6 +6,7 @@ import { MapPin, Navigation, Compass, Loader2, AlertCircle, Clock, Route } from 
 import { Map } from "@/components/Map";
 import { useLanguage } from "@/context/LanguageProvider";
 import { locationService, LocationResult, RouteResult } from "@/services/locationService";
+import { navigationService, NavigationProvider } from "@/services/navigation";
 import { toast } from "sonner";
 
 interface MapCardProps {
@@ -93,6 +94,16 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
     }
   };
 
+  const handleProviderSelect = (provider: NavigationProvider) => {
+    if (!location) return;
+    const fromLabel = userCoords ? "Моё местоположение" : "Москва";
+    navigationService.openRoute(provider, {
+      from: fromLabel,
+      to: location.name,
+      mode: "car",
+    });
+  };
+
   if (loading) {
     return (
       <div className="w-full h-36 vaqta-glass flex flex-col items-center justify-center border-[#1A3D2E] gap-2">
@@ -112,6 +123,11 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
   }
 
   const mapCenter: [number, number] = [location.latitude, location.longitude];
+  const links = navigationService.buildRoute({
+    from: "Моё местоположение",
+    to: location.name,
+    mode: "car",
+  });
 
   return (
     <motion.div
@@ -129,7 +145,7 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
               title: location.name,
               coordinates: mapCenter,
             },
-          ]}
+          ]]}
           userLocation={userCoords}
           className="w-full h-full rounded-none"
         />
@@ -162,20 +178,33 @@ export function MapCard({ query, type = "search", onActionComplete }: MapCardPro
         )}
 
         <div className="grid grid-cols-2 gap-2 pt-1">
-          <button
-            onClick={handleBuildRoute}
-            className="h-10 vaqta-gradient rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-white shadow-lg vaqta-glow"
-          >
-            <Navigation size={14} /> Построить маршрут
-          </button>
-
-          <button
-            onClick={() => toast.info("Поиск ближайших объектов активен")}
-            className="h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-slate-200 hover:bg-white/10"
-          >
-            <Compass size={14} className="text-[#00A86B]" /> Показать рядом
-          </button>
+          {links.map((link) => (
+            <button
+              key={link.provider}
+              type="button"
+              onClick={() => handleProviderSelect(link.provider)}
+              className="h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-white hover:border-[#00A86B]/40 hover:bg-[#00A86B]/5 transition-all active:scale-95"
+            >
+              <div className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black ${
+                link.provider === "yandex"
+                  ? "bg-[#FFCC00]/20 text-[#FFCC00]"
+                  : "bg-[#00A86B]/20 text-[#00A86B]"
+              }`}>
+                {link.provider === "yandex" ? "Я" : "2"}
+              </div>
+              {link.label}
+            </button>
+          ))}
         </div>
+
+        <button
+          type="button"
+          onClick={handleBuildRoute}
+          className="w-full h-10 vaqta-gradient rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase text-white shadow-lg vaqta-glow active:scale-95 transition-transform"
+        >
+          <Navigation size={14} />
+          <span>Построить маршрут</span>
+        </button>
       </div>
     </motion.div>
   );

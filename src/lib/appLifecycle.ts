@@ -10,20 +10,18 @@ export interface LifecycleState {
 }
 
 export interface RestorationState {
-  // Map state
   mapCenter?: [number, number];
   mapZoom?: number;
-  lastRoute?: { from: string; to: string; mode: string };
-  
-  // AI Assistant state
+  lastRoute?: {
+    from: string;
+    to: string;
+    mode: string;
+    provider?: "yandex" | "2gis";
+  };
   chatMessages?: Array<{ role: "user" | "assistant"; content: string; timestamp: string }>;
-  
-  // OCR state
   ocrImage?: string;
   ocrSourceLang?: string;
   ocrTargetLang?: string;
-  
-  // Navigation state
   currentPage?: string;
   scrollPosition?: number;
 }
@@ -73,7 +71,6 @@ export function useAppLifecycle() {
       scrollPosition: window.scrollY,
     };
 
-    // Save map state
     try {
       const mapRaw = localStorage.getItem("vaqta_map_state");
       if (mapRaw) {
@@ -84,7 +81,6 @@ export function useAppLifecycle() {
       }
     } catch {}
 
-    // Save AI Assistant state
     try {
       const chatRaw = localStorage.getItem("vaqta_assistant_session");
       if (chatRaw) {
@@ -93,14 +89,11 @@ export function useAppLifecycle() {
       }
     } catch {}
 
-    // Save OCR state
     try {
       const ocrImage = localStorage.getItem("vaqta_ocr_image");
       if (ocrImage) state.ocrImage = ocrImage;
-      
       const ocrSource = localStorage.getItem("vaqta_ocr_source_lang");
       if (ocrSource) state.ocrSourceLang = ocrSource;
-      
       const ocrTarget = localStorage.getItem("vaqta_ocr_target_lang");
       if (ocrTarget) state.ocrTargetLang = ocrTarget;
     } catch {}
@@ -110,16 +103,15 @@ export function useAppLifecycle() {
 
   const restoreAppState = useCallback(() => {
     console.log("[VAQTA LIFECYCLE] Executing soft UI state restoration...");
-    
+
     const state = restorationStateRef.current;
     if (!state) {
-      console.log("[VAQTA LIFECYCLE] No restoration state found");
+      console.warn("[VAQTA LIFECYCLE] No restoration state found");
       return;
     }
 
     console.log("[VAQTA LIFECYCLE] Restoring state:", state);
 
-    // Restore map state to localStorage for Map component to pick up
     if (state.mapCenter || state.mapZoom || state.lastRoute) {
       try {
         const mapData = {
@@ -135,7 +127,6 @@ export function useAppLifecycle() {
       }
     }
 
-    // Restore AI Assistant chat session
     if (state.chatMessages && state.chatMessages.length > 0) {
       try {
         const session = {
@@ -150,7 +141,6 @@ export function useAppLifecycle() {
       }
     }
 
-    // Restore OCR state
     if (state.ocrImage) {
       try {
         localStorage.setItem("vaqta_ocr_image", state.ocrImage);
@@ -163,12 +153,27 @@ export function useAppLifecycle() {
     if (state.ocrSourceLang) {
       localStorage.setItem("vaqta_ocr_source_lang", state.ocrSourceLang);
     }
-
     if (state.ocrTargetLang) {
       localStorage.setItem("vaqta_ocr_target_lang", state.ocrTargetLang);
     }
 
-    // Restore scroll position
+    if (state.lastRoute) {
+      try {
+        localStorage.setItem(
+          "vaqta_last_route",
+          JSON.stringify({
+            from: state.lastRoute.from,
+            to: state.lastRoute.to,
+            mode: state.lastRoute.mode,
+            provider: state.lastRoute.provider || "yandex",
+          })
+        );
+        console.log(`[VAQTA LIFECYCLE] ✓ Last route restored: ${state.lastRoute.from} → ${state.lastRoute.to}`);
+      } catch (e) {
+        console.warn("[VAQTA LIFECYCLE] Failed to restore last route:", e);
+      }
+    }
+
     if (state.scrollPosition && typeof window !== "undefined") {
       requestAnimationFrame(() => {
         window.scrollTo({ top: state.scrollPosition || 0, behavior: "instant" });
@@ -176,21 +181,21 @@ export function useAppLifecycle() {
       });
     }
 
-    // Dispatch event so React components can react to restoration
     if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("vaqta:state-restored", { 
-        detail: { state, timestamp: Date.now() } 
-      }));
-      window.dispatchEvent(new CustomEvent("vaqta:app-restore", { 
-        detail: { timestamp: Date.now() } 
-      }));
+      window.dispatchEvent(
+        new CustomEvent("vaqta:state-restored", {
+          detail: { state, timestamp: Date.now() },
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent("vaqta:app-restore", {
+          detail: { timestamp: Date.now() },
+        })
+      );
     }
 
     updateAppHeight();
-
-    requestAnimationFrame(() => {
-      updateAppHeight();
-    });
+    requestAnimationFrame(updateAppHeight);
   }, [updateAppHeight]);
 
   useEffect(() => {

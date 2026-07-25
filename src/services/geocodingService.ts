@@ -1,52 +1,88 @@
 "use client";
 
-import { searchEngine, SearchResult } from "./maps/searchEngine";
-
 export interface GeocodingResult {
   latitude: number;
   longitude: number;
   display_name: string;
   name?: string;
   address?: string;
-  source?: "2gis" | "osm" | "overpass" | "alias";
-  score?: number;
+  source?: "yandex" | "2gis" | "osm";
 }
 
 export const geocodingService = {
-  async searchAddress(originalQuery: string, userCenter?: [number, number]): Promise<GeocodingResult[]> {
-    const original = originalQuery.trim();
-    if (!original) return [];
+  async searchAddress(query: string): Promise<GeocodingResult[]> {
+    if (!query.trim()) return [];
 
-    // Use the new 2GIS-first search engine
-    const results = await searchEngine.executeSearch(original, userCenter);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&accept-language=ru`;
+      const response = await fetch(url, {
+        headers: { "User-Agent": "VAQTA-AI-Server/1.0 (contact: support@vaxtago.app)" },
+      });
 
-    if (results.length > 0) {
-      return results.map(r => ({
-        latitude: r.latitude,
-        longitude: r.longitude,
-        display_name: `${r.title}, ${r.address}`,
-        name: r.title,
-        address: r.address,
-        source: "2gis",
-        score: r.score
+      if (!response.ok) {
+        throw new Error(`Geocoding failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.map((item: any) => ({
+        latitude: parseFloat(item.lat),
+        longitude: parseFloat(item.lon),
+        display_name: item.display_name,
+        name: item.name,
+        address: item.display_name,
+        source: "osm" as const,
       }));
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      return [];
     }
-
-    // Fallback logic could be added here if 2GIS finds absolutely nothing
-    return [];
   },
 
-  async searchAddressFull(query: string, userCenter?: [number, number]) {
+  async fetchOSMProxy(query: string, viewbox?: string): Promise<GeocodingResult[]> {
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        format: "json",
+        addressdetails: "1",
+        limit: "5",
+        "accept-language": "ru",
+      });
+
+      if (viewbox) {
+        params.append("viewbox", viewbox);
+        params.append("bounded", "1");
+      }
+
+      const url = `https://nominatim.openstreetmap.org/search?${params.toString()}`;
+      const response = await fetch(url, {
+        headers: { "User-Agent": "VAQTA-AI-Server/1.0" },
+      });
+
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.map((item: any) => ({
+        latitude: parseFloat(item.lat),
+        longitude: parseFloat(item.lon),
+        display_name: item.display_name,
+        name: item.name,
+        address: item.display_name,
+        source: "osm" as const,
+      }));
+    } catch {
+      return [];
+    }
+  },
+
+  async searchAddressFull(query: string) {
     if (query.trim().length < 2) {
       return { isTooShort: true, results: [], error: "Введите адрес" };
     }
 
-    const results = await this.searchAddress(query, userCenter);
-
+    const results = await this.searchAddress(query);
     return {
       isTooShort: false,
       results,
-      error: results.length === 0 ? "Объект не найден в базе 2ГИС" : null,
+      error: results.length === 0 ? "Объект не найден" : null,
     };
   },
 };

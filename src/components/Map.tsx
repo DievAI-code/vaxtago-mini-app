@@ -8,7 +8,7 @@ export interface VacancyMarkerData {
   salary: string;
   city: string;
   address: string;
-  coordinates: [number, number]; // [lat, lng]
+  coordinates: [number, number];
   type: "employer" | "verified" | "premium";
   employerName: string;
   schedule?: string;
@@ -18,22 +18,22 @@ export interface VacancyMarkerData {
 export interface MapMarker {
   id: string;
   title: string;
-  coordinates: [number, number]; // [lat, lng]
+  coordinates: [number, number];
 }
 
 interface MapProps {
-  center?: [number, number]; // [lat, lng]
+  center?: [number, number];
   zoom?: number;
   markers?: VacancyMarkerData[] | MapMarker[] | any[];
   selectedMarkerId?: string | null;
   onSelectMarker?: (marker: VacancyMarkerData | MapMarker | any) => void;
-  userLocation?: [number, number] | null; // [lat, lng]
+  userLocation?: [number, number] | null;
   className?: string;
   autoOpenPopup?: boolean;
 }
 
 export function Map({
-  center = [41.2995, 69.2401], // Tashkent
+  center = [41.2995, 69.2401],
   zoom = 12,
   markers = [],
   selectedMarkerId = null,

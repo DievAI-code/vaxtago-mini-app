@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Map } from "@/components/Map";
 import { 
   Search, Navigation, Crosshair, MapPin, Bus, Car, 
   Accessibility, Bike, Home, Briefcase, Train, Plane,
-  Hospital, Hotel, Loader2, Clock, X, Bookmark, ArrowRight
+  Hospital, Hotel, Loader2, Clock, X, Bookmark
 } from "lucide-react";
 import { geocodingService } from "@/services/geocodingService";
 import { navigationService, NavigationProvider } from "@/services/navigation";
@@ -15,9 +15,13 @@ import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function Maps() {
+interface MapsPageProps {
+  initialQuery?: string;
+}
+
+export default function MapsPage({ initialQuery }: MapsPageProps) {
   const { t } = useLanguage();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery || "");
   const [loading, setLoading] = useState(false);
   const [coords, setCoords] = useState<[number, number]>([41.2995, 69.2401]);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
@@ -61,11 +65,6 @@ export default function Maps() {
     }
   };
 
-  const handleClear = () => {
-    setQuery("");
-    setSelectedDest(null);
-  };
-
   const handleProviderSelect = (provider: NavigationProvider) => {
     if (!selectedDest) return;
     const fromLabel = userPos ? "Моё местоположение" : "Москва";
@@ -76,27 +75,11 @@ export default function Maps() {
     });
   };
 
-  const MODES = [
-    { id: "car" as const, icon: Car, label: "maps.mode_car" },
-    { id: "walk" as const, icon: Accessibility, label: "maps.mode_walk" },
-    { id: "bus" as const, icon: Bus, label: "maps.mode_bus" },
-    { id: "bike" as const, icon: Bike, label: "maps.mode_bike" },
-  ];
-
-  const QUICK_POINTS = [
-    { icon: Home, label: "maps.point_home", query: "дом" },
-    { icon: Briefcase, label: "maps.point_work", query: "работа" },
-    { icon: Train, label: "maps.point_station", query: "вокзал" },
-    { icon: Plane, label: "maps.point_airport", query: "аэропорт" },
-    { icon: Hospital, label: "maps.point_hospital", query: "больница" },
-    { icon: Hotel, label: "maps.point_hotel", query: "отель" },
-  ];
-
   const routeLinks = selectedDest
     ? navigationService.buildRoute({
         from: userPos ? "Моё местоположение" : "Москва",
         to: selectedDest.name || selectedDest.display_name,
-        mode: travelMode === "walk" ? "walking" : travelMode === "bus" ? "transit" : "car",
+        mode: travelMode,
       })
     : [];
 
@@ -131,66 +114,55 @@ export default function Maps() {
           />
           {loading && <Loader2 className="animate-spin text-[#00A86B] flex-shrink-0" size={20} />}
           {query && !loading && (
-            <button onClick={handleClear} className="p-1.5 text-slate-400 hover:text-white">
+            <button onClick={() => setQuery("")} className="p-1.5 text-slate-400">
               <X size={18} />
             </button>
           )}
           <button
             onClick={() => handleSearch()}
-            className="px-4 py-2 bg-[#00A86B] text-white font-black text-xs uppercase tracking-wider rounded-xl hover:bg-[#059669] active:scale-95 flex-shrink-0"
+            className="px-4 py-2 bg-[#00A86B] text-white font-black text-xs uppercase tracking-wider rounded-xl"
           >
             Найти
           </button>
         </div>
 
         <div
-          className="pointer-events-auto flex gap-2 overflow-x-auto no-scrollbar py-1.5 px-3 rounded-2xl max-w-md mx-auto border border-white/10 backdrop-blur-xl shadow-lg"
+          className="pointer-events-auto flex gap-2 overflow-x-auto no-scrollbar py-1.5 px-3 rounded-2xl max-w-md mx-auto border border-white/10 backdrop-blur-xl"
           style={{ background: "rgba(10, 15, 25, 0.88)" }}
         >
-          {MODES.map((m) => {
-            const active = travelMode === (m.id === "walk" ? "walking" : m.id === "bus" ? "transit" : "car");
+          {[
+            { id: "car" as const, icon: Car, label: "Авто" },
+            { id: "walking" as const, icon: Accessibility, label: "Пешком" },
+            { id: "transit" as const, icon: Bus, label: "Транспорт" },
+            { id: "car" as const, icon: Bike, label: "Вело" },
+          ].map((m, i) => {
+            const active = travelMode === m.id;
             const Icon = m.icon;
             return (
               <button
-                key={m.id}
-                onClick={() => setTravelMode((m.id === "walk" ? "walking" : m.id === "bus" ? "transit" : "car") as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap ${
+                key={i}
+                onClick={() => setTravelMode(m.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   active
                     ? "bg-[#00A86B] text-white shadow-md font-black scale-105"
                     : "text-slate-300 hover:bg-white/10"
                 }`}
               >
                 <Icon size={16} />
-                <span className="uppercase text-[10px] tracking-wider">{t(m.label)}</span>
+                <span className="uppercase text-[10px]">{m.label}</span>
               </button>
             );
           })}
         </div>
-
-        <div className="pointer-events-auto flex gap-2 overflow-x-auto no-scrollbar max-w-md mx-auto">
-          {QUICK_POINTS.map((p, i) => (
-            <button
-              key={i}
-              onClick={() => handleSearch(p.query)}
-              className="px-3.5 py-2 rounded-xl flex items-center gap-1.5 text-xs font-bold text-slate-200 border border-white/10 backdrop-blur-md shadow-md active:scale-95 whitespace-nowrap"
-              style={{ background: "rgba(10, 15, 25, 0.88)" }}
-            >
-              <p.icon size={14} className="text-[#00A86B]" />
-              <span className="text-[10px] uppercase tracking-wider">{t(p.label)}</span>
-            </button>
-          ))}
-        </div>
       </div>
 
-      <div className="absolute top-1/2 right-4 -translate-y-1/2 flex flex-col gap-3 z-20">
-        <button
-          onClick={handleLocateUser}
-          className="w-12 h-12 rounded-full text-white flex items-center justify-center border border-white/15 backdrop-blur-xl shadow-lg active:scale-90 z-20"
-          style={{ background: "rgba(10, 15, 25, 0.88)" }}
-        >
-          <Crosshair size={22} className="text-[#00A86B]" />
-        </button>
-      </div>
+      <button
+        onClick={handleLocateUser}
+        className="absolute top-1/2 right-4 -translate-y-1/2 w-12 h-12 rounded-full text-white flex items-center justify-center border border-white/15 backdrop-blur-xl shadow-lg active:scale-90 transition-all z-20"
+        style={{ background: "rgba(10, 15, 25, 0.88)" }}
+      >
+        <Crosshair size={22} className="text-[#00A86B]" />
+      </button>
 
       <AnimatePresence>
         {selectedDest && (
@@ -201,7 +173,7 @@ export default function Maps() {
             className="absolute bottom-24 left-4 right-4 z-30 max-w-md mx-auto"
           >
             <div
-              className="p-5 rounded-3xl border border-white/15 shadow-[0_20px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl space-y-4"
+              className="p-5 rounded-3xl border border-white/15 shadow-2xl backdrop-blur-2xl space-y-4"
               style={{ background: "rgba(10, 15, 25, 0.95)" }}
             >
               <div className="flex justify-between items-start gap-2">
@@ -212,29 +184,19 @@ export default function Maps() {
                       {t("maps.found_address") || "Адрес найден"}
                     </span>
                   </div>
-                  <h3 className="text-lg font-black text-white leading-tight">{selectedDest.name || selectedDest.display_name}</h3>
-                  <p className="text-xs font-medium text-slate-400 line-clamp-2">{selectedDest.display_name}</p>
+                  <h3 className="text-lg font-black text-white leading-tight">
+                    {selectedDest.name || selectedDest.display_name}
+                  </h3>
+                  <p className="text-xs font-medium text-slate-400 line-clamp-2">
+                    {selectedDest.display_name}
+                  </p>
                 </div>
-                <button onClick={() => setSelectedDest(null)} className="p-2 text-slate-400 hover:text-white rounded-full bg-white/5">
+                <button
+                  onClick={() => setSelectedDest(null)}
+                  className="p-2 text-slate-400 hover:text-white rounded-full bg-white/5"
+                >
                   <X size={18} />
                 </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
-                  <div className="p-2 bg-blue-500/20 rounded-xl text-blue-400"><Clock size={18} /></div>
-                  <div>
-                    <p className="text-sm font-black text-white">~15 мин</p>
-                    <p className="text-[9px] uppercase font-bold text-slate-400">{t("maps.time") || "В пути"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
-                  <div className="p-2 bg-[#00A86B]/20 rounded-xl text-[#00A86B]"><Navigation size={18} /></div>
-                  <div>
-                    <p className="text-sm font-black text-white">~4.5 км</p>
-                    <p className="text-[9px] uppercase font-bold text-slate-400">{t("maps.distance") || "Дистанция"}</p>
-                  </div>
-                </div>
               </div>
 
               <div className="space-y-2">
@@ -261,17 +223,6 @@ export default function Maps() {
                   ))}
                 </div>
               </div>
-
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(selectedDest.display_name || "");
-                  toast.success("Адрес скопирован!");
-                }}
-                className="w-full p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-wider border border-white/10 flex items-center justify-center gap-2 active:scale-95"
-              >
-                <Bookmark size={14} />
-                Копировать адрес
-              </button>
             </div>
           </motion.div>
         )}
