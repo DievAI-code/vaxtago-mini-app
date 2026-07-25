@@ -9,7 +9,7 @@ interface UsageRecord {
 
 const FREE_LIMITS: Record<FeatureType, number> = {
   ai_chat: 10,
-  ocr_scan: 5,
+  ocr_scan: 3, // Free users get 3 OCR translations
   map_search: 20,
   job_search: 10,
   translation: 10,
