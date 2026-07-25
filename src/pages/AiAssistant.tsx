@@ -157,21 +157,37 @@ export default function AiAssistant() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isTyping]);
 
+  const handleRouteRequest = async (text: string): Promise<boolean> => {
+    console.log("[VAQTA AI ROUTE]", { query: text });
+    
+    const navResult = await processNavigationQuery(text);
+    
+    if (navResult && navResult.intent.type === "route") {
+      console.log("[VAQTA AI ROUTE]", {
+        intent: navResult.intent.type,
+        from_location: navResult.intent.from,
+        to_location: navResult.intent.to,
+        city: navResult.intent.city,
+        provider: navResult.recommendedProvider
+      });
+      
+      const newIndex = messages.length;
+      setNavResults((prev) => ({ ...prev, [newIndex]: navResult }));
+      addUserMessage(text);
+      return true; // Запрос обработан как маршрут
+    }
+    
+    return false; // Запрос не является маршрутом
+  };
+
   const handleSend = async (customText?: string) => {
     const text = customText || input;
     if (!text.trim() || isTyping) return;
     if (!customText) setInput("");
 
     // 1. Сначала проверяем Navigation Intent
-    const navResult = await processNavigationQuery(text);
-    
-    // Если это маршрут, добавляем сообщение локально и НЕ отправляем в AI
-    if (navResult && navResult.intent.type === "route") {
-      const newIndex = messages.length;
-      setNavResults((prev) => ({ ...prev, [newIndex]: navResult }));
-      addUserMessage(text);
-      return;
-    }
+    const isRouteHandled = await handleRouteRequest(text);
+    if (isRouteHandled) return;
 
     const newIndex = messages.length;
     const smart = await processSmartSearch(text);
@@ -272,11 +288,11 @@ export default function AiAssistant() {
                     />
                   )}
 
-                  {nav?.intent.type === "route" && nav.toPlace && (
+                  {nav?.intent.type === "route" && (
                     <div className="mt-2">
                       <RouteCard
-                        from={nav.fromPlace?.name || nav.intent.from}
-                        to={nav.toPlace.name}
+                        from={nav.fromPlace?.name || nav.intent.from || "Моё местоположение"}
+                        to={nav.toPlace?.name || nav.intent.to || ""}
                         distance={nav.formattedDistance}
                         duration={nav.formattedDuration}
                         mode={nav.intent.mode}
