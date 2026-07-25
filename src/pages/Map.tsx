@@ -10,7 +10,7 @@ import {
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { mapsService, TravelMode } from "@/services/maps/mapsService";
-import { saveMapState, getMapState } from "@/lib/appStorage";
+import { saveMapState, loadMapState } from "@/lib/appStorage";
 import { useLanguage } from "@/context/LanguageProvider";
 import { toast } from "sonner";
 
@@ -40,7 +40,7 @@ export default function MapPage() {
     const initMap = async () => {
       if (!mapContainerRef.current) return;
       
-      const savedState = getMapState();
+      const savedState = loadMapState();
       if (savedState) {
         setCenter(savedState.center);
         setZoom(savedState.zoom);

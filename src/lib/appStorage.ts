@@ -11,6 +11,16 @@ export interface MapState {
   timestamp: number;
 }
 
+export interface AssistantSession {
+  messages: Array<{
+    role: "user" | "assistant";
+    content: string;
+    timestamp: string;
+  }>;
+  language: string;
+  updatedAt: number;
+}
+
 const STORAGE_KEYS = {
   MAP_STATE: "vaqta_map_state",
   LAST_ROUTE: "vaqta_last_route",
@@ -29,7 +39,7 @@ export function saveMapState(state: Omit<MapState, "timestamp">): void {
   }
 }
 
-export function getMapState(): MapState | null {
+export function loadMapState(): MapState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.MAP_STATE);
     if (!raw) return null;
@@ -82,16 +92,6 @@ export function clearLastRoute(): void {
 }
 
 // ─── Assistant Session ───
-
-export interface AssistantSession {
-  messages: Array<{
-    role: "user" | "assistant";
-    content: string;
-    timestamp: string;
-  }>;
-  language: string;
-  updatedAt: number;
-}
 
 export function saveAssistantSession(session: AssistantSession): void {
   try {
@@ -146,3 +146,38 @@ export function removeItem(key: string): void {
     console.warn(`[appStorage] Failed to remove ${key}:`, error);
   }
 }
+
+// ─── Unified appStorage object ───
+
+export const appStorage = {
+  // Map state
+  saveMapState,
+  loadMapState,
+  clearMapState,
+  
+  // Last route
+  saveLastRoute,
+  loadLastRoute,
+  clearLastRoute,
+  
+  // Assistant session
+  saveAssistantSession,
+  loadAssistantSession,
+  clearAssistantSession,
+  
+  // Generic
+  setItem,
+  getItem,
+  removeItem,
+  
+  // Clear all
+  clearState() {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.MAP_STATE);
+      localStorage.removeItem(STORAGE_KEYS.LAST_ROUTE);
+      localStorage.removeItem(STORAGE_KEYS.ASSISTANT_SESSION);
+    } catch (error) {
+      console.warn("[appStorage] Failed to clear all state:", error);
+    }
+  }
+};
