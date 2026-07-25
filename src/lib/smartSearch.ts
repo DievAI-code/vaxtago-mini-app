@@ -39,7 +39,6 @@ export async function processSmartSearch(message: string): Promise<SmartSearchRe
   const baseIntent = detectIntent(message);
   const low = message.toLowerCase().trim();
 
-  // 1. Detect Ticket Intent
   const isTicket = TICKET_REGEX.test(low);
   const isFlight = FLIGHT_REGEX.test(low);
 
@@ -64,7 +63,6 @@ export async function processSmartSearch(message: string): Promise<SmartSearchRe
     };
   }
 
-  // 2. Check Local Knowledge Base
   const kbMatch = queryKnowledgeBase(message);
   if (kbMatch) {
     return {
@@ -79,7 +77,6 @@ export async function processSmartSearch(message: string): Promise<SmartSearchRe
     };
   }
 
-  // 3. Fallback Web Search Simulation for Unresolved Questions
   if (baseIntent.type === "GENERAL_CHAT" && (low.includes("как") || low.includes("где") || low.includes("сколько") || low.includes("почему"))) {
     return {
       intentType: "WEB_SEARCH",
@@ -104,7 +101,6 @@ export async function processSmartSearch(message: string): Promise<SmartSearchRe
     };
   }
 
-  // 4. Default to Base Intent
   return {
     intentType: baseIntent.type as SearchIntentType,
     queryText: message,

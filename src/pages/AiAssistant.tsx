@@ -90,7 +90,6 @@ export default function AiAssistant() {
                 <div className={cn("px-5 py-3.5 text-xs sm:text-sm font-medium leading-relaxed max-w-[88%] shadow-2xl", m.role === "user" ? "message-user" : "message-ai")}>
                   <p className="whitespace-pre-wrap">{m.content}</p>
 
-                  {/* Smart Search Action Cards */}
                   {smart && (
                     <AIActionCard
                       tickets={smart.tickets}
@@ -102,7 +101,6 @@ export default function AiAssistant() {
                     />
                   )}
                   
-                  {/* Intent-based Inline Components */}
                   {m.action?.type === "map_search" && <MapCard query={m.action.query} onActionComplete={() => {}} />}
                   {m.action?.type === "job_search" && <JobCard query={m.action.query} />}
                 </div>
@@ -128,7 +126,6 @@ export default function AiAssistant() {
         )}
       </main>
 
-      {/* Modern ChatGPT Input Bar */}
       <div className="fixed bottom-24 left-0 right-0 px-4 sm:px-6 z-50 pointer-events-none">
         <div className="max-w-3xl mx-auto liquid-glass p-2.5 flex items-center gap-2 shadow-[0_30px_90px_rgba(0,0,0,0.9)] rounded-[2.2rem] pointer-events-auto border-emerald-500/20">
           <button type="button" onClick={() => handleSend("купить жд билет")} className="p-3 text-[#5C7A6D] hover:text-white transition-colors" title="Поиск билетов"><Ticket size={20} /></button>
