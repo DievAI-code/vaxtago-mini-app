@@ -30,23 +30,13 @@ function formatTime(d: Date) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-interface MessageActionProps {
-  content: string;
-  onCopy?: () => void;
-  onSpeak?: () => void;
-  onShare?: () => void;
-  onSave?: () => void;
-  isUser?: boolean;
-}
-
-const MessageActions = memo(function MessageActions({ content, onCopy, onSpeak, onShare, onSave, isUser }: MessageActionProps) {
+const MessageActions = memo(function MessageActions({ content, isUser }: { content: string; isUser?: boolean }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(content).catch(() => {});
     setCopied(true);
     toast.success("Скопировано");
     setTimeout(() => setCopied(false), 1500);
-    onCopy?.();
   };
   const handleSpeak = () => {
     if (!("speechSynthesis" in window)) {
@@ -57,7 +47,6 @@ const MessageActions = memo(function MessageActions({ content, onCopy, onSpeak, 
     u.lang = "ru-RU";
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
-    onSpeak?.();
   };
   const handleShare = () => {
     if (navigator.share) {
@@ -66,7 +55,6 @@ const MessageActions = memo(function MessageActions({ content, onCopy, onSpeak, 
       navigator.clipboard.writeText(content).catch(() => {});
       toast.success("Скопировано для отправки");
     }
-    onShare?.();
   };
   const handleSave = () => {
     try {
@@ -76,30 +64,25 @@ const MessageActions = memo(function MessageActions({ content, onCopy, onSpeak, 
       localStorage.setItem("vaqta_saved_messages", JSON.stringify(arr.slice(0, 50)));
       toast.success("Сохранено");
     } catch {}
-    onSave?.();
   };
 
   if (isUser) return null;
 
   return (
     <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-      <ActionBtn icon={copied ? <Check size={12} /> : <Copy size={12} />} onClick={handleCopy} />
-      <ActionBtn icon={<Volume2 size={12} />} onClick={handleSpeak} />
-      <ActionBtn icon={<Share2 size={12} />} onClick={handleShare} />
-      <ActionBtn icon={<Bookmark size={12} />} onClick={handleSave} />
+      <button onClick={handleCopy} className="p-1.5 rounded-lg text-[#5C7A6D] hover:text-white hover:bg-white/5 transition-colors">
+        {copied ? <Check size={12} /> : <Copy size={12} />}
+      </button>
+      <button onClick={handleSpeak} className="p-1.5 rounded-lg text-[#5C7A6D] hover:text-white hover:bg-white/5 transition-colors">
+        <Volume2 size={12} />
+      </button>
+      <button onClick={handleShare} className="p-1.5 rounded-lg text-[#5C7A6D] hover:text-white hover:bg-white/5 transition-colors">
+        <Share2 size={12} />
+      </button>
+      <button onClick={handleSave} className="p-1.5 rounded-lg text-[#5C7A6D] hover:text-white hover:bg-white/5 transition-colors">
+        <Bookmark size={12} />
+      </button>
     </div>
-  );
-});
-
-const ActionBtn = memo(function ActionBtn({ icon, onClick }: { icon: React.ReactNode; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="p-1.5 rounded-lg text-[#5C7A6D] hover:text-white hover:bg-white/5 transition-colors"
-    >
-      {icon}
-    </button>
   );
 });
 
@@ -130,11 +113,9 @@ export default function AiAssistant() {
 
   const voice = useVoiceAssistant({ autoSendToAI: true });
 
-  // Handle voice transcript: process through AI Intent Router (same as text)
   const handleVoiceTranscript = (text: string) => {
     voiceDebug.log("Voice Transcript Received", { text });
     
-    // Process through voice processor for debug logging
     const result = processVoiceTranscript(text);
     
     if (result.transcript) {
@@ -143,7 +124,6 @@ export default function AiAssistant() {
         intent: result.intent,
         action: result.action 
       });
-      // Send through the SAME pipeline as text input
       handleSend(result.transcript);
     } else {
       voiceDebug.log("Error", { message: "Empty transcript after processing" });
@@ -170,10 +150,8 @@ export default function AiAssistant() {
     if (!text.trim() || isTyping) return;
     if (!customText) setInput("");
 
-    // 1. Сначала проверяем Navigation Intent
     const navResult = await processNavigationQuery(text);
     
-    // Если это маршрут, добавляем сообщение локально и НЕ отправляем в AI
     if (navResult && navResult.intent.type === "route") {
       const newIndex = messages.length;
       setNavResults((prev) => ({ ...prev, [newIndex]: navResult }));
@@ -328,10 +306,7 @@ export default function AiAssistant() {
                   <span className="text-[9px] text-[#5C7A6D]">
                     {formatTime(m.timestamp instanceof Date ? m.timestamp : new Date(m.timestamp))}
                   </span>
-                  <MessageActions
-                    content={m.content}
-                    isUser={m.role === "user"}
-                  />
+                  <MessageActions content={m.content} isUser={m.role === "user"} />
                 </div>
               </motion.div>
             );

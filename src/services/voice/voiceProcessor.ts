@@ -12,10 +12,6 @@ export interface VoiceProcessResult {
   entities: any;
 }
 
-/**
- * Processes a voice transcript through the AI Intent Router.
- * This is the SAME pipeline as text input - no separate voice logic.
- */
 export function processVoiceTranscript(transcript: string): VoiceProcessResult {
   voiceDebug.log("Transcript", { text: transcript, length: transcript.length });
 
@@ -34,7 +30,6 @@ export function processVoiceTranscript(transcript: string): VoiceProcessResult {
   const cleanText = transcript.trim();
   voiceDebug.log("Cleaned Transcript", { text: cleanText });
 
-  // Use existing AI Intent Router (same as text input)
   const intent = detectIntent(cleanText);
 
   voiceDebug.log("Detected language", { language: intent.detectedLanguage });
@@ -44,7 +39,6 @@ export function processVoiceTranscript(transcript: string): VoiceProcessResult {
     entities: intent.entities,
   });
 
-  // Map intent to action
   const actionMap: Record<string, string> = {
     MAP_ROUTE: "route",
     MAP_SEARCH: "map_search",
