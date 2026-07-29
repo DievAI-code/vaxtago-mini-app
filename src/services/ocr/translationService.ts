@@ -23,9 +23,7 @@ class TranslationService {
     const cyrillicPattern = /[а-яё]/i;
     const latinPattern = /[a-z]/i;
 
-    // Check for Cyrillic specific Uzbek letters
     if (/[ўғқҳ]/i.test(text)) return "uz_cyr";
-    // Check for Latin specific Uzbek letters
     if (/[o'g'shch]/i.test(text) || /['ʻ]/.test(text)) return "uz_lat";
 
     if (cyrillicPattern.test(text) && !latinPattern.test(text)) return "ru";

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Camera, Image as ImageIcon, Loader2, Download, Copy, 
   Languages, Check, X, FileText, Sparkles, MapPin, Phone, Globe,
-  ArrowRightLeft, LayoutGrid, Columns
+  ArrowRightLeft, LayoutGrid, Columns, FileDown, FileImage
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
@@ -13,6 +13,7 @@ import { useLanguage } from "@/context/LanguageProvider";
 import { ocrService, OCRResult } from "@/services/ocr/ocrService";
 import { translationService, LanguageCode } from "@/services/ocr/translationService";
 import { imageTranslator, TranslationMode } from "@/services/ocr/imageTranslator";
+import { downloadImageAsPDF } from "@/services/ocr/pdfExporter";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,6 +25,15 @@ const LANGS = [
   { code: "uz_lat" as LanguageCode, label: "O'zbek (Lotin)", flag: "🇺🇿" },
   { code: "uz_cyr" as LanguageCode, label: "Ўзбек (Кирилл)", flag: "🇺🇿" },
   { code: "en" as LanguageCode, label: "English", flag: "🇬🇧" },
+];
+
+const PROGRESS_STEPS = [
+  { key: "ocr", label: "OCR" },
+  { key: "translate", label: "Перевод" },
+  { key: "clear", label: "Очистка изображения" },
+  { key: "background", label: "Восстановление фона" },
+  { key: "render", label: "Отрисовка текста" },
+  { key: "done", label: "Готово" },
 ];
 
 export default function Scanner() {
@@ -38,6 +48,7 @@ export default function Scanner() {
   const [sliderPos, setSliderPos] = useState(50);
   const [docType, setDocType] = useState<string>("other");
   const [translationMode, setTranslationMode] = useState<TranslationMode>("preserve_design");
+  const [progressStep, setProgressStep] = useState(0);
   
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -49,6 +60,7 @@ export default function Scanner() {
       const dataUrl = e.target?.result as string;
       setOriginalImage(dataUrl);
       setStep("processing_ocr");
+      setProgressStep(0);
       
       try {
         const result = await ocrService.recognizeText(dataUrl, "auto");
@@ -68,6 +80,12 @@ export default function Scanner() {
     setStep("processing_trans");
     
     try {
+      // Этап 1: OCR уже выполнен
+      setProgressStep(0);
+      await new Promise((r) => setTimeout(r, 300));
+
+      // Этап 2: Перевод каждого блока
+      setProgressStep(1);
       const translations = new Map<number, string>();
       let fullTranslatedText = "";
       
@@ -81,7 +99,17 @@ export default function Scanner() {
       }
       
       setTranslatedText(fullTranslatedText);
-      
+
+      // Этап 3: Очистка изображения (inpainting в рендерере)
+      setProgressStep(2);
+      await new Promise((r) => setTimeout(r, 300));
+
+      // Этап 4: Восстановление фона
+      setProgressStep(3);
+      await new Promise((r) => setTimeout(r, 300));
+
+      // Этап 5: Отрисовка текста
+      setProgressStep(4);
       const newImage = await imageTranslator.createTranslatedImage({
         image: originalImage,
         blocks: ocrResult.blocks,
@@ -89,6 +117,10 @@ export default function Scanner() {
         mode: translationMode,
       });
       setTranslatedImage(newImage);
+
+      // Этап 6: Готово
+      setProgressStep(5);
+      await new Promise((r) => setTimeout(r, 400));
       setStep("result");
       
       try {
@@ -132,6 +164,16 @@ export default function Scanner() {
     link.click();
   };
 
+  const downloadPDF = async () => {
+    if (!translatedImage) return;
+    try {
+      await downloadImageAsPDF(translatedImage, "vaqta-translated");
+      toast.success(t("common.done"));
+    } catch {
+      toast.error(t("common.error"));
+    }
+  };
+
   const handleSliderMove = (clientX: number) => {
     if (!compareRef.current) return;
     const rect = compareRef.current.getBoundingClientRect();
@@ -146,6 +188,7 @@ export default function Scanner() {
     setOcrResult(null);
     setTranslatedText("");
     setStep("upload");
+    setProgressStep(0);
   };
 
   const selectLang = (lang: LanguageCode) => {
@@ -242,7 +285,7 @@ export default function Scanner() {
           )}
 
           {step === "processing_trans" && (
-            <motion.div key="proc_trans" className="flex flex-col items-center justify-center py-24 space-y-6">
+            <motion.div key="proc_trans" className="flex flex-col items-center justify-center py-16 space-y-6">
               <div className="relative">
                 <div className="w-28 h-28 rounded-[2rem] vaqta-gradient flex items-center justify-center shadow-2xl">
                   <Loader2 className="animate-spin text-white" size={48} />
@@ -252,6 +295,27 @@ export default function Scanner() {
               <div className="text-center space-y-2">
                 <p className="text-base font-black text-[#0AA86E]">{t("scanner.step_translate")}</p>
                 <p className="text-xs text-[#5C7A6D] uppercase tracking-widest font-bold">{t("scanner.step_render")}</p>
+              </div>
+
+              {/* Прогресс этапов */}
+              <div className="w-full max-w-xs space-y-2">
+                {PROGRESS_STEPS.map((s, i) => {
+                  const done = progressStep > i;
+                  const active = progressStep === i;
+                  return (
+                    <div key={s.key} className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                        done ? "bg-[#0AA86E] text-white" : active ? "bg-[#0AA86E]/30 text-[#0AA86E] border border-[#0AA86E]" : "bg-white/5 text-[#5C7A6D]"
+                      }`}>
+                        {done ? <Check size={10} /> : i + 1}
+                      </div>
+                      <span className={`text-xs font-bold ${done || active ? "text-white" : "text-[#5C7A6D]"}`}>
+                        {s.label}
+                      </span>
+                      {active && <Loader2 size={12} className="animate-spin text-[#0AA86E]" />}
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           )}
@@ -305,6 +369,12 @@ export default function Scanner() {
                   <div className="absolute top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-2xl flex items-center justify-center pointer-events-none" style={{ left: `calc(${sliderPos}% - 20px)` }}>
                     <ArrowRightLeft className="text-black" size={16} />
                   </div>
+                  <div className="absolute top-3 left-3 px-2.5 py-1 bg-black/70 backdrop-blur-md rounded-full text-[9px] font-black uppercase text-white border border-white/10">
+                    До
+                  </div>
+                  <div className="absolute top-3 right-3 px-2.5 py-1 bg-[#0AA86E]/90 backdrop-blur-md rounded-full text-[9px] font-black uppercase text-white border border-[#0AA86E]/40">
+                    После
+                  </div>
                 </div>
               )}
 
@@ -338,11 +408,15 @@ export default function Scanner() {
                   <Download size={18} className="text-[#D4AF37]" />
                   <span className="text-xs font-black uppercase">{t("scanner.save_png")}</span>
                 </button>
+                <button onClick={downloadPDF} className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-center gap-2 active:scale-95 transition">
+                  <FileDown size={18} className="text-red-400" />
+                  <span className="text-xs font-black uppercase">PDF</span>
+                </button>
                 <button onClick={() => navigator.clipboard.writeText(translatedText)} className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-center gap-2 active:scale-95 transition">
                   <Copy size={18} className="text-blue-400" />
                   <span className="text-xs font-black uppercase">{t("scanner.copy")}</span>
                 </button>
-                <button className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-center gap-2 active:scale-95 transition">
+                <button className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-center gap-2 active:scale-95 transition col-span-2">
                   <Sparkles size={18} className="text-purple-400" />
                   <span className="text-xs font-black uppercase">{t("scanner.ai_analysis")}</span>
                 </button>

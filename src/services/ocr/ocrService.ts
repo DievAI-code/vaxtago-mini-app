@@ -13,6 +13,8 @@ export interface OCRBlock {
   backgroundColor?: string;
   fontSize?: number;
   textAlign?: "left" | "center" | "right";
+  /** Угол наклона текста в градусах */
+  angle?: number;
 }
 
 export interface OCRResult {
@@ -34,7 +36,7 @@ class OCRService {
 
 Формат ответа (только JSON, без markdown):
 {
-  "source_language": "ru" | "uz" | "tj" | "en" | "ky",
+  "source_language": "ru" | "uz" | "en",
   "blocks": [
     {
       "text": "оригинальный текст блока",
@@ -43,7 +45,8 @@ class OCRService {
       "color": "#000000",
       "backgroundColor": "#FFFFFF",
       "fontSize": 16,
-      "textAlign": "left" | "center" | "right"
+      "textAlign": "left" | "center" | "right",
+      "angle": 0
     }
   ]
 }
@@ -53,6 +56,7 @@ class OCRService {
 - color и backgroundColor — в формате HEX (#RRGGBB)
 - fontSize — примерный размер шрифта в пикселях
 - textAlign — выравнивание текста в блоке
+- angle — угол наклона текста в градусах (0 если прямой)
 - Сохраняй порядок блоков сверху вниз, слева направо
 - Объединяй слова одной строки в один блок`;
 
@@ -79,7 +83,7 @@ class OCRService {
 
       if (ocr?.blocks && Array.isArray(ocr.blocks)) {
         sourceLanguage = ocr.source_language || ocr.sourceLanguage || "ru";
-        blocks = ocr.blocks.map((b: any, i: number) => ({
+        blocks = ocr.blocks.map((b: any) => ({
           text: b.text || "",
           x: Number(b.x) || 0,
           y: Number(b.y) || 0,
@@ -90,6 +94,7 @@ class OCRService {
           backgroundColor: b.backgroundColor || "#FFFFFF",
           fontSize: Number(b.fontSize) || Math.max(11, Math.min(b.height * 0.7, 24)),
           textAlign: b.textAlign || "left",
+          angle: Number(b.angle) || 0,
         }));
       } else {
         const flatText: string =
@@ -146,6 +151,7 @@ class OCRService {
         backgroundColor: "#FFFFFF",
         fontSize: 16,
         textAlign: "left",
+        angle: 0,
       });
       y += lineHeight;
       if (y > 1300) break;
