@@ -29,8 +29,8 @@ function escapeRegex(s: string): string {
 }
 
 /**
- * КРИТИЧНО: \b в JavaScript НЕ работает с кириллицей (это ASCII-only граница слова).
- * Поэтому границы слов строим через пробелы / начало / конец строки.
+ * КРИТИЧНО: \b в JavaScript НЕ работает с кириллицей (ASCII-only).
+ * Границы слов строим через пробелы / начало / конец строки.
  */
 const CITY_PATTERN = CITIES.slice()
   .sort((a, b) => b.length - a.length)
@@ -41,16 +41,16 @@ const CITY_REGEX = new RegExp(`(^|\\s)(${CITY_PATTERN})(?=\\s|$|[.,!?])`, "iu");
 const ROUTE_KEYWORDS = [
   "как доехать", "как добраться", "как проехать", "как пройти",
   "как попасть", "покажи маршрут", "проложи путь", "проложи маршрут",
-  "построй маршрут", "маршрут от", "маршрут из", "дорога до", "сколько ехать",
-  "покажи дорогу", "мне нужно попасть", "покажи как ехать",
+  "построй маршрут", "маршрут от", "маршрут из", "дорога от", "дорога до",
+  "сколько ехать", "покажи дорогу", "мне нужно попасть", "покажи как ехать",
   "как проехать до", "как доехать до", "как добраться до",
   "how to get", "directions to", "route to", "navigate to",
   "qanday borish", "qanday yetib borish", "marshrut",
 ];
 
 /**
- * POI-словарь склонений (токен-уровень).
- * "вокзал*", "цирк*", "жд" НЕ включены сюда намеренно —
+ * Токен-уровень склонений.
+ * "вокзал*", "цирк*", "станци*", "жд" сюда НЕ включены —
  * они обрабатываются фразовыми правилами PHRASE_RULES,
  * чтобы не было двойной нормализации.
  */
@@ -73,19 +73,25 @@ const DECLENSION_MAP: Record<string, string> = {
 
 /**
  * Фразовые POI-правила (Cyrillic-safe, через пробельные границы).
- * Обязательный словарь из ТЗ:
- *   "жд"     → "железнодорожный"
- *   "вокзал" → "железнодорожный вокзал"
- *   "цирка"  → "цирк"
- *   "цирку"  → "цирк"
+ * Обязательная нормализация из ТЗ:
+ *   жд       → железнодорожный
+ *   жд вокзал → железнодорожный вокзал
+ *   вокзал   → железнодорожный вокзал
+ *   станция  → железнодорожный вокзал
+ *   цирка    → цирк
+ *   цирку    → цирк
  */
 const PHRASE_RULES: Array<[RegExp, string]> = [
   // "жд вокзал(а/у/е)" / "ж/д вокзала" / "ж.д. вокзал" → полное название
   [/\s(жд|ж\/д|ж\.д\.?)\s+вокзал[\p{L}]*/giu, " железнодорожный вокзал "],
+  // "жд станция" → железнодорожный вокзал
+  [/\s(жд|ж\/д|ж\.д\.?)\s+станци[\p{L}]*/giu, " железнодорожный вокзал "],
   // одиночное "жд" → "железнодорожный"
   [/\s(жд|ж\/д|ж\.д\.?)\s/giu, " железнодорожный "],
   // одиночный "вокзал" (любое склонение) → "железнодорожный вокзал"
   [/\sвокзал[\p{L}]*/giu, " железнодорожный вокзал "],
+  // одиночная "станция" (любое склонение) → "железнодорожный вокзал"
+  [/\sстанци[\p{L}]*/giu, " железнодорожный вокзал "],
   // "цирка/цирку/цирке/цирком" → "цирк"
   [/\sцирк[\p{L}]*/giu, " цирк "],
   // "торгового центра" → "торговый центр"
@@ -93,9 +99,9 @@ const PHRASE_RULES: Array<[RegExp, string]> = [
 ];
 
 const POI_KEYWORDS = [
-  "цирк", "вокзал", "жд", "аэропорт", "метро", "торговый центр", "больница",
-  "магазин", "аптека", "банк", "кафе", "ресторан", "отель", "школа",
-  "университет", "завод", "работа", "офис", "склад", "стройка",
+  "цирк", "вокзал", "станция", "жд", "аэропорт", "метро", "торговый центр",
+  "больница", "магазин", "аптека", "банк", "кафе", "ресторан", "отель",
+  "школа", "университет", "завод", "работа", "офис", "склад", "стройка",
   "железнодорожный вокзал",
 ];
 
@@ -134,6 +140,10 @@ export function stripCity(text: string): { text: string; city?: string } {
   return { text };
 }
 
+// Шаблоны маршрута:
+//   как проехать от X до Y / как добраться от X до Y
+//   маршрут от X до Y / от X до Y / из X в Y
+//   дорога от X до Y / построй маршрут от X до Y
 const FROM_TO_PATTERNS = [
   /(?:от|с|из)\s+(.+?)\s+(?:до|в|на|к)\s+(.+)/i,
 ];
@@ -164,7 +174,7 @@ export function parseRoute(text: string): RouteParseResult {
       const to = normalizeLocation(toResult.text);
 
       if (from && to) {
-        console.log("[NAVIGATION DEBUG] Route parsed:", { from, to, city });
+        console.log("[NAV DEBUG] Route parsed:", { from, to, city });
         return { intent: "route", from, to, city, mode: "car" };
       }
     }
@@ -179,7 +189,7 @@ export function parseRoute(text: string): RouteParseResult {
         const to = normalizeLocation(toResult.text);
 
         if (to) {
-          console.log("[NAVIGATION DEBUG] Route (to-only) parsed:", { to, city });
+          console.log("[NAV DEBUG] Route (to-only) parsed:", { to, city });
           return { intent: "route", from: undefined, to, city, mode: "car" };
         }
       }
@@ -190,7 +200,7 @@ export function parseRoute(text: string): RouteParseResult {
         const toResult = stripCity(poi);
         city = toResult.city || stripCity(lower).city;
         const to = normalizeLocation(toResult.text);
-        console.log("[NAVIGATION DEBUG] Route (POI) parsed:", { to, city });
+        console.log("[NAV DEBUG] Route (POI) parsed:", { to, city });
         return { intent: "route", from: undefined, to, city, mode: "car" };
       }
     }

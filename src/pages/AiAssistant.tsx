@@ -32,27 +32,27 @@ function formatTime(d: Date) {
 
 const NAV_NOT_FOUND_TEXT: Record<string, { title: string; from: string; to: string; hint: string }> = {
   ru: {
-    title: "Не удалось найти на карте",
-    from: "Откуда",
-    to: "Куда",
+    title: "Маршрут не построен",
+    from: "Не найден пункт отправления",
+    to: "Не найден пункт назначения",
     hint: "Уточните название объекта или добавьте город.",
   },
   uz_lat: {
-    title: "Xaritadan topilmadi",
-    from: "Qayerdan",
-    to: "Qayerga",
+    title: "Marshrut qurilmadi",
+    from: "Chiqish punkti topilmadi",
+    to: "Borish punkti topilmadi",
     hint: "Obyekt nomini aniqlashtiring yoki shaharni qo'shing.",
   },
   uz_cyr: {
-    title: "Харитадан топилмади",
-    from: "Қаердан",
-    to: "Қаерга",
+    title: "Маршрут қурилмади",
+    from: "Чиқиш пункти топилмади",
+    to: "Бориш пункти топилмади",
     hint: "Объект номини аниқлаштиринг ёки шаҳарни қўшинг.",
   },
   en: {
-    title: "Could not find on the map",
-    from: "From",
-    to: "To",
+    title: "Route could not be built",
+    from: "Departure point not found",
+    to: "Destination not found",
     hint: "Please clarify the place name or add a city.",
   },
 };

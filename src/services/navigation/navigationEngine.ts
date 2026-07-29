@@ -28,12 +28,12 @@ export async function processNavigationQuery(text: string): Promise<NavigationRe
   // 1. ОБЯЗАТЕЛЬНО: сначала Route Parser → FROM / TO / CITY
   const intent = parseNavigationIntent(text);
 
-  console.log("\n[NAVIGATION DEBUG]");
-  console.log("Original Query:", text);
+  console.log("\n[NAV DEBUG]");
+  console.log("Query:", text);
   console.log("Intent:", intent.type);
-  console.log("FROM:", intent.from || "—");
-  console.log("TO:", intent.to || "—");
-  console.log("CITY:", intent.city || "—");
+  console.log("From:", intent.from || "—");
+  console.log("To:", intent.to || "—");
+  console.log("City:", intent.city || "—");
 
   mapDebug.log(debugId, "Intent Detection", intent);
 
@@ -62,10 +62,10 @@ export async function processNavigationQuery(text: string): Promise<NavigationRe
     toPlace = (await resolvePlace(intent.to, intent.city)) || undefined;
     if (!toPlace) notFound.to = intent.to;
 
-    console.log("Normalized FROM:", intent.from || "—");
-    console.log("Normalized TO:", intent.to);
-    console.log("2GIS/Yandex Result FROM:", fromPlace ? `${fromPlace.name} [${fromPlace.source}]` : "NOT FOUND");
-    console.log("2GIS/Yandex Result TO:", toPlace ? `${toPlace.name} [${toPlace.source}]` : "NOT FOUND");
+    console.log("Normalized From:", intent.from || "—");
+    console.log("Normalized To:", intent.to);
+    console.log("Yandex/2GIS Result FROM:", fromPlace ? `${fromPlace.name} [${fromPlace.source}]` : "NOT FOUND");
+    console.log("Yandex/2GIS Result TO:", toPlace ? `${toPlace.name} [${toPlace.source}]` : "NOT FOUND");
     console.log("Coordinates FROM:", fromPlace ? `${fromPlace.latitude}, ${fromPlace.longitude}` : "—");
     console.log("Coordinates TO:", toPlace ? `${toPlace.latitude}, ${toPlace.longitude}` : "—");
 
