@@ -346,5 +346,24 @@
     "take_photo": "Rasmga olish",
     "gallery": "Galereya"
   },
-  "settings_voice": "Ovoz"
+  "settings_voice": "Ovoz",
+  "hh": {
+    "title": "HH.ru vakansiyalari",
+    "search_placeholder": "Kasb yoki lavozim",
+    "city_placeholder": "Shahar",
+    "search": "Topish",
+    "found": "Vakansiyalar topildi",
+    "apply": "Ariza topshirish",
+    "route": "Marshrut",
+    "load_more": "Ko'proq ko'rsatish",
+    "loading": "Vakansiyalar yuklanmoqda...",
+    "empty": "Vakansiyalar topilmadi",
+    "error": "Vakansiyalarni yuklashda xatolik",
+    "api_not_connected": "Vakansiyalar manbai API ulanishini kutmoqda",
+    "login_hh": "HH.ru orqali kirish",
+    "salary_not_specified": "Maosh ko'rsatilmagan",
+    "experience": "Tajriba",
+    "schedule": "Jadval",
+    "employment": "Bandlik"
+  }
 }

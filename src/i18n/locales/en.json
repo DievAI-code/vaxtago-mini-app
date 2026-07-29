@@ -346,5 +346,24 @@
     "take_photo": "Take Photo",
     "gallery": "Gallery"
   },
-  "settings_voice": "Voice"
+  "settings_voice": "Voice",
+  "hh": {
+    "title": "HH.ru Vacancies",
+    "search_placeholder": "Profession or position",
+    "city_placeholder": "City",
+    "search": "Search",
+    "found": "Vacancies found",
+    "apply": "Apply",
+    "route": "Route",
+    "load_more": "Load more",
+    "loading": "Loading vacancies...",
+    "empty": "No vacancies found",
+    "error": "Error loading vacancies",
+    "api_not_connected": "Vacancy source is waiting for API connection",
+    "login_hh": "Sign in with HH.ru",
+    "salary_not_specified": "Salary not specified",
+    "experience": "Experience",
+    "schedule": "Schedule",
+    "employment": "Employment"
+  }
 }

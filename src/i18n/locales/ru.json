@@ -346,5 +346,24 @@
     "take_photo": "Сделать фото",
     "gallery": "Галерея"
   },
-  "settings_voice": "Голос"
+  "settings_voice": "Голос",
+  "hh": {
+    "title": "Вакансии HH.ru",
+    "search_placeholder": "Профессия или должность",
+    "city_placeholder": "Город",
+    "search": "Найти",
+    "found": "Найдено вакансий",
+    "apply": "Откликнуться",
+    "route": "Маршрут",
+    "load_more": "Показать ещё",
+    "loading": "Загрузка вакансий...",
+    "empty": "Вакансии не найдены",
+    "error": "Ошибка загрузки вакансий",
+    "api_not_connected": "Источник вакансий ожидает подключения API",
+    "login_hh": "Войти через HH.ru",
+    "salary_not_specified": "Зарплата не указана",
+    "experience": "Опыт",
+    "schedule": "График",
+    "employment": "Занятость"
+  }
 }

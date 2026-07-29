@@ -17,7 +17,7 @@ import { processSmartSearch, SmartSearchResult } from "@/lib/smartSearch";
 import { AIActionCard } from "@/components/AIActionCard";
 import { RouteCard } from "@/components/assistant/RouteCard";
 import { MapCard } from "@/components/assistant/MapCard";
-import { JobCard } from "@/components/assistant/JobCard";
+import { VacancyList } from "@/components/hh/VacancyList";
 import { PlaceCard } from "@/components/PlaceCard";
 import { processNavigationQuery, type NavigationResult } from "@/services/navigation/navigationEngine";
 import { processVoiceTranscript } from "@/services/voice/voiceProcessor";
@@ -294,7 +294,7 @@ export default function AiAssistant() {
                   )}
 
                   {m.action?.type === "map_search" && <MapCard query={m.action.query} onActionComplete={() => {}} />}
-                  {m.action?.type === "job_search" && <JobCard query={m.action.query} />}
+                  {m.action?.type === "job_search" && <VacancyList query={m.action.query} />}
                 </div>
 
                 <div className="flex items-center gap-2 mt-1.5 px-2">
