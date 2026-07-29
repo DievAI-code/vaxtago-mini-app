@@ -12,35 +12,49 @@ const CITIES = [
   "тюмень", "москва", "санкт-петербург", "спб", "казань", "екатеринбург",
   "новосибирск", "ташкент", "самарканд", "сургут", "нижневартовск",
   "тобольск", "ишим", "алматы", "астана", "уфа", "самара", "омск",
-  "челябинск", "краснодар", "сочи", "ростов", "питер", "самара",
+  "челябинск", "краснодар", "сочи", "ростов", "питер",
   "великий новгород", "нижний новгород", "набережные челны",
   "пенза", "липецк", "тула", "киров", "чебоксары", "калининград",
   "брянск", "курск", "иваново", "магнитогорск", "тверь", "ставрополь",
-  "нижний тагил", "белгород", "архангельск", "владимир", "сочи",
+  "нижний тагил", "белгород", "архангельск", "владимир",
   "курган", "смоленск", "калуга", "чита", "орёл", "орел", "вологда",
   "тамбов", "стерлитамак", "грозный", "якутск", "кострома",
   "комсомольск-на-амуре", "петрозаводск", "таганрог", "нальчик",
-  "сыктывкар", "мурманск", "великий новгород", "шахты", "братск",
-  "орск", "ангарск", "кисловодск", "прокопьевск", "салават", "сургут",
-  "нижневартовск", "тобольск", "ишим",
+  "сыктывкар", "мурманск", "шахты", "братск",
+  "орск", "ангарск", "кисловодск", "прокопьевск", "салават",
 ];
 
-const CITY_REGEX = new RegExp(`\\b(${CITIES.join("|")})\\b`, "i");
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * КРИТИЧНО: \b в JavaScript НЕ работает с кириллицей (это ASCII-only граница слова).
+ * Поэтому границы слов строим через пробелы / начало / конец строки.
+ */
+const CITY_PATTERN = CITIES.slice()
+  .sort((a, b) => b.length - a.length)
+  .map(escapeRegex)
+  .join("|");
+const CITY_REGEX = new RegExp(`(^|\\s)(${CITY_PATTERN})(?=\\s|$|[.,!?])`, "iu");
 
 const ROUTE_KEYWORDS = [
   "как доехать", "как добраться", "как проехать", "как пройти",
   "как попасть", "покажи маршрут", "проложи путь", "проложи маршрут",
-  "построй маршрут", "маршрут от", "дорога до", "сколько ехать",
+  "построй маршрут", "маршрут от", "маршрут из", "дорога до", "сколько ехать",
   "покажи дорогу", "мне нужно попасть", "покажи как ехать",
   "как проехать до", "как доехать до", "как добраться до",
   "how to get", "directions to", "route to", "navigate to",
   "qanday borish", "qanday yetib borish", "marshrut",
 ];
 
+/**
+ * POI-словарь склонений (токен-уровень).
+ * "вокзал*", "цирк*", "жд" НЕ включены сюда намеренно —
+ * они обрабатываются фразовыми правилами PHRASE_RULES,
+ * чтобы не было двойной нормализации.
+ */
 const DECLENSION_MAP: Record<string, string> = {
-  "цирка": "цирк", "цирке": "цирк", "цирку": "цирк", "цирком": "цирк",
-  "вокзала": "вокзал", "вокзале": "вокзал", "вокзалу": "вокзал", "вокзалом": "вокзал",
-  "аэропорта": "аэропорт", "аэропорту": "аэропорт", "аэропорте": "аэропорт",
   "магазина": "магазин", "магазине": "магазин", "магазину": "магазин",
   "больницы": "больница", "больнице": "больница", "больницу": "больница",
   "аптеки": "аптека", "аптеке": "аптека", "аптеку": "аптека",
@@ -52,47 +66,68 @@ const DECLENSION_MAP: Record<string, string> = {
   "завода": "завод", "заводе": "завод", "заводу": "завод",
   "работы": "работа", "работе": "работа", "работу": "работа",
   "дома": "дом", "дому": "дом", "доме": "дом",
-  "метро": "метро",
-  "кафе": "кафе",
   "офиса": "офис", "офисе": "офис",
   "склада": "склад", "складе": "склад",
   "стройки": "стройка", "стройке": "стройка",
 };
 
-function normalizeLocation(loc: string): string {
-  let result = loc.toLowerCase().trim();
-  
-  result = result.replace(/\bжд\b/gi, "железнодорожный вокзал");
-  result = result.replace(/\bж\/д\b/gi, "железнодорожный вокзал");
-  result = result.replace(/железнодорожного вокзала/gi, "железнодорожный вокзал");
-  result = result.replace(/железнодорожном вокзале/gi, "железнодорожный вокзал");
-  
-  result = result.replace(/торгового центра/gi, "торговый центр");
-  result = result.replace(/торговом центре/gi, "торговый центр");
-  result = result.replace(/торгового/gi, "торговый");
-  
-  for (const [key, value] of Object.entries(DECLENSION_MAP)) {
-    const regex = new RegExp(`\\b${key}\\b`, "gi");
-    result = result.replace(regex, value);
+/**
+ * Фразовые POI-правила (Cyrillic-safe, через пробельные границы).
+ * Обязательный словарь из ТЗ:
+ *   "жд"     → "железнодорожный"
+ *   "вокзал" → "железнодорожный вокзал"
+ *   "цирка"  → "цирк"
+ *   "цирку"  → "цирк"
+ */
+const PHRASE_RULES: Array<[RegExp, string]> = [
+  // "жд вокзал(а/у/е)" / "ж/д вокзала" / "ж.д. вокзал" → полное название
+  [/\s(жд|ж\/д|ж\.д\.?)\s+вокзал[\p{L}]*/giu, " железнодорожный вокзал "],
+  // одиночное "жд" → "железнодорожный"
+  [/\s(жд|ж\/д|ж\.д\.?)\s/giu, " железнодорожный "],
+  // одиночный "вокзал" (любое склонение) → "железнодорожный вокзал"
+  [/\sвокзал[\p{L}]*/giu, " железнодорожный вокзал "],
+  // "цирка/цирку/цирке/цирком" → "цирк"
+  [/\sцирк[\p{L}]*/giu, " цирк "],
+  // "торгового центра" → "торговый центр"
+  [/\sторгов[\p{L}]+\s+центр[\p{L}]*/giu, " торговый центр "],
+];
+
+const POI_KEYWORDS = [
+  "цирк", "вокзал", "жд", "аэропорт", "метро", "торговый центр", "больница",
+  "магазин", "аптека", "банк", "кафе", "ресторан", "отель", "школа",
+  "университет", "завод", "работа", "офис", "склад", "стройка",
+  "железнодорожный вокзал",
+];
+
+export function normalizeLocation(loc: string): string {
+  let result = " " + loc.toLowerCase().trim() + " ";
+
+  for (const [re, rep] of PHRASE_RULES) {
+    result = result.replace(re, rep);
   }
-  
+
+  const tokens = result
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => DECLENSION_MAP[w] || w);
+
+  result = tokens.join(" ");
   result = result
-    .replace(/\s+(?:города|г)\s+/gi, " ")
+    .replace(/\s(?:города|г)\s/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  
-  for (const city of CITIES) {
-    result = result.replace(new RegExp(`\\s${city}$`, "i"), "");
-  }
-  
-  return result.trim();
+
+  // Удалить город в конце (страховка, если stripCity пропустил)
+  result = result.replace(CITY_REGEX, " ").replace(/\s+/g, " ").trim();
+
+  return result;
 }
 
-function stripCity(text: string): { text: string; city?: string } {
+export function stripCity(text: string): { text: string; city?: string } {
   const m = text.match(CITY_REGEX);
-  if (m) {
-    const city = m[1];
-    const textWithoutCity = text.replace(CITY_REGEX, "").replace(/\s+/g, " ").trim();
+  if (m && m[2]) {
+    const city = m[2];
+    const textWithoutCity = text.replace(CITY_REGEX, " ").replace(/\s+/g, " ").trim();
     const capitalizedCity = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
     return { text: textWithoutCity, city: capitalizedCity };
   }
@@ -109,68 +144,57 @@ const TO_ONLY_PATTERNS = [
 
 function hasRouteKeyword(text: string): boolean {
   const lower = text.toLowerCase();
-  return ROUTE_KEYWORDS.some(kw => lower.includes(kw));
+  return ROUTE_KEYWORDS.some((kw) => lower.includes(kw));
 }
-
-const POI_KEYWORDS = [
-  "цирк", "вокзал", "аэропорт", "метро", "торговый центр", "больница", "магазин",
-  "аптека", "банк", "кафе", "ресторан", "отель", "школа", "университет", "завод",
-  "работа", "офис", "склад", "стройка", "железнодорожный вокзал",
-];
 
 export function parseRoute(text: string): RouteParseResult {
   const lower = text.toLowerCase().trim();
   const isRoute = hasRouteKeyword(lower);
-  
+
   let city: string | undefined;
-  
+
   for (const pattern of FROM_TO_PATTERNS) {
     const match = lower.match(pattern);
     if (match && match.length >= 3) {
-      let rawFrom = match[1].trim();
-      let rawTo = match[2].trim();
-      
-      const fromResult = stripCity(rawFrom);
-      const toResult = stripCity(rawTo);
-      
+      const fromResult = stripCity(match[1].trim());
+      const toResult = stripCity(match[2].trim());
       city = fromResult.city || toResult.city || stripCity(lower).city;
-      
+
       const from = normalizeLocation(fromResult.text);
       const to = normalizeLocation(toResult.text);
-      
+
       if (from && to) {
-        console.log(`[VAQTA ROUTE] Route parsed:`, { from, to, city });
+        console.log("[NAVIGATION DEBUG] Route parsed:", { from, to, city });
         return { intent: "route", from, to, city, mode: "car" };
       }
     }
   }
-  
+
   if (isRoute) {
     for (const pattern of TO_ONLY_PATTERNS) {
       const match = lower.match(pattern);
       if (match && match.length >= 2) {
-        let rawTo = match[1].trim();
-        const toResult = stripCity(rawTo);
+        const toResult = stripCity(match[1].trim());
         city = toResult.city || stripCity(lower).city;
         const to = normalizeLocation(toResult.text);
-        
+
         if (to) {
-          console.log(`[VAQTA ROUTE] Route (to-only) parsed:`, { to, city });
+          console.log("[NAVIGATION DEBUG] Route (to-only) parsed:", { to, city });
           return { intent: "route", from: undefined, to, city, mode: "car" };
         }
       }
     }
-    
+
     for (const poi of POI_KEYWORDS) {
       if (lower.includes(poi)) {
         const toResult = stripCity(poi);
         city = toResult.city || stripCity(lower).city;
-        console.log(`[VAQTA ROUTE] Route (POI) parsed:`, { to: poi, city });
-        return { intent: "route", from: undefined, to: normalizeLocation(poi), city, mode: "car" };
+        const to = normalizeLocation(toResult.text);
+        console.log("[NAVIGATION DEBUG] Route (POI) parsed:", { to, city });
+        return { intent: "route", from: undefined, to, city, mode: "car" };
       }
     }
   }
-  
-  console.log(`[VAQTA ROUTE] No route detected in: "${text}"`);
+
   return { intent: "unknown" };
 }

@@ -18,21 +18,22 @@ export interface NavigationResult {
   recommendedProvider: NavigationProvider;
   dataSource: string;
   query: string;
+  /** Объекты, которые не удалось найти на карте (чтобы UI показал какой именно) */
+  notFound?: { from?: string; to?: string };
 }
 
 export async function processNavigationQuery(text: string): Promise<NavigationResult | null> {
   const debugId = mapDebug.startQuery(text);
 
+  // 1. ОБЯЗАТЕЛЬНО: сначала Route Parser → FROM / TO / CITY
   const intent = parseNavigationIntent(text);
-  
-  // Обязательный debug лог
-  console.log("[NAV DEBUG]", {
-    query: text,
-    intent: intent.type,
-    from_location: intent.from,
-    to_location: intent.to,
-    city: intent.city
-  });
+
+  console.log("\n[NAVIGATION DEBUG]");
+  console.log("Original Query:", text);
+  console.log("Intent:", intent.type);
+  console.log("FROM:", intent.from || "—");
+  console.log("TO:", intent.to || "—");
+  console.log("CITY:", intent.city || "—");
 
   mapDebug.log(debugId, "Intent Detection", intent);
 
@@ -49,37 +50,37 @@ export async function processNavigationQuery(text: string): Promise<NavigationRe
   let fromPlace: ResolvedPlace | undefined;
   let toPlace: ResolvedPlace | undefined;
   let routeInfo: RouteInfo | null = null;
+  const notFound: { from?: string; to?: string } = {};
 
   if (intent.type === "route" && intent.to) {
-    mapDebug.log(debugId, "Route Parser", {
-      from: intent.from || "current_location",
-      to: intent.to,
-      city: intent.city || "none",
-    });
-
+    // 2. ДВА ОТДЕЛЬНЫХ поисковых запроса: "FROM + CITY" и "TO + CITY"
     if (intent.from) {
-      mapDebug.log(debugId, "POI Search (FROM)", { query: intent.from, city: intent.city });
-      fromPlace = await resolvePlace(intent.from, intent.city) || undefined;
-      mapDebug.log(debugId, "Resolved FROM", fromPlace ? `${fromPlace.name} (${fromPlace.latitude}, ${fromPlace.longitude})` : "Not Found");
+      fromPlace = (await resolvePlace(intent.from, intent.city)) || undefined;
+      if (!fromPlace) notFound.from = intent.from;
     }
 
-    mapDebug.log(debugId, "POI Search (TO)", { query: intent.to, city: intent.city });
-    toPlace = await resolvePlace(intent.to, intent.city) || undefined;
+    toPlace = (await resolvePlace(intent.to, intent.city)) || undefined;
+    if (!toPlace) notFound.to = intent.to;
+
+    console.log("Normalized FROM:", intent.from || "—");
+    console.log("Normalized TO:", intent.to);
+    console.log("2GIS/Yandex Result FROM:", fromPlace ? `${fromPlace.name} [${fromPlace.source}]` : "NOT FOUND");
+    console.log("2GIS/Yandex Result TO:", toPlace ? `${toPlace.name} [${toPlace.source}]` : "NOT FOUND");
+    console.log("Coordinates FROM:", fromPlace ? `${fromPlace.latitude}, ${fromPlace.longitude}` : "—");
+    console.log("Coordinates TO:", toPlace ? `${toPlace.latitude}, ${toPlace.longitude}` : "—");
+
+    mapDebug.log(debugId, "Resolved FROM", fromPlace ? `${fromPlace.name} (${fromPlace.latitude}, ${fromPlace.longitude})` : "Not Found");
     mapDebug.log(debugId, "Resolved TO", toPlace ? `${toPlace.name} (${toPlace.latitude}, ${toPlace.longitude})` : "Not Found");
 
+    // 3. Маршрут строится ТОЛЬКО когда оба объекта найдены
     if (fromPlace && toPlace) {
-      mapDebug.log(debugId, "Route API", `Building from ${fromPlace.name} to ${toPlace.name}`);
       routeInfo = await buildRouteInfo(fromPlace, toPlace, intent.mode || "car");
       if (routeInfo) {
         mapDebug.log(debugId, "Route API Result", {
           distance: `${(routeInfo.distanceMeters / 1000).toFixed(1)} km`,
           duration: `${Math.round(routeInfo.durationSeconds / 60)} min`,
         });
-      } else {
-        mapDebug.log(debugId, "Route API Result", "Failed or null");
       }
-    } else {
-      mapDebug.error(debugId, "Missing places for route");
     }
 
     navigationHistory.add({
@@ -89,8 +90,8 @@ export async function processNavigationQuery(text: string): Promise<NavigationRe
       provider: recommendedProvider,
     });
   } else if ((intent.type === "place_search" || intent.type === "nearby_search") && intent.query) {
-    mapDebug.log(debugId, "Place Search", { query: intent.query, city: intent.city });
-    toPlace = await resolvePlace(intent.query, intent.city) || undefined;
+    toPlace = (await resolvePlace(intent.query, intent.city)) || undefined;
+    if (!toPlace) notFound.to = intent.query;
     mapDebug.log(debugId, "Resolved Place", toPlace ? `${toPlace.name} (${toPlace.latitude}, ${toPlace.longitude})` : "Not Found");
   }
 
@@ -105,6 +106,8 @@ export async function processNavigationQuery(text: string): Promise<NavigationRe
 
   mapDebug.endQuery(debugId);
 
+  const hasNotFound = Boolean(notFound.from || notFound.to);
+
   return {
     intent,
     fromPlace,
@@ -115,9 +118,10 @@ export async function processNavigationQuery(text: string): Promise<NavigationRe
     recommendedProvider,
     dataSource,
     query: text,
+    ...(hasNotFound ? { notFound } : {}),
   };
 }
 
 export { parseNavigationIntent, type NavigationIntent };
 export { resolvePlace, type ResolvedPlace };
-export { navigationHistory, type RouteHistoryEntry };
+export { navigationHistory };

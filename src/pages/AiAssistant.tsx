@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Send, Bot, Mic, MapPin, Copy, Volume2, Share2, Bookmark, Check, 
-  Ticket, Train, Plane, Navigation, Camera, Sparkles, ChevronRight, Briefcase
+  Ticket, Train, Plane, Navigation, Camera, Sparkles, ChevronRight, Briefcase, AlertCircle
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
@@ -29,6 +29,33 @@ import { useNavigate } from "react-router-dom";
 function formatTime(d: Date) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+
+const NAV_NOT_FOUND_TEXT: Record<string, { title: string; from: string; to: string; hint: string }> = {
+  ru: {
+    title: "Не удалось найти на карте",
+    from: "Откуда",
+    to: "Куда",
+    hint: "Уточните название объекта или добавьте город.",
+  },
+  uz_lat: {
+    title: "Xaritadan topilmadi",
+    from: "Qayerdan",
+    to: "Qayerga",
+    hint: "Obyekt nomini aniqlashtiring yoki shaharni qo'shing.",
+  },
+  uz_cyr: {
+    title: "Харитадан топилмади",
+    from: "Қаердан",
+    to: "Қаерга",
+    hint: "Объект номини аниқлаштиринг ёки шаҳарни қўшинг.",
+  },
+  en: {
+    title: "Could not find on the map",
+    from: "From",
+    to: "To",
+    hint: "Please clarify the place name or add a city.",
+  },
+};
 
 const MessageActions = memo(function MessageActions({ content, isUser }: { content: string; isUser?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -113,6 +140,8 @@ export default function AiAssistant() {
 
   const voice = useVoiceAssistant({ autoSendToAI: true });
 
+  const notFoundText = NAV_NOT_FOUND_TEXT[language] || NAV_NOT_FOUND_TEXT.ru;
+
   const handleVoiceTranscript = (text: string) => {
     voiceDebug.log("Voice Transcript Received", { text });
     
@@ -170,7 +199,7 @@ export default function AiAssistant() {
     { icon: Ticket, label: "🎫 Билет", color: "text-[#D4AF37]", cmd: "Купить билет Москва Ташкент" },
     { icon: Train, label: "🚆 Поезд", color: "text-blue-400", cmd: "Купить жд билет" },
     { icon: Plane, label: "✈️ Самолёт", color: "text-cyan-400", cmd: "Купить авиабилет" },
-    { icon: Navigation, label: "🗺 Маршрут", color: "text-purple-400", cmd: "Как доехать от цирка до жд вокзала Тюмени" },
+    { icon: Navigation, label: "🗺 Маршрут", color: "text-purple-400", cmd: "Как доехать от жд вокзала Тюмень до цирка" },
     { icon: Camera, label: "📷 Фото", color: "text-pink-400", cmd: "Перевести фото" },
     { icon: MapPin, label: "📍 Адрес", color: "text-orange-400", cmd: "Найди ближайший магазин" },
     { icon: Briefcase, label: "💼 Работа", color: "text-[#0AA86E]", cmd: "Найти работу сварщиком" },
@@ -258,18 +287,38 @@ export default function AiAssistant() {
                     />
                   )}
 
-                  {nav?.intent.type === "route" && (
+                  {nav?.intent.type === "route" && nav.toPlace && (!nav.intent.from || nav.fromPlace) && (
                     <div className="mt-2">
                       <RouteCard
                         fromName={nav.fromPlace?.name || nav.intent.from || "Моё местоположение"}
                         fromCoords={nav.fromPlace ? { lat: nav.fromPlace.latitude, lon: nav.fromPlace.longitude } : undefined}
-                        toName={nav.toPlace?.name || nav.intent.to || ""}
-                        toCoords={nav.toPlace ? { lat: nav.toPlace.latitude, lon: nav.toPlace.longitude } : undefined}
+                        toName={nav.toPlace.name}
+                        toCoords={{ lat: nav.toPlace.latitude, lon: nav.toPlace.longitude }}
                         distance={nav.formattedDistance}
                         duration={nav.formattedDuration}
                         mode={nav.intent.mode}
                         city={nav.intent.city}
                       />
+                    </div>
+                  )}
+
+                  {nav?.notFound && (nav.notFound.from || nav.notFound.to) && (
+                    <div className="mt-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+                      <div className="flex items-center gap-2 text-amber-300 text-[11px] font-black uppercase tracking-wider">
+                        <AlertCircle size={13} />
+                        {notFoundText.title}
+                      </div>
+                      {nav.notFound.from && (
+                        <p className="text-[11px] text-amber-200">
+                          • {notFoundText.from}: «{nav.notFound.from}»
+                        </p>
+                      )}
+                      {nav.notFound.to && (
+                        <p className="text-[11px] text-amber-200">
+                          • {notFoundText.to}: «{nav.notFound.to}»
+                        </p>
+                      )}
+                      <p className="text-[10px] text-amber-200/70">{notFoundText.hint}</p>
                     </div>
                   )}
 

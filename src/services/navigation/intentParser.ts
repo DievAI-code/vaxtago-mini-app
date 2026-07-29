@@ -25,12 +25,15 @@ const NAV_OPEN_PATTERNS = [
   /открой карту|запусти навигатор|открой навигатор|open map|start navigation/i,
 ];
 
-const CITY_REGEX = /(тюмень|москва|санкт-петербург|спб|казань|екатеринбург|новосибирск|ташкент|самарканд|сургут|нижневартовск|тобольск|ишим|алматы|астана)/i;
+// \b не работает с кириллицей — используем пробельные границы
+const CITY_LIST =
+  "тюмень|москва|санкт-петербург|спб|казань|екатеринбург|новосибирск|ташкент|самарканд|сургут|нижневартовск|тобольск|ишим|алматы|астана";
+const CITY_REGEX = new RegExp(`(^|\\s)(${CITY_LIST})(?=\\s|$|[.,!?])`, "iu");
 
 function extractCity(text: string): string | undefined {
   const m = text.match(CITY_REGEX);
-  if (m) {
-    return m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+  if (m && m[2]) {
+    return m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase();
   }
   return undefined;
 }
@@ -47,11 +50,7 @@ function extractQuery(text: string): string | undefined {
     result = result.replace(new RegExp(p, "gi"), "");
   }
 
-  const cityMatch = result.match(CITY_REGEX);
-  if (cityMatch) {
-    result = result.replace(cityMatch[0], "");
-  }
-
+  result = result.replace(CITY_REGEX, "");
   result = result.replace(/[?.,!]/g, "").replace(/\s+/g, " ").trim();
   return result.length > 1 ? result : undefined;
 }
@@ -59,12 +58,11 @@ function extractQuery(text: string): string | undefined {
 export function parseNavigationIntent(text: string): NavigationIntent {
   const lower = text.toLowerCase().trim();
 
-  // 1. Check navigation open
   if (NAV_OPEN_PATTERNS.some((p) => p.test(lower))) {
     return { type: "navigation_open", query: extractQuery(lower) };
   }
 
-  // 2. Use the new route parser for route detection
+  // Route Parser запускается обязательно ПЕРЕД поиском
   const routeResult = parseRoute(text);
   if (routeResult.intent === "route") {
     return {
@@ -76,7 +74,6 @@ export function parseNavigationIntent(text: string): NavigationIntent {
     };
   }
 
-  // 3. Check nearby search
   if (NEARBY_PATTERNS.some((p) => p.test(lower))) {
     return {
       type: "nearby_search",
@@ -85,7 +82,6 @@ export function parseNavigationIntent(text: string): NavigationIntent {
     };
   }
 
-  // 4. Check place search
   if (PLACE_SEARCH_PATTERNS.some((p) => p.test(lower))) {
     return {
       type: "place_search",

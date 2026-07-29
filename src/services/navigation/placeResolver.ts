@@ -17,63 +17,58 @@ export interface ResolvedPlace {
   source: "2gis" | "yandex" | "osm";
 }
 
+/**
+ * Ищет ОДИН объект (FROM или TO).
+ * Поиск выполняется отдельным запросом "объект + город" —
+ * НИКОГДА не ищет всю строку запроса целиком.
+ */
 export async function resolvePlace(
   query: string,
   city?: string
 ): Promise<ResolvedPlace | null> {
   if (!query || !query.trim()) return null;
-  
-  const resolvedQuery = resolvePOI(query, city);
-  console.log(`[VAQTA ROUTE] Resolving place: query="${query}", resolved="${resolvedQuery}", city="${city || "none"}"`);
 
-  // 1. Try 2GIS first (best for organizations)
-  console.log(`[VAQTA ROUTE] Trying 2GIS for: "${resolvedQuery}"`);
+  const resolvedQuery = resolvePOI(query, city);
+  console.log(`[NAVIGATION DEBUG] POI resolve: "${query}" → "${resolvedQuery}" (city: ${city || "—"})`);
+
+  // 1. 2GIS Places API — лучший для организаций
   const gis2Results = await gis2Provider.search(resolvedQuery, city);
+  console.log(`[NAVIGATION DEBUG] 2GIS Result "${resolvedQuery}${city ? " " + city : ""}": ${gis2Results.length} item(s)`);
   if (gis2Results.length > 0) {
-    console.log(`[VAQTA ROUTE] Found via 2GIS:`, gis2Results[0].name);
     return mapToResolvedPlace(gis2Results[0]);
   }
 
-  // 2. Fallback to Yandex (better for addresses)
-  console.log(`[VAQTA ROUTE] Trying Yandex for: "${resolvedQuery}"`);
+  // 2. Yandex Search API (OSM) — лучший для адресов
   const yandexResults = await yandexProvider.search(resolvedQuery, city);
+  console.log(`[NAVIGATION DEBUG] Yandex Result "${resolvedQuery}${city ? " " + city : ""}": ${yandexResults.length} item(s)`);
   if (yandexResults.length > 0) {
-    console.log(`[VAQTA ROUTE] Found via Yandex:`, yandexResults[0].name);
     return mapToResolvedPlace(yandexResults[0]);
   }
 
-  // 3. Fallback to raw query (without POI resolution)
+  // 3. Fallback — исходный запрос без POI-расширения
   if (query !== resolvedQuery) {
-    console.log(`[VAQTA ROUTE] Trying raw query: "${query}"`);
-    const rawGis2Results = await gis2Provider.search(query, city);
-    if (rawGis2Results.length > 0) {
-      console.log(`[VAQTA ROUTE] Found via 2GIS (raw):`, rawGis2Results[0].name);
-      return mapToResolvedPlace(rawGis2Results[0]);
-    }
-    const rawYandexResults = await yandexProvider.search(query, city);
-    if (rawYandexResults.length > 0) {
-      console.log(`[VAQTA ROUTE] Found via Yandex (raw):`, rawYandexResults[0].name);
-      return mapToResolvedPlace(rawYandexResults[0]);
-    }
+    const rawGis2 = await gis2Provider.search(query, city);
+    console.log(`[NAVIGATION DEBUG] 2GIS Result (raw) "${query}": ${rawGis2.length} item(s)`);
+    if (rawGis2.length > 0) return mapToResolvedPlace(rawGis2[0]);
+
+    const rawYandex = await yandexProvider.search(query, city);
+    console.log(`[NAVIGATION DEBUG] Yandex Result (raw) "${query}": ${rawYandex.length} item(s)`);
+    if (rawYandex.length > 0) return mapToResolvedPlace(rawYandexResults[0]);
   }
 
-  // 4. Last resort: search with city appended directly to query
+  // 4. Fallback — явная склейка "объект город"
   if (city) {
     const combinedQuery = `${query} ${city}`;
-    console.log(`[VAQTA ROUTE] Trying combined query: "${combinedQuery}"`);
     const combinedYandex = await yandexProvider.search(combinedQuery, undefined);
-    if (combinedYandex.length > 0) {
-      console.log(`[VAQTA ROUTE] Found via Yandex (combined):`, combinedYandex[0].name);
-      return mapToResolvedPlace(combinedYandex[0]);
-    }
+    console.log(`[NAVIGATION DEBUG] Yandex Result (combined) "${combinedQuery}": ${combinedYandex.length} item(s)`);
+    if (combinedYandex.length > 0) return mapToResolvedPlace(combinedYandex[0]);
+
     const combinedGis2 = await gis2Provider.search(combinedQuery, undefined);
-    if (combinedGis2.length > 0) {
-      console.log(`[VAQTA ROUTE] Found via 2GIS (combined):`, combinedGis2[0].name);
-      return mapToResolvedPlace(combinedGis2[0]);
-    }
+    console.log(`[NAVIGATION DEBUG] 2GIS Result (combined) "${combinedQuery}": ${combinedGis2.length} item(s)`);
+    if (combinedGis2.length > 0) return mapToResolvedPlace(combinedGis2[0]);
   }
 
-  console.warn(`[VAQTA ROUTE] Place not found: "${query}" in "${city || "any"}"`);
+  console.warn(`[NAVIGATION DEBUG] NOT FOUND: "${query}" (city: ${city || "—"})`);
   return null;
 }
 
