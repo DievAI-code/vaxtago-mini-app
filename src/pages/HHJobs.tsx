@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { AlertCircle, Briefcase, Loader2, LogIn } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { AlertCircle, Briefcase, Loader2, LogIn, CheckCircle2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { SideMenu } from "@/components/SideMenu";
 import { BottomNav } from "@/components/BottomNav";
@@ -9,7 +9,7 @@ import { HHFilters, type HHFilterValues } from "@/components/hh/HHFilters";
 import { VacancyCard } from "@/components/hh/VacancyCard";
 import { useHH } from "@/hooks/useHH";
 import { useLanguage } from "@/context/LanguageProvider";
-import { getHHAuthUrl } from "@/services/hh/hhAuth";
+import { getHHAuthUrl, loginWithHH, parseHHCallback, verifyOAuthState, exchangeCodeForToken, isHHAuthenticated, logoutHH } from "@/services/hh/hhAuth";
 import { toast } from "sonner";
 
 const DEFAULT_FILTERS: HHFilterValues = {
@@ -26,7 +26,29 @@ export default function HHJobs() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [filters, setFilters] = useState<HHFilterValues>(DEFAULT_FILTERS);
   const [searched, setSearched] = useState(false);
-  const { vacancies, loading, error, found, hasMore, search, loadMore } = useHH();
+  const { vacancies, loading, error, found, hasMore, authRequired, search, loadMore } = useHH();
+
+  // Обработка OAuth callback при возврате с hh.ru
+  useEffect(() => {
+    const { code, state } = parseHHCallback(window.location.search);
+    if (!code) return;
+
+    if (!verifyOAuthState(state)) {
+      toast.error("Ошибка безопасности OAuth. Попробуйте войти снова.");
+      window.history.replaceState({}, "", "/hh");
+      return;
+    }
+
+    (async () => {
+      const result = await exchangeCodeForToken(code);
+      if (result.success) {
+        toast.success("Вы успешно вошли через HH.ru");
+      } else {
+        toast.error(result.error || "Ошибка входа через HH.ru");
+      }
+      window.history.replaceState({}, "", "/hh");
+    })();
+  }, []);
 
   const runSearch = useCallback(() => {
     const text = [filters.text, filters.city]
@@ -52,6 +74,7 @@ export default function HHJobs() {
   const handleReset = useCallback(() => setFilters(DEFAULT_FILTERS), []);
 
   const authUrl = getHHAuthUrl();
+  const authenticated = isHHAuthenticated();
 
   return (
     <div className="flex flex-col min-h-screen bg-[#06140F] text-white pb-32">
@@ -59,6 +82,46 @@ export default function HHJobs() {
       <SideMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <main className="px-4 sm:px-5 pt-3 space-y-4 flex-1">
+        <div className="vaqta-glass p-4 border-[#1A3D2E] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {authenticated ? (
+              <>
+                <CheckCircle2 size={20} className="text-[#0AA86E]" />
+                <div>
+                  <p className="text-xs font-bold text-[#0AA86E]">Вы вошли через HH.ru</p>
+                  <p className="text-[10px] text-[#5C7A6D]">Токен действителен</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <LogIn size={20} className="text-[#D5000D]" />
+                <div>
+                  <p className="text-xs font-bold text-white">Авторизация HH.ru</p>
+                  <p className="text-[10px] text-[#5C7A6D]">Для доступа к API нужен вход</p>
+                </div>
+              </>
+            )}
+          </div>
+          {!authenticated ? (
+            <button
+              onClick={loginWithHH}
+              className="px-4 h-10 bg-[#D5000D] text-white rounded-xl text-[10px] font-black uppercase tracking-wider active:scale-95 transition-transform"
+            >
+              {t("hh.login_hh")}
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                logoutHH();
+                toast.info("Вы вышли из HH.ru");
+              }}
+              className="px-4 h-10 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider active:scale-95 transition-transform text-slate-300"
+            >
+              Выйти
+            </button>
+          )}
+        </div>
+
         <HHFilters
           values={filters}
           loading={loading}
@@ -83,10 +146,14 @@ export default function HHJobs() {
             <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
               <AlertCircle size={16} className="text-amber-400 flex-shrink-0" />
               <span>
-                {error === "API_NOT_CONNECTED" ? t("hh.api_not_connected") : t("hh.error")}
+                {authRequired
+                  ? t("hh.login_hh")
+                  : error === "API_NOT_CONNECTED"
+                  ? t("hh.api_not_connected")
+                  : t("hh.error")}
               </span>
             </div>
-            {authUrl && (
+            {authRequired && authUrl && (
               <a
                 href={authUrl}
                 target="_blank"

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Loader2, Briefcase, AlertCircle, LogIn } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { useHH } from "@/hooks/useHH";
-import { getHHAuthUrl } from "@/services/hh/hhAuth";
+import { getHHAuthUrl, loginWithHH } from "@/services/hh/hhAuth";
 import { VacancyCard } from "./VacancyCard";
 
 interface VacancyListProps {
@@ -15,7 +15,7 @@ interface VacancyListProps {
 
 export function VacancyList({ query, city, perPage = 5 }: VacancyListProps) {
   const { t } = useLanguage();
-  const { vacancies, loading, error, found, hasMore, search, loadMore } = useHH();
+  const { vacancies, loading, error, found, hasMore, authRequired, search, loadMore } = useHH();
 
   useEffect(() => {
     const text = [query, city].filter(Boolean).join(" ").trim();
@@ -43,12 +43,14 @@ export function VacancyList({ query, city, perPage = 5 }: VacancyListProps) {
         <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
           <AlertCircle size={16} className="text-amber-400 flex-shrink-0" />
           <span>
-            {error === "API_NOT_CONNECTED"
+            {authRequired
+              ? t("hh.login_hh")
+              : error === "API_NOT_CONNECTED"
               ? t("hh.api_not_connected")
               : t("hh.error")}
           </span>
         </div>
-        {authUrl && (
+        {authRequired && authUrl && (
           <a
             href={authUrl}
             target="_blank"
