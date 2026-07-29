@@ -3,8 +3,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  X, Sparkles, Camera, Briefcase, Crown, Settings as SettingsIcon,
-  Home as HomeIcon, MapPin, UserCircle, Calendar, ShieldAlert
+  X, Camera, Briefcase, Crown, Settings as SettingsIcon,
+  Home as HomeIcon, MapPin, UserCircle, Calendar, ShieldAlert, Building2
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageProvider";
 import { VaqtaLogo } from "./VaqtaLogo";
@@ -24,6 +24,7 @@ export function SideMenu({ isOpen, onClose }: SideMenuProps) {
     { path: "/home", icon: HomeIcon, label: "nav.home" },
     { path: "/scanner", icon: Camera, label: "nav.scanner" },
     { path: "/jobs-test", icon: Briefcase, label: "nav.jobs" },
+    { path: "/hh", icon: Building2, label: "nav.hh_jobs" },
     { path: "/maps", icon: MapPin, label: "nav.map" },
     { path: "/cabinet", icon: UserCircle, label: "nav.profile" },
     { path: "/tracker", icon: Calendar, label: "nav.tracker" },

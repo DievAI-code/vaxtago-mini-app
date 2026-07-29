@@ -75,6 +75,8 @@ export interface HHSearchParams {
   experience?: string;
   employment?: string;
   schedule?: string;
+  salary?: number;
+  only_with_salary?: boolean;
   page?: number;
   per_page?: number;
 }

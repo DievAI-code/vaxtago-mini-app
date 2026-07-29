@@ -17,6 +17,7 @@ import "@/i18n";
 const Home = lazy(() => import("./pages/Home"));
 const AiAssistant = lazy(() => import("./pages/AiAssistant"));
 const JobsTest = lazy(() => import("./pages/JobsTest"));
+const HHJobs = lazy(() => import("./pages/HHJobs"));
 const Maps = lazy(() => import("./pages/Maps"));
 const MyCabinet = lazy(() => import("./pages/MyCabinet"));
 const Scanner = lazy(() => import("./pages/Scanner"));
@@ -61,6 +62,7 @@ const AnimatedRoutes = () => {
           <Route path="/ocr" element={<OcrTranslator />} />
           <Route path="/jobs" element={<JobsTest />} />
           <Route path="/jobs-test" element={<JobsTest />} />
+          <Route path="/hh" element={<HHJobs />} />
           <Route path="/maps" element={<Maps />} />
           <Route path="/map" element={<Maps />} />
           <Route path="/cabinet" element={<MyCabinet />} />

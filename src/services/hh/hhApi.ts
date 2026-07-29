@@ -44,6 +44,8 @@ export const hhApi = {
       experience: params.experience,
       employment: params.employment,
       schedule: params.schedule,
+      salary: params.salary,
+      only_with_salary: params.only_with_salary ? "true" : undefined,
       page: params.page ?? 0,
       per_page: params.per_page ?? 10,
     });
